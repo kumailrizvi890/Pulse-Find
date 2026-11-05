@@ -6,8 +6,8 @@
 
 <p align="center">
   A job application tracker that tells you what's waiting on you.<br />
-  <a href="https://pulse-find.vercel.app"><b>Live site</b></a> ·
-  <a href="https://pulse-find.vercel.app/demo"><b>Try the demo</b></a> (no sign-up)
+  <a href="https://pulsefind-app.vercel.app"><b>Live site</b></a> ·
+  <a href="https://pulsefind-app.vercel.app/demo"><b>Try the demo</b></a> (no sign-up)
 </p>
 
 <p align="center">

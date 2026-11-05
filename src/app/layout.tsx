@@ -12,7 +12,7 @@ const bricolage = localFont({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pulse-find.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://pulsefind-app.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

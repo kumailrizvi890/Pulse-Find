@@ -29,7 +29,7 @@ function greeting(name: string | null) {
   return name ? `${part}, ${name}` : part;
 }
 
-export function Dashboard({ store, banner }: { store: TrackerStore; banner?: ReactNode }) {
+export function Dashboard({ store, banner, headerActions, extras }: { store: TrackerStore; banner?: ReactNode; headerActions?: ReactNode; extras?: ReactNode }) {
   const [apps, setApps] = useState<Application[]>([]);
   const [events, setEvents] = useState<TrackerEvent[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -177,6 +177,7 @@ export function Dashboard({ store, banner }: { store: TrackerStore; banner?: Rea
         </div>
         <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
+          {headerActions}
           <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import CSV</button>
           <ExportMenu onXlsx={exportXlsx} onCsv={() => download(`pulse-find-${today}.csv`, toCsv(sortForTable(apps)), "text/csv")} disabled={!apps.length} />
           <button className={btn.ghost} onClick={() => setSettingsOpen(true)} aria-label="Settings">Settings</button>
@@ -184,6 +185,7 @@ export function Dashboard({ store, banner }: { store: TrackerStore; banner?: Rea
       </div>
 
       {!loading && apps.length === 0 ? (
+        <>
         <Panel title="Start your tracker">
           <p className="max-w-prose text-sm text-muted">
             Add the applications you&apos;ve already sent, or import the spreadsheet you&apos;ve been keeping. Pulse Find keeps track of who went quiet and what&apos;s waiting on you.
@@ -193,6 +195,8 @@ export function Dashboard({ store, banner }: { store: TrackerStore; banner?: Rea
             <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import a CSV</button>
           </div>
         </Panel>
+        {extras}
+        </>
       ) : (
         <>
           <Panel
@@ -229,6 +233,8 @@ export function Dashboard({ store, banner }: { store: TrackerStore; banner?: Rea
               </ul>
             )}
           </Panel>
+
+          {extras}
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Stat label="This week" value={`${sum.thisWeek}`} sub={`/ ${settings.weekly_goal} goal`} bar={weekPct} loading={loading} />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GitHubLink, TopBar, navLink } from "@/components/TopBar";
 import { HeroPreview } from "@/components/HeroPreview";
 import { PulseMark } from "@/components/Logo";
+import { env } from "@/lib/env";
 
 const primary =
   "inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink shadow-panel transition hover:brightness-110";
@@ -10,7 +11,26 @@ const secondary =
 
 export const revalidate = 3600; // keep the sample dates in the hero current
 
-export default function Home() {
+type Opening = { company: string; title: string; location: string; url: string };
+
+/** Live count and a few of the newest tech internships, cached with the page (hourly). */
+async function latestInternships(): Promise<{ total: number | null; jobs: Opening[] }> {
+  if (!env.supabaseUrl || !env.supabaseKey) return { total: null, jobs: [] };
+  try {
+    const res = await fetch(
+      `${env.supabaseUrl}/rest/v1/jobs?select=company,title,location,url&active=eq.true&track=eq.Internship&tech=eq.true&order=posted_at.desc.nullslast&limit=4`,
+      { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" }, signal: AbortSignal.timeout(4000) },
+    );
+    if (!res.ok) return { total: null, jobs: [] };
+    const total = Number(res.headers.get("content-range")?.split("/")[1]);
+    return { total: Number.isFinite(total) ? total : null, jobs: (await res.json()) as Opening[] };
+  } catch {
+    return { total: null, jobs: [] };
+  }
+}
+
+export default async function Home() {
+  const openings = await latestInternships();
   return (
     <>
       <TopBar
@@ -39,8 +59,9 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/demo" className={primary}>Try the live demo</Link>
               <Link href="/login?mode=signup" className={secondary}>Create a free tracker</Link>
+              <Link href="/jobs" className={secondary}>Find internships</Link>
             </div>
-            <p className="mt-4 text-sm text-faint">No sign-up needed for the demo. Your real tracker is private to you.</p>
+            <p className="mt-4 text-sm text-faint">No sign-up needed for the demo or the job board. Your real tracker is private to you.</p>
           </div>
           <HeroPreview />
         </section>
@@ -68,7 +89,36 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-10 py-16 md:grid-cols-2">
+        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">Job finder</p>
+            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">
+              {openings.total ? `${openings.total} tech internships open right now` : "Find internships and new-grad roles"}
+            </h2>
+            <p className="mt-3 max-w-[56ch] text-muted">
+              Pulled straight from the career pages of 50+ companies every 6 hours, so there are no reposts or stale listings. Filter by internship,
+              new grad, remote or tech only, and mark a role as applied to drop it straight into your tracker.
+            </p>
+            <div className="mt-6">
+              <Link href="/jobs" className={primary}>Browse open roles</Link>
+            </div>
+          </div>
+          {openings.jobs.length > 0 && (
+          <ul className="min-w-0 divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-panel">
+            {openings.jobs.map((j) => (
+              <li key={j.url + j.title} className="flex items-center justify-between gap-3 py-3.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{j.title}</p>
+                  <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
+                </div>
+                <Link href="/jobs" className="shrink-0 text-xs font-semibold text-accent">View</Link>
+              </li>
+            ))}
+          </ul>
+          )}
+        </section>
+
+        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-10 border-t border-line py-16 md:grid-cols-2">
           <div className="min-w-0">
             <h2 className="font-display text-3xl font-extrabold tracking-tight">Bring the spreadsheet you already have</h2>
             <p className="mt-3 max-w-[56ch] text-muted">

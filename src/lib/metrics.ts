@@ -35,19 +35,9 @@ export function weekStart(s: ISODate): ISODate {
 
 // ---------- classification ----------
 
-const TECH_KEYWORDS = [
-  "software", "engineer", "developer", "programmer", "computer", "sde", "swe", "data", "machine learning", "ml ", " ml",
-  " ai", "ai ", "ai/", "cyber", "security engineer", "devops", "cloud", "backend", "back end",
-  "back-end", "frontend", "front end", "front-end", "full stack", "full-stack", "fullstack",
-  "product manager", "it support", "qa ", "test engineer", "mobile", "ios", "android", "web",
-  "technology", "tech ",
-];
-
-/** True when the role title reads like a tech role. Padded so edge words like "AI" match. */
-export function isTechRole(role: string): boolean {
-  const r = ` ${role.toLowerCase()} `;
-  return TECH_KEYWORDS.some((k) => r.includes(k));
-}
+// Shared with the job refresh function so tracker and job feed tag tech roles the same way.
+export { isTechRole } from "../../supabase/functions/_shared/jobs";
+import { isTechRole } from "../../supabase/functions/_shared/jobs";
 
 export const CLOSED: readonly Status[] = ["Rejected", "Offer", "Accepted", "Withdrawn"];
 export const OA_STAGE: readonly Status[] = ["OA Received", "OA Completed"];

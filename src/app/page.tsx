@@ -16,6 +16,7 @@ export default function Home() {
       <TopBar
         right={
           <>
+            <Link href="/jobs" className={navLink}>Jobs</Link>
             <Link href="/demo" className={navLink}>Demo</Link>
             <GitHubLink />
             <Link href="/login" className={navLink}>Sign in</Link>
@@ -96,6 +97,7 @@ export default function Home() {
             </Link>
           </p>
           <nav className="flex gap-4">
+            <Link href="/jobs" className="hover:text-ink">Jobs</Link>
             <Link href="/demo" className="hover:text-ink">Demo</Link>
             <Link href="https://github.com/kumailrizvi890/Pulse-Find" className="hover:text-ink" target="_blank" rel="noopener">GitHub</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>

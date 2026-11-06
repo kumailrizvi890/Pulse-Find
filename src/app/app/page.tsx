@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,7 @@ export default async function AppPage() {
         home="/app"
         right={
           <>
+            <Link href="/jobs" className={navLink}>Find jobs</Link>
             <span className="hidden max-w-[220px] truncate px-2 text-xs text-faint sm:inline">{data.user.email}</span>
             <form action="/auth/signout" method="post">
               <button className={navLink}>Sign out</button>

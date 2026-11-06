@@ -20,6 +20,7 @@ export default async function AppPage() {
         right={
           <>
             <Link href="/jobs" className={navLink}>Find jobs</Link>
+            <Link href="/app/connect" className={navLink}>Connect agent</Link>
             <span className="hidden max-w-[220px] truncate px-2 text-xs text-faint sm:inline">{data.user.email}</span>
             <form action="/auth/signout" method="post">
               <button className={navLink}>Sign out</button>

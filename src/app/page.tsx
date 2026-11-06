@@ -82,9 +82,33 @@ export default function Home() {
               Your applications are tied to your account and the database enforces it: no one else&apos;s request can read your rows. No ads, no
               trackers. <Link href="/privacy" className="text-accent underline underline-offset-2">Read the privacy page</Link>.
             </p>
-            <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-              <b className="text-ink">Coming next:</b> forward job emails to a personal Pulse Find address and they&apos;ll update your tracker automatically.
-            </p>
+          </div>
+        </section>
+
+        <section className="border-t border-line bg-surface">
+          <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">MCP server</p>
+              <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Let your own AI agent keep it current</h2>
+              <p className="mt-3 max-w-[56ch] text-muted">
+                Connect Claude, Cursor, Copilot or any MCP client with an access token. Your agent reads job email with its own tools and Pulse Find
+                turns each one into the right update: assessment deadlines, interview invites, rejections, offers, plus a check for fake job
+                offers. Pulse Find never sees your inbox and never sends anything.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/app/connect" className={primary}>Connect your agent</Link>
+                <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it</Link>
+              </div>
+            </div>
+            <pre className="min-w-0 overflow-x-auto rounded-2xl border border-line bg-bg p-4 font-mono text-[12.5px] leading-relaxed text-muted">
+              <span className="text-faint">$ </span>claude mcp add --transport http pulse-find \{"\n"}
+              {"    "}https://pulsefind-app.vercel.app/api/mcp \{"\n"}
+              {"    "}--header &quot;Authorization: Bearer pf_…&quot;{"\n\n"}
+              <span className="text-ink">&gt; Scan my email from the last week and update Pulse Find.</span>{"\n\n"}
+              <span className="text-good">✓</span> Roblox · OA received · due Nov 11{"\n"}
+              <span className="text-good">✓</span> Ramp · new application{"\n"}
+              <span className="text-danger">!</span> &quot;Global Corp&quot; · likely a fake job offer, nothing added
+            </pre>
           </div>
         </section>
       </main>
@@ -98,6 +122,7 @@ export default function Home() {
           </p>
           <nav className="flex gap-4">
             <Link href="/jobs" className="hover:text-ink">Jobs</Link>
+            <Link href="/app/connect" className="hover:text-ink">Agents</Link>
             <Link href="/demo" className="hover:text-ink">Demo</Link>
             <Link href="https://github.com/kumailrizvi890/Pulse-Find" className="hover:text-ink" target="_blank" rel="noopener">GitHub</Link>
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>

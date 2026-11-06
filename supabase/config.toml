@@ -1,0 +1,9 @@
+# Minimal Supabase CLI config. Only the settings Pulse Find depends on are listed.
+project_id = "pulse-find"
+
+[functions.mcp]
+# The MCP server checks its own personal access tokens (pf_...), not Supabase JWTs.
+verify_jwt = false
+
+[functions.refresh-jobs]
+verify_jwt = true

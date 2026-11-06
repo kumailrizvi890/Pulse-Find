@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
+import { SwipeDeck } from "./SwipeDeck";
 
 type Job = {
   id: string;
@@ -19,6 +20,20 @@ type Job = {
   posted_at: string | null;
 };
 type TrackFilter = "Internship" | "New Grad" | "all";
+type Mark = "saved" | "applied" | "hidden";
+
+// Signed-out visitors can still swipe; their picks live in this browser only.
+const LOCAL_KEY = "pf_job_picks_v1";
+function readLocal(): { marks: Record<string, Mark>; saved: Record<string, Job> } {
+  try {
+    const v = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "null");
+    if (v && typeof v === "object" && v.marks && v.saved) return v;
+  } catch {}
+  return { marks: {}, saved: {} };
+}
+function writeLocal(marks: Record<string, Mark>, saved: Record<string, Job>) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ marks, saved })); } catch {}
+}
 
 const PAGE = 40;
 const COLS = "id,company,title,location,remote,url,track,tech,posted_at";
@@ -43,7 +58,10 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [total, setTotal] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
-  const [marks, setMarks] = useState<Record<string, "saved" | "applied" | "hidden">>({});
+  const [marks, setMarks] = useState<Record<string, Mark>>({});
+  const [saved, setSaved] = useState<Record<string, Job>>({});
+  const [history, setHistory] = useState<{ job: Job; prev: Mark | undefined }[]>([]);
+  const [view, setView] = useState<"swipe" | "list">("swipe");
   const [meta, setMeta] = useState<{ companies: number; refreshed: string | null }>({ companies: 0, refreshed: null });
   const { toast, toastNode } = useToast();
 
@@ -63,10 +81,23 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       if (alive) setMeta({ companies: b.count ?? 0, refreshed: (r.data as { finished_at: string } | null)?.finished_at ?? null });
     });
     if (userId) {
-      supabase.from("saved_jobs").select("job_id,state").then(({ data }) => {
-        if (alive && data) setMarks(Object.fromEntries(data.map((d) => [d.job_id, d.state])));
+      supabase.from("saved_jobs").select(`job_id,state,jobs(${COLS})`).then(({ data }) => {
+        if (!alive || !data) return;
+        const rows = data as unknown as { job_id: string; state: Mark; jobs: Job | null }[];
+        setMarks(Object.fromEntries(rows.map((d) => [d.job_id, d.state])));
+        setSaved(Object.fromEntries(rows.filter((d) => d.state === "saved" && d.jobs).map((d) => [d.job_id, d.jobs!])));
+      });
+    } else {
+      Promise.resolve().then(() => {
+        if (!alive) return;
+        const local = readLocal();
+        setMarks(local.marks);
+        setSaved(local.saved);
       });
     }
+    Promise.resolve().then(() => {
+      try { if (alive && localStorage.getItem("pf_jobs_view") === "list") setView("list"); } catch {}
+    });
     return () => { alive = false; };
   }, [supabase, userId]);
 
@@ -97,23 +128,70 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   // any filter change starts from page 0
   const resetTo = <T,>(set: (v: T) => void) => (v: T) => { setPage(0); setState("loading"); set(v); };
 
-  async function mark(job: Job, next: "saved" | "applied" | "hidden") {
-    if (!supabase || !userId) return;
-    const { error } = await supabase.from("saved_jobs").upsert({ user_id: userId, job_id: job.id, state: next });
-    if (error) return toast("Couldn't save that. Try again.", "error");
-    if (next === "applied") {
-      const today = todayISO();
-      const { error: appErr } = await supabase.from("applications").insert({
-        user_id: userId, company: job.company, role: job.title,
-        track: job.track === "Internship" || job.track === "New Grad" ? job.track : "Full-Time",
-        status: "Applied", date_applied: today, last_contact: today, link: job.url,
-        latest_update: "Applied through the posting",
-      });
-      if (appErr) return toast("Saved, but couldn't add it to your tracker.", "error");
-      toast(`Added ${job.company} to your tracker`);
-    } else toast(next === "saved" ? "Saved" : "Hidden");
-    setMarks((m) => ({ ...m, [job.id]: next }));
+  /** Sets (or clears, with null) what the user decided about a job. Returns false if it didn't stick. */
+  async function setMark(job: Job, next: Mark | null): Promise<boolean> {
+    const nextMarks = { ...marks };
+    const nextSaved = { ...saved };
+    if (next) nextMarks[job.id] = next; else delete nextMarks[job.id];
+    if (next === "saved") nextSaved[job.id] = job; else delete nextSaved[job.id];
+
+    if (!userId) {
+      if (next === "applied") return false;
+      writeLocal(nextMarks, nextSaved);
+    } else if (supabase) {
+      const { error } = next
+        ? await supabase.from("saved_jobs").upsert({ user_id: userId, job_id: job.id, state: next })
+        : await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", job.id);
+      if (error) { toast("Couldn't save that. Try again.", "error"); return false; }
+      if (next === "applied") {
+        const today = todayISO();
+        const { error: appErr } = await supabase.from("applications").insert({
+          user_id: userId, company: job.company, role: job.title,
+          track: job.track === "Internship" || job.track === "New Grad" ? job.track : "Full-Time",
+          status: "Applied", date_applied: today, last_contact: today, link: job.url,
+          latest_update: "Applied through the posting",
+        });
+        if (appErr) toast("Saved, but couldn't add it to your tracker.", "error");
+        else toast(`Added ${job.company} to your tracker`);
+      }
+    }
+    setMarks(nextMarks);
+    setSaved(nextSaved);
+    return true;
   }
+
+  async function mark(job: Job, next: Mark) {
+    if (await setMark(job, next)) {
+      if (next !== "applied") toast(next === "saved" ? "Saved" : "Hidden");
+    }
+  }
+
+  async function swipe(job: Job, choice: "saved" | "hidden") {
+    const prev = marks[job.id];
+    if (await setMark(job, choice)) setHistory((h) => [...h.slice(-30), { job, prev }]);
+  }
+
+  async function undo() {
+    const last = history[history.length - 1];
+    if (!last) return;
+    if (await setMark(last.job, last.prev ?? null)) setHistory((h) => h.slice(0, -1));
+  }
+
+  function changeView(v: "swipe" | "list") {
+    setView(v);
+    try { localStorage.setItem("pf_jobs_view", v); } catch {}
+  }
+
+  const queue = jobs.filter((j) => !marks[j.id]);
+  const savedList = Object.values(saved).filter((j) => marks[j.id] === "saved");
+  const moreAvailable = total !== null && jobs.length < total;
+
+  // keep the deck stocked: fetch the next page when only a few cards are left
+  useEffect(() => {
+    if (view === "swipe" && state === "ready" && moreAvailable && queue.length < 6) {
+      Promise.resolve().then(() => setPage((p) => p + 1));
+    }
+  }, [view, state, moreAvailable, queue.length, jobs.length]);
 
   const visible = jobs.filter((j) => marks[j.id] !== "hidden");
   const toggle = "flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-medium";
@@ -165,7 +243,17 @@ export function JobsBoard({ userId }: { userId: string | null }) {
             Remote
           </label>
         </div>
-        <p className="tnum font-mono text-xs text-faint sm:ml-auto">{total === null ? "…" : `${total.toLocaleString()} open`}</p>
+        <div className="flex items-center gap-3 sm:ml-auto">
+          <p className="tnum font-mono text-xs text-faint">{total === null ? "…" : `${total.toLocaleString()} open`}</p>
+          <div className="flex rounded-full border border-line p-0.5" role="tablist" aria-label="View">
+            {(["swipe", "list"] as const).map((v) => (
+              <button key={v} role="tab" aria-selected={view === v} onClick={() => changeView(v)}
+                className={cx("rounded-full px-3 py-1 text-xs font-semibold transition", view === v ? "bg-accent text-accent-ink" : "text-muted hover:text-ink")}>
+                {v === "swipe" ? "Swipe" : "List"}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {!supabase ? (
@@ -176,6 +264,55 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         <ul className="flex flex-col gap-2" aria-hidden="true">
           {Array.from({ length: 6 }, (_, i) => <li key={i} className="h-[74px] animate-pulse rounded-xl border border-line bg-surface" />)}
         </ul>
+      ) : view === "swipe" ? (
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div>
+            <p className="mb-3 text-center font-mono text-xs text-faint">
+              {queue.length ? <><b className="text-accent">{moreAvailable ? (total ?? 0) - (jobs.length - queue.length) : queue.length}</b> left to review</> : " "}
+            </p>
+            <SwipeDeck
+              queue={queue}
+              loading={state === "loading"}
+              onDecide={swipe}
+              onUndo={undo}
+              canUndo={history.length > 0}
+              emptyText={jobs.length ? "You've reviewed everything that matches. Change a filter for more." : "No openings match. Try turning off a filter."}
+            />
+          </div>
+          <section className="rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5">
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div>
+                <h2 className="font-display text-[15px] font-bold tracking-tight">Saved, ready to apply</h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  Swipe right to add roles here. {userId ? "Mark one applied and it goes straight into your tracker." : "Saved in this browser only."}
+                </p>
+              </div>
+              {savedList.length > 0 && <Tag tone="muted">{savedList.length}</Tag>}
+            </div>
+            {!userId && (
+              <Link href="/login?mode=signup&next=/jobs" className={cx(btn.secondary, "mb-3 w-full")}>Sign up to keep your picks and track applications</Link>
+            )}
+            {savedList.length === 0 ? (
+              <p className="py-6 text-center text-sm text-faint">Nothing saved yet.</p>
+            ) : (
+              <ul className="max-h-[420px] divide-y divide-line overflow-y-auto">
+                {savedList.map((j) => (
+                  <li key={j.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{j.title}</p>
+                      <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
+                      {userId && <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>}
+                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => setMark(j, null)}>✕</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       ) : visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted">No openings match. Try turning off a filter.</p>
       ) : (
@@ -213,7 +350,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         </ul>
       )}
 
-      {total !== null && jobs.length < total && state !== "error" && (
+      {view === "list" && total !== null && jobs.length < total && state !== "error" && (
         <button className={cx(btn.secondary, "self-center")} onClick={() => setPage((p) => p + 1)} disabled={state === "loading"}>
           Show more
         </button>

@@ -152,7 +152,7 @@ export default async function Home() {
             </div>
             <pre className="min-w-0 overflow-x-auto rounded-2xl border border-line bg-bg p-4 font-mono text-[12.5px] leading-relaxed text-muted">
               <span className="text-faint">$ </span>claude mcp add --transport http pulse-find \{"\n"}
-              {"    "}https://pulsefind-app.vercel.app/api/mcp \{"\n"}
+              {"    "}https://pulse-find-two.vercel.app/api/mcp \{"\n"}
               {"    "}--header &quot;Authorization: Bearer pf_…&quot;{"\n\n"}
               <span className="text-ink">&gt; Scan my email from the last week and update Pulse Find.</span>{"\n\n"}
               <span className="text-good">✓</span> Roblox · OA received · due Nov 11{"\n"}

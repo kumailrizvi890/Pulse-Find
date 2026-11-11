@@ -47,8 +47,8 @@ Pulse Find puts those at the top of the page.
 Pulse Find doesn't call any AI API and never touches your inbox. Instead it's an [MCP](https://modelcontextprotocol.io) server: you hand an access token to the agent you already use (Claude, Cursor, VS Code Copilot, anything that speaks MCP), and that agent reads your email with its own tools and reports what it finds.
 
 ```bash
-# Claude Code: create a token at https://pulsefind-app.vercel.app/app/connect
-claude mcp add --transport http pulse-find https://pulsefind-app.vercel.app/api/mcp \
+# Claude Code: create a token at https://pulse-find-two.vercel.app/app/connect
+claude mcp add --transport http pulse-find https://pulse-find-two.vercel.app/api/mcp \
   --header "Authorization: Bearer pf_..."
 ```
 

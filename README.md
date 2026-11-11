@@ -7,9 +7,9 @@
 <p align="center">
   A job application tracker that tells you what's waiting on you,<br />
   and an MCP server so the AI agent you already use can keep it current from your email.<br />
-  <a href="https://pulsefind-app.vercel.app"><b>Live site</b></a> ·
-  <a href="https://pulsefind-app.vercel.app/demo"><b>Try the demo</b></a> (no sign-up) ·
-  <a href="https://pulsefind-app.vercel.app/jobs"><b>Job board</b></a> ·
+  <a href="https://pulse-find-two.vercel.app"><b>Live app</b></a> ·
+  <a href="https://pulse-find-two.vercel.app/demo"><b>Try the demo</b></a> (no sign-up) ·
+  <a href="https://pulse-find-two.vercel.app/jobs"><b>Job board</b></a> ·
   <a href="docs/SELF_HOST.md"><b>Self-host</b></a>
 </p>
 
@@ -22,6 +22,19 @@
 </p>
 
 ![Pulse Find dashboard](docs/dashboard.png)
+
+## The 10-second version
+
+**Pulse Find is the tracker I run my own internship search on.** I built it because my spreadsheet kept letting things slip — an assessment about to expire, a recruiter waiting on a reply, a company that had gone quiet weeks ago. Now it's the first thing I open every day of my search: it shows me what's waiting on me, which deadlines are close, and who has ghosted — and my AI assistant keeps it current from my inbox through the built-in MCP server.
+
+- **Waiting-on-you queue** — every assessment, reply and unfinished application in one list, soonest deadline first
+- **MCP server built in** — Claude, Cursor or any MCP client syncs the tracker straight from job email; Pulse Find itself never reads your inbox and needs no AI API key
+- **Ghost detection and pipeline stats** — days-since-contact follow-up flags, a stage funnel, and weekly pace against your goal
+- **Live job board** — ~14,000 openings pulled from company Greenhouse, Lever and Ashby boards, one click to start tracking
+
+**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (Postgres, Auth, RLS, Edge Functions) · Model Context Protocol · Vitest · GitHub Actions CI
+
+**Try it:** [Live app](https://pulse-find-two.vercel.app) · [Demo, no sign-up](https://pulse-find-two.vercel.app/demo) · [Job board](https://pulse-find-two.vercel.app/jobs)
 
 ## Why
 

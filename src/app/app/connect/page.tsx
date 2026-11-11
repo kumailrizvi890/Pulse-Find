@@ -1,8 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar, navLink } from "@/components/TopBar";
+import { AppShell } from "@/components/AppShell";
 import { ConnectAgent } from "./ConnectAgent";
 
 export const metadata: Metadata = { title: "Connect your AI agent" };
@@ -14,17 +13,8 @@ export default async function ConnectPage() {
   if (!data.user) redirect("/login?next=/app/connect");
 
   return (
-    <>
-      <TopBar
-        home="/app"
-        right={
-          <>
-            <Link href="/app" className={navLink}>Tracker</Link>
-            <Link href="/jobs" className={navLink}>Find jobs</Link>
-          </>
-        }
-      />
+    <AppShell active="connect">
       <ConnectAgent />
-    </>
+    </AppShell>
   );
 }

@@ -28,6 +28,30 @@ export interface AppRow extends TrackedApp {
 
 export interface JobRow { company: string; title: string; location: string; remote: boolean; url: string; track: string; posted_at: string | null }
 
+export interface LeadRow {
+  id: string;
+  company: string;
+  role: string;
+  track: string;
+  location: string;
+  pay: string;
+  url: string;
+  source: string;
+  status: string;
+  fit_note: string;
+  date_found: string;
+}
+
+export interface ContactRow {
+  id: string;
+  person_name: string;
+  company: string;
+  status: string;
+  next_step: string;
+  next_step_on: string | null;
+  notes: string;
+}
+
 /** Data access for ONE user. Every implementation must scope reads and writes to that user. */
 export interface Store {
   listApps(): Promise<AppRow[]>;
@@ -38,6 +62,29 @@ export interface Store {
   hasEvent(sourceRef: string): Promise<boolean>;
   searchJobs(p: { query?: string; track?: string; remote?: boolean; tech_only?: boolean; limit: number }): Promise<JobRow[]>;
   ghostDays(): Promise<number>;
+  listLeads(): Promise<LeadRow[]>;
+  insertLead(fields: Record<string, unknown>): Promise<LeadRow>;
+  updateLead(id: string, fields: Record<string, unknown>): Promise<LeadRow | null>;
+  listContacts(): Promise<ContactRow[]>;
+  insertContact(fields: Record<string, unknown>): Promise<ContactRow>;
+  updateContact(id: string, fields: Record<string, unknown>): Promise<ContactRow | null>;
+}
+
+const LEAD_STATUSES = ["New", "Queued", "Applied", "Problem", "Not eligible", "Closed"];
+
+function leadBrief(l: LeadRow) {
+  return {
+    id: l.id, company: l.company, role: l.role || null, track: l.track, location: l.location || null,
+    pay: l.pay || null, url: l.url || null, source: l.source || null, status: l.status,
+    fit_note: l.fit_note || null, date_found: l.date_found,
+  };
+}
+
+function contactBrief(c: ContactRow) {
+  return {
+    id: c.id, person_name: c.person_name, company: c.company || null, status: c.status || null,
+    next_step: c.next_step || null, next_step_on: c.next_step_on, notes: c.notes || null,
+  };
 }
 
 // ---------- tiny input validation ----------
@@ -326,6 +373,180 @@ export const TOOLS: ToolDef[] = [
       return { count: jobs.length, jobs };
     },
   },
+  {
+    name: "list_leads",
+    title: "List job leads",
+    description: "List the user's saved job leads (roles found but not yet applied to), optionally filtered by pipeline status.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: LEAD_STATUSES, description: "Only leads in this pipeline status" },
+        company: { type: "string", description: "Only leads whose company contains this text" },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    run: async (s, a) => {
+      const status = oneOf(a, "status", LEAD_STATUSES);
+      const company = str(a, "company", 100)?.toLowerCase();
+      const rows = (await s.listLeads())
+        .map(leadBrief)
+        .filter((l) => (!status || l.status === status) && (!company || l.company.toLowerCase().includes(company)));
+      return { count: rows.length, leads: rows };
+    },
+  },
+  {
+    name: "add_lead",
+    title: "Save a job lead",
+    description: "Save a role the user is considering as a lead in their pipeline. This does NOT apply to anything — it only records the lead for the user's own decision later. If the same company + role is already a lead, returns the existing one instead of duplicating.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        company: { type: "string" },
+        role: { type: "string" },
+        track: { type: "string", enum: TRACKS },
+        location: { type: "string" },
+        pay: { type: "string", description: "Pay as shown on the posting, e.g. \"$48/hr\"" },
+        url: { type: "string", description: "Posting URL (https)" },
+        source: { type: "string", description: "Where it was found, e.g. \"Job board\"" },
+        fit_note: { type: "string", description: "Why it fits (or doesn't)" },
+      },
+      required: ["company"],
+      additionalProperties: false,
+    },
+    run: async (s, a) => {
+      const company = str(a, "company", 200, true)!;
+      const role = str(a, "role", 300) ?? "";
+      const existing = (await s.listLeads()).find(
+        (l) => l.company.toLowerCase() === company.toLowerCase() && l.role.toLowerCase() === role.toLowerCase(),
+      );
+      if (existing) return { existing: true, lead: leadBrief(existing) };
+      const url = str(a, "url", 2000);
+      if (url && !/^https:\/\//i.test(url)) throw new InvalidParams(`"url" must start with https://`);
+      const row = await s.insertLead({
+        company,
+        role,
+        track: oneOf(a, "track", TRACKS) ?? "Internship",
+        location: str(a, "location", 200) ?? "",
+        pay: str(a, "pay", 120) ?? "",
+        url: url ?? "",
+        source: str(a, "source", 120) ?? "",
+        status: "New",
+        fit_note: str(a, "fit_note", 1000) ?? "",
+        date_found: today(),
+      });
+      return { created: leadBrief(row) };
+    },
+  },
+  {
+    name: "update_lead",
+    title: "Update a job lead",
+    description: "Move a lead through the pipeline (New, Queued, Applied, Problem, Not eligible, Closed) or edit its details. Marking a lead Applied only records that the user applied — it never applies for them.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Lead id from list_leads" },
+        status: { type: "string", enum: LEAD_STATUSES },
+        fit_note: { type: "string" },
+        location: { type: "string" },
+        pay: { type: "string" },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    run: async (s, a) => {
+      const id = str(a, "id", 64, true)!;
+      const fields: Record<string, unknown> = {};
+      const st = oneOf(a, "status", LEAD_STATUSES); if (st) fields.status = st;
+      const fn = str(a, "fit_note", 1000); if (fn !== undefined) fields.fit_note = fn;
+      const loc = str(a, "location", 200); if (loc !== undefined) fields.location = loc;
+      const pay = str(a, "pay", 120); if (pay !== undefined) fields.pay = pay;
+      if (!Object.keys(fields).length) throw new InvalidParams("Nothing to change");
+      const row = await s.updateLead(id, fields);
+      if (!row) throw new InvalidParams("No lead with that id. Call list_leads to find it.");
+      return { updated: leadBrief(row) };
+    },
+  },
+  {
+    name: "list_contacts",
+    title: "List networking contacts",
+    description: "List the user's networking contacts with their next steps. Due and overdue next steps come first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        due_only: { type: "boolean", description: "Only contacts whose next step is due today or overdue", default: false },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    run: async (s, a) => {
+      const dueOnly = bool(a, "due_only") ?? false;
+      const t = today();
+      const rows = (await s.listContacts())
+        .map(contactBrief)
+        .filter((c) => !dueOnly || (c.next_step && c.next_step_on && c.next_step_on <= t))
+        .sort((x, y) => (x.next_step_on ?? "9999").localeCompare(y.next_step_on ?? "9999") || x.person_name.localeCompare(y.person_name));
+      return { count: rows.length, contacts: rows };
+    },
+  },
+  {
+    name: "add_contact",
+    title: "Add a networking contact",
+    description: "Record a person in the user's networking tracker, with the next step they owe them. This never contacts the person — it only tracks the follow-up.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        person_name: { type: "string" },
+        company: { type: "string" },
+        status: { type: "string", description: "e.g. \"Connected — thanked Nov 4\"" },
+        next_step: { type: "string" },
+        next_step_on: { ...dateProp, nullable: true },
+        notes: { type: "string" },
+      },
+      required: ["person_name"],
+      additionalProperties: false,
+    },
+    run: async (s, a) => {
+      const row = await s.insertContact({
+        person_name: str(a, "person_name", 120, true),
+        company: str(a, "company", 200) ?? "",
+        status: str(a, "status", 200) ?? "",
+        next_step: str(a, "next_step", 500) ?? "",
+        next_step_on: date(a, "next_step_on") ?? null,
+        notes: str(a, "notes", 2000) ?? "",
+      });
+      return { created: contactBrief(row) };
+    },
+  },
+  {
+    name: "update_contact",
+    title: "Update a networking contact",
+    description: "Update a contact's status, next step, or next-step date. Set next_step to an empty string when the follow-up is done.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Contact id from list_contacts" },
+        status: { type: "string" },
+        next_step: { type: "string" },
+        next_step_on: { ...dateProp, nullable: true },
+        notes: { type: "string" },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    run: async (s, a) => {
+      const id = str(a, "id", 64, true)!;
+      const fields: Record<string, unknown> = {};
+      const st = str(a, "status", 200); if (st !== undefined) fields.status = st;
+      if (typeof a.next_step === "string") fields.next_step = a.next_step.slice(0, 500);
+      const on = date(a, "next_step_on"); if (on !== undefined) fields.next_step_on = on;
+      const nt = str(a, "notes", 2000); if (nt !== undefined) fields.notes = nt;
+      if (!Object.keys(fields).length) throw new InvalidParams("Nothing to change");
+      const row = await s.updateContact(id, fields);
+      if (!row) throw new InvalidParams("No contact with that id. Call list_contacts to find it.");
+      return { updated: contactBrief(row) };
+    },
+  },
 ];
 
 // ---------- prompts ----------
@@ -336,6 +557,21 @@ export const PROMPTS = [
     title: "Scan my inbox for job updates",
     description: "Have your agent read recent job emails with its own email tools and update Pulse Find.",
     arguments: [{ name: "days", description: "How many days back to look (default 7)", required: false }],
+  },
+  {
+    name: "daily_digest",
+    title: "What's waiting on me?",
+    description: "A digest of everything that needs the user, deadlines called out separately, plus who has gone quiet.",
+    arguments: [],
+  },
+  {
+    name: "find_leads",
+    title: "Find me new roles to consider",
+    description: "Search live openings, dedupe against the tracker, and present new leads for the user's decision. Never applies.",
+    arguments: [
+      { name: "track", description: "Internship, New Grad, Full-Time, Part-Time or Other (default: any)", required: false },
+      { name: "query", description: "Keyword, company or location to search for", required: false },
+    ],
   },
 ];
 
@@ -349,6 +585,32 @@ export function scanInboxPrompt(days: number) {
 5. Finish with 3-6 lines: new applications, status changes, what's now waiting on me with due dates, and anything flagged as a possible scam.
 
 Rules: read-only in my inbox. Never send, reply to, forward or delete email, and never apply to anything.`;
+}
+
+export function dailyDigestPrompt() {
+  return `Give me my Pulse Find digest for today.
+
+1. Call get_summary.
+2. Lead with deadlines, in their own section, never buried: every assessment or interview-related action with a due date, soonest first, overdue ones first of all and clearly marked.
+3. Then list everything else waiting on me (replies, forms, unfinished portals), soonest due first, undated items last.
+4. Then tell me who has ghosted me: applications with no contact in 21+ days (use the ghosted list from get_summary; if it's empty, say so in one line).
+5. Keep it short: counts first (total tracked, waiting on me, overdue), then the lists. No preamble, no advice I didn't ask for.
+
+Rules: this is read-only. Never send email, never apply to anything, never contact a recruiter.`;
+}
+
+export function findLeadsPrompt(track?: string, query?: string) {
+  const scope = [track ? `track: ${track}` : "any track", query ? `matching "${query}"` : "no keyword filter"].join(", ");
+  return `Find me new roles to consider in Pulse Find.
+
+1. Call list_applications to see what I'm already tracking.
+2. Call search_jobs with ${scope}. Prefer the most recently posted roles.
+3. Drop anything whose company + role is already in my tracker, and anything I've clearly already seen in this list.
+4. Present what's left as a short lead list: company, role, location/remote, when it was posted, and the link. Group by track if there's a mix.
+5. If I pick some to keep an eye on, save those with add_lead so they land in my leads pipeline on the website. If I name the ones I applied to, add those with add_application and mark the matching lead Applied with update_lead.
+6. Stop there. These are leads for MY decision: never apply for me, and never contact anyone.
+
+Rules: never send email, never apply on my behalf, never contact recruiters.`;
 }
 
 // ---------- JSON-RPC ----------
@@ -370,7 +632,7 @@ export async function handleRpc(msg: Rpc, store: Store): Promise<object | null> 
           capabilities: { tools: { listChanged: false }, prompts: { listChanged: false } },
           serverInfo: SERVER_INFO,
           instructions:
-            "Pulse Find is the user's job application tracker. Start with get_summary. To keep it current from email, use the scan_inbox prompt or call process_job_email once per job email. Never send email on the user's behalf.",
+            "Pulse Find is the user's job application tracker. Start with get_summary. To keep it current from email, use the scan_inbox prompt or call process_job_email once per job email. For a briefing use the daily_digest prompt; to surface new roles use find_leads. Leads the user picks are saved with add_lead; people they are following up with live in list_contacts. The website is the home for the data; you are the engine that keeps it current. Never send email, apply, or contact recruiters on the user's behalf.",
         });
       }
       case "ping":
@@ -396,12 +658,25 @@ export async function handleRpc(msg: Rpc, store: Store): Promise<object | null> 
       case "prompts/list":
         return ok(msg.id, { prompts: PROMPTS });
       case "prompts/get": {
-        if (msg.params?.name !== "scan_inbox") return err(msg.id, -32602, "Unknown prompt");
-        const raw = Number((msg.params?.arguments as Args | undefined)?.days ?? 7);
-        const days = Number.isFinite(raw) ? Math.min(60, Math.max(1, Math.round(raw))) : 7;
+        const name = String(msg.params?.name ?? "");
+        const meta = PROMPTS.find((p) => p.name === name);
+        if (!meta) return err(msg.id, -32602, "Unknown prompt");
+        const args = (msg.params?.arguments ?? {}) as Args;
+        let text: string;
+        if (name === "scan_inbox") {
+          const raw = Number(args.days ?? 7);
+          const days = Number.isFinite(raw) ? Math.min(60, Math.max(1, Math.round(raw))) : 7;
+          text = scanInboxPrompt(days);
+        } else if (name === "daily_digest") {
+          text = dailyDigestPrompt();
+        } else {
+          const track = typeof args.track === "string" && args.track.trim() ? args.track.trim().slice(0, 40) : undefined;
+          const query = typeof args.query === "string" && args.query.trim() ? args.query.trim().slice(0, 60) : undefined;
+          text = findLeadsPrompt(track, query);
+        }
         return ok(msg.id, {
-          description: PROMPTS[0].description,
-          messages: [{ role: "user", content: { type: "text", text: scanInboxPrompt(days) } }],
+          description: meta.description,
+          messages: [{ role: "user", content: { type: "text", text } }],
         });
       }
       default:

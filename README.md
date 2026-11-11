@@ -61,8 +61,10 @@ Then: *"Scan my email from the last week and update Pulse Find."*
 | `list_applications` · `add_application` · `update_application` | Read and edit the tracker |
 | `check_job_scam` | Fake-offer signals: check deposits, equipment reimbursement, chat-app interviews, fees, personal email domains |
 | `search_jobs` | Live internship and new-grad postings from 50+ company career pages, refreshed every 6 hours |
+| `list_leads` · `add_lead` · `update_lead` | The leads pipeline: save roles the user is deciding on, move them New → Queued → Applied / Problem / Not eligible / Closed. Never applies. |
+| `list_contacts` · `add_contact` · `update_contact` | Networking next-steps: who the user owes a follow-up, due ones first |
 
-Plus a `scan_inbox` prompt, and a ready-made agent playbook in [`skills/pulse-find/SKILL.md`](skills/pulse-find/SKILL.md). Agents are instructed to stay read-only in your inbox and never send email or apply for you.
+Plus `scan_inbox`, `daily_digest` and `find_leads` prompts, and a ready-made agent playbook in [`skills/pulse-find/SKILL.md`](skills/pulse-find/SKILL.md). Agents are instructed to stay read-only in your inbox and never send email or apply for you.
 
 Want your own copy? [Self-hosting guide](docs/SELF_HOST.md): free Supabase + Vercel, one Deploy button.
 
@@ -71,9 +73,12 @@ Want your own copy? [Self-hosting guide](docs/SELF_HOST.md): free Supabase + Ver
 - **Waiting on you.** One queue of everything where the next move is yours (assessments, interview scheduling, unfinished portals, offers to answer), soonest deadline first, with overdue items called out.
 - **Ghost detection.** Every application counts days since you last heard back. Past your threshold (21 days by default, adjustable) it's flagged *Ghosted*; past half, *Follow up soon*. Closed applications are never flagged.
 - **Pipeline and pace.** A stage funnel (applied → assessment → interview → offer) and a 12-week chart against your weekly goal, with tech roles split out automatically.
-- **Bring your spreadsheet.** CSV import that understands other people's column names (`Employer`, `Stage`, `Next Step`…) and messy dates (`Oct 28`, `10/28/26`). Rows it can't use are reported, not silently dropped.
-- **Export that looks right everywhere.** Excel export writes colors directly onto cells instead of using formula-based rules, so it renders the same in Excel, Numbers, Google Sheets and phone previews. CSV export guards against spreadsheet formula injection.
-- **Job board.** `/jobs` searches ~14,000 open roles pulled straight from company Greenhouse, Lever and Ashby boards, with internship, new-grad, remote and tech-only filters. Mark one "Applied" and it lands in your tracker.
+- **Bring your spreadsheet.** CSV *and* .xlsx import that understand other people's column names (`Employer`, `Stage`, `Next Step`…) and messy dates (`Oct 28`, `10/28/26`). Applications already in your tracker are skipped by company + role + date, and rows it can't use are reported, not silently dropped.
+- **A proper Sheet view.** `/app/sheet` is your tracker as a spreadsheet: the Excel tracker's sixteen columns (Company … Tech Role), sticky header, frozen Company column, sortable and filterable, with inline cell editing that saves immediately. Days Since Contact and the Follow-Up Flag are computed live, exactly like the sheet.
+- **Export that looks right everywhere.** Excel export uses the same sixteen tracker columns and writes colors directly onto cells instead of using formula-based rules, so it renders the same in Excel, Numbers, Google Sheets and phone previews — and imports straight back. CSV export guards against spreadsheet formula injection.
+- **Leads pipeline.** `/app/leads` holds roles you haven't applied to yet — New, Queued, Applied, Problem, Not eligible, Closed — with fit notes, pay and links. Save finds straight from the job board, or let your agent file them; promote one and it becomes a tracked application.
+- **Networking next-steps.** `/app/networking` tracks who you owe a follow-up, with overdue and due-today steps highlighted — the counterpart of a networking spreadsheet, kept next to the search it supports.
+- **Job board.** `/jobs` searches ~14,000 open roles pulled straight from company Greenhouse, Lever and Ashby boards, with internship, new-grad, remote and tech-only filters, plus a swipe deck. Mark one "Applied" and it lands in your tracker; save it as a lead and it lands in your pipeline.
 - **Agent access.** Personal access tokens (only a SHA-256 fingerprint is stored, revocable any time) for the MCP server above.
 - **Public demo.** `/demo` runs the full dashboard on invented sample data, entirely in the browser.
 - **Private by default.** Postgres row-level security on every table. Light and dark themes, works on phones.
@@ -123,10 +128,20 @@ To use accounts, the job board and the MCP server, follow the [self-hosting guid
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript |
 | `npm run build` | Production build |
 
+## Deploying updates (checklist)
+
+1. **Reconcile + push.** Pull `main` first (the clone may be behind web-editor commits), then push. GitHub Actions CI (lint, typecheck, test, build) must be green; Vercel deploys production from `main` automatically. No new env vars are needed for the app shell, Sheet, Leads or Networking.
+2. **Apply migrations.** `supabase db push` (or paste the new file from `supabase/migrations/` into the SQL editor). The leads/networking migration (`20261111000000_leads_networking.sql`) is additive — two new tables with own-row RLS; nothing existing is altered.
+3. **Deploy the MCP edge function** (it does not ship with Vercel): `supabase functions deploy mcp`. Verify with an MCP client: `tools/list` shows 13 tools and `prompts/list` shows `scan_inbox`, `daily_digest`, `find_leads`.
+4. **Repackage the agent skill.** The Agensi package is a ZIP built from `skills/pulse-find/SKILL.md` (a copy at the ZIP root and one under `pulse-find/`). Rebuild it whenever the playbook changes and update the listing — installers do not get repo changes automatically.
+5. **Smoke test.** Sign in, open Tracker / Sheet / Leads / Networking / Connect, save a job as a lead from `/jobs`, and export + re-import an .xlsx (the re-import should report every row as already tracked).
+
 ## Roadmap
 
 - [x] MCP server so any AI agent can sync job email
 - [x] Live job board from company career pages
+- [x] Leads pipeline and networking next-steps, in the app and over MCP
+- [x] Sheet view with the Excel tracker's columns, plus .xlsx import/export round trip
 - [ ] **Email forwarding.** A personal inbound address per user, run through the same classifier, for people without an agent
 - [ ] OAuth for MCP, so hosted clients can connect without pasting a token
 - [ ] Password reset and Google sign-in

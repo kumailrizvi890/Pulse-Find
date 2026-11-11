@@ -7,10 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { btn, field } from "@/components/dashboard/ui";
 
-export function LoginForm() {
+export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" } = {}) {
   const params = useSearchParams();
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">(params.get("mode") === "signup" ? "signup" : "signin");
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode ?? (params.get("mode") === "signup" ? "signup" : "signin"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");

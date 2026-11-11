@@ -1,8 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TopBar, navLink } from "@/components/TopBar";
+import { AppShell, shellNavLink } from "@/components/AppShell";
 import { AccountDashboard } from "./AccountDashboard";
 
 export const metadata: Metadata = { title: "Your tracker" };
@@ -14,21 +13,18 @@ export default async function AppPage() {
   if (!data.user) redirect("/login?next=/app");
 
   return (
-    <>
-      <TopBar
-        home="/app"
-        right={
-          <>
-            <Link href="/jobs" className={navLink}>Find jobs</Link>
-            <Link href="/app/connect" className={navLink}>Connect agent</Link>
-            <span className="hidden max-w-[220px] truncate px-2 text-xs text-faint sm:inline">{data.user.email}</span>
-            <form action="/auth/signout" method="post">
-              <button className={navLink}>Sign out</button>
-            </form>
-          </>
-        }
-      />
+    <AppShell
+      active="tracker"
+      right={
+        <>
+          <span className="hidden max-w-[220px] truncate px-2 text-xs text-faint sm:inline">{data.user.email}</span>
+          <form action="/auth/signout" method="post">
+            <button className={shellNavLink}>Sign out</button>
+          </form>
+        </>
+      }
+    >
       <AccountDashboard userId={data.user.id} />
-    </>
+    </AppShell>
   );
 }

@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       try {
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-        const res = await fetch(boardUrl(b), { signal: ctrl.signal, headers: { "User-Agent": "PulseFind/1.0 (+https://pulsefind-app.vercel.app)" } });
+        const res = await fetch(boardUrl(b), { signal: ctrl.signal, headers: { "User-Agent": "PulseFind/1.0 (+https://pulse-find-two.vercel.app)" } });
         clearTimeout(t);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const jobs: NormalizedJob[] = normalizeBoard(b, await res.json());

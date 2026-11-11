@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CSV_TEMPLATE, importCsv, type ImportResult } from "@/lib/csv";
+import { importXlsx } from "@/lib/xlsx";
 import type { ApplicationInput } from "@/lib/types";
 import { btn } from "./ui";
 import { download } from "@/lib/export";
@@ -17,10 +18,14 @@ export function ImportDialog({ open, onClose, onImport }: { open: boolean; onClo
     setError("");
     setResult(null);
     if (!f) return;
-    if (f.size > 2_000_000) return setError("That file is over 2 MB. Split it into smaller CSVs.");
+    if (f.size > 5_000_000) return setError("That file is over 5 MB. Split it into smaller sheets.");
     setFileName(f.name);
-    if (/\.xlsx?$/i.test(f.name)) return setError("Save the sheet as CSV first (File → Save As → CSV), then pick that file.");
-    setResult(importCsv(await f.text()));
+    try {
+      if (/\.xlsx?$/i.test(f.name)) setResult(await importXlsx(await f.arrayBuffer()));
+      else setResult(importCsv(await f.text()));
+    } catch {
+      setError("Couldn't read that file. Try a .xlsx or .csv saved from Excel or Google Sheets.");
+    }
   }
 
   async function confirm() {
@@ -44,12 +49,13 @@ export function ImportDialog({ open, onClose, onImport }: { open: boolean; onClo
       <div className="relative m-4 w-full max-w-lg rounded-2xl border border-line bg-surface p-5 shadow-panel">
         <h2 id="import-title" className="font-display text-lg font-bold tracking-tight">Import from a spreadsheet</h2>
         <p className="mt-1 text-sm text-muted">
-          Upload a CSV from Excel, Google Sheets or Notion. Pulse Find matches common column names like Company, Role, Status and Date Applied.
+          Upload an Excel (.xlsx) or CSV file from Excel, Google Sheets or Notion — including your Pulse Find tracker sheet.
+          Pulse Find matches the columns (Company, Role, Status, Date Applied…) and skips applications already in your tracker.
         </p>
         <label className="mt-4 flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-dashed border-line bg-surface-2 px-4 py-6 text-center text-sm hover:border-accent">
-          <span className="font-medium">{fileName || "Choose a .csv file"}</span>
-          <span className="text-xs text-faint">Up to 2 MB</span>
-          <input id="import-file" type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
+          <span className="font-medium">{fileName || "Choose a .xlsx or .csv file"}</span>
+          <span className="text-xs text-faint">Up to 5 MB</span>
+          <input id="import-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
         </label>
         <button type="button" className="mt-2 text-xs text-accent underline-offset-2 hover:underline" onClick={() => download("pulse-find-template.csv", CSV_TEMPLATE, "text/csv")}>
           Download a blank template

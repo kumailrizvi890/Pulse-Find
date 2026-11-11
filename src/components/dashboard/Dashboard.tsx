@@ -8,6 +8,7 @@ import {
   summarize, todayISO, weekly, CLOSED, type Filter,
 } from "@/lib/metrics";
 import type { TrackerStore } from "@/lib/store";
+import { dedupeImport } from "@/lib/sheet";
 import { buildWorkbook, download, toCsv } from "@/lib/export";
 import { Funnel, WeeklyBars } from "./Charts";
 import { ApplicationDrawer } from "./ApplicationDrawer";
@@ -138,9 +139,14 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
   }
 
   async function importRows(inputs: ApplicationInput[]) {
-    const made = await store.createMany(inputs);
+    const { fresh, duplicates } = dedupeImport(inputs, apps);
+    const made = fresh.length ? await store.createMany(fresh) : [];
     setApps((p) => [...made, ...p]);
-    toast(`Imported ${made.length} application${made.length === 1 ? "" : "s"}`);
+    toast(
+      duplicates.length
+        ? `Imported ${made.length}; skipped ${duplicates.length} already in your tracker`
+        : `Imported ${made.length} application${made.length === 1 ? "" : "s"}`,
+    );
   }
 
   async function exportXlsx() {
@@ -178,7 +184,7 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
         <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
           {headerActions}
-          <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import CSV</button>
+          <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import sheet</button>
           <ExportMenu onXlsx={exportXlsx} onCsv={() => download(`pulse-find-${today}.csv`, toCsv(sortForTable(apps)), "text/csv")} disabled={!apps.length} />
           <button className={btn.ghost} onClick={() => setSettingsOpen(true)} aria-label="Settings">Settings</button>
         </div>
@@ -192,7 +198,7 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>Add your first application</button>
-            <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import a CSV</button>
+            <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import a sheet</button>
           </div>
         </Panel>
         {extras}
@@ -351,7 +357,7 @@ function Shell({ banner, children }: { banner?: ReactNode; children: ReactNode }
   return (
     <>
       {banner}
-      <main className="gutter mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6">{children}</main>
+      <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6">{children}</main>
     </>
   );
 }

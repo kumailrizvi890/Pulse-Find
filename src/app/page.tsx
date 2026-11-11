@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GitHubLink, TopBar, navLink } from "@/components/TopBar";
 import { HeroPreview } from "@/components/HeroPreview";
 import { PulseMark } from "@/components/Logo";
+import { PulseTrace } from "@/components/PulseTrace";
 import { env } from "@/lib/env";
 
 const primary =
@@ -66,6 +67,10 @@ export default async function Home() {
           <HeroPreview />
         </section>
 
+        <div className="gutter mx-auto w-full max-w-[1180px] pb-4" aria-hidden="true">
+          <PulseTrace className="h-10 w-full" />
+        </div>
+
         <section className="border-y border-line bg-surface">
           <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-8 py-14 md:grid-cols-3">
             <Feature
@@ -116,6 +121,42 @@ export default async function Home() {
             ))}
           </ul>
           )}
+        </section>
+
+        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">One account, the whole search</p>
+          <h2 className="mt-2 max-w-[22ch] font-display text-3xl font-extrabold tracking-tight">Everything in one place, private to you</h2>
+          <p className="mt-3 max-w-[62ch] text-muted">
+            Sign up once and the tracker, the job finder and your AI agent all work on the same private data — yours, enforced in the
+            database, never anyone else&apos;s. Pulse Find never sends email and never applies for you; it keeps the search organized so
+            you can do the parts only you can do.
+          </p>
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <Feature
+              kicker="Dashboard"
+              title="Stats and a waiting-on-you queue"
+              body="Pipeline, pace, response rate and every next step that's yours, soonest deadline first."
+              detail="/app · your tracker"
+            />
+            <Feature
+              kicker="Job finder"
+              title="Browse or swipe the openings"
+              body="Live roles from company career pages. Swipe through them Tinder-style, save the good ones, mark applied and they land in your tracker."
+              detail="/jobs · board + swipe deck"
+            />
+            <Feature
+              kicker="Sheets"
+              title="Import and export spreadsheets"
+              body="Bring the CSV you've been keeping; export back to Excel with the colors baked in."
+              detail="CSV in · Excel out"
+            />
+            <Feature
+              kicker="AI agent"
+              title="Your agent keeps it current"
+              body="Connect Claude, Cursor or Copilot with a token. It syncs your tracker from job email and searches roles for you."
+              detail="/app/connect · MCP"
+            />
+          </div>
         </section>
 
         <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-10 border-t border-line py-16 md:grid-cols-2">

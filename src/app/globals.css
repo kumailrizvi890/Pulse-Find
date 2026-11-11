@@ -138,3 +138,52 @@ h1, h2, h3 {
   stroke-dasharray: 120;
   animation: pulse-trace 1.6s cubic-bezier(.4,0,.2,1) both;
 }
+
+/* Directed entrance for app sections: one quiet rise, the design system's
+   standard easing, done in 450ms. The global reduced-motion rule above
+   collapses it for people who ask for that. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise {
+  animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.12s; }
+.rise-3 { animation-delay: 0.19s; }
+
+/*
+  Redesign shell palette (Phase 1 unification): the 3D-redesign look — near-black
+  blue background, sky pulse accent, emerald for tech/positive — scoped to signed-in
+  and auth surfaces via .pf-shell so public pages keep the signal-console palette.
+  Tailwind color utilities resolve through the same CSS variables, so every existing
+  component reskins inside the shell with no markup changes.
+*/
+.pf-shell {
+  --bg: #060a13;
+  --surface: #0c1424;
+  --surface-2: #0a1120;
+  --ink: #eaf2fb;
+  --muted: #9db2c8;
+  --faint: #647d95;
+  --line: #1c2c44;
+  --accent: #38bdf8;
+  --accent-ink: #04121f;
+  --accent-soft: #0e2a3f;
+  --tech: #34d399;
+  --tech-soft: #0c2b22;
+  --danger: #f87171;
+  --danger-soft: #33141a;
+  --warn: #fbbf24;
+  --warn-soft: #2f2410;
+  --good: #34d399;
+  --good-soft: #0c2b22;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 32px -16px rgb(0 0 0 / 0.65);
+  background:
+    radial-gradient(720px 300px at 85% -60px, rgb(56 189 248 / 0.13), transparent 65%),
+    radial-gradient(560px 260px at 8% -40px, rgb(52 211 153 / 0.07), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  color-scheme: dark;
+}

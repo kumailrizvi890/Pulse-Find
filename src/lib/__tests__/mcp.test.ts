@@ -3,10 +3,15 @@ import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { handleBody, type AppRow, type JobRow, type Store } from "../../../supabase/functions/_shared/mcp";
+import { handleBody, type AppRow, type ContactRow, type JobRow, type LeadRow, type Store } from "../../../supabase/functions/_shared/mcp";
 
 /** In-memory Store standing in for Supabase. */
-function memoryStore(seed: Partial<AppRow>[] = []): Store & { apps: AppRow[]; events: { application_id: string; kind: string; source_ref: string | null }[] } {
+function memoryStore(seed: Partial<AppRow>[] = []): Store & {
+  apps: AppRow[];
+  events: { application_id: string; kind: string; source_ref: string | null }[];
+  leads: LeadRow[];
+  contacts: ContactRow[];
+} {
   let n = 0;
   const blank = (): AppRow => ({
     id: `app-${++n}`, company: "", role: "", track: "Internship", status: "Applied", date_applied: null, last_contact: null,
@@ -14,11 +19,13 @@ function memoryStore(seed: Partial<AppRow>[] = []): Store & { apps: AppRow[]; ev
   });
   const apps: AppRow[] = seed.map((s) => ({ ...blank(), ...s }));
   const events: { application_id: string; kind: string; source_ref: string | null }[] = [];
+  const leads: LeadRow[] = [];
+  const contacts: ContactRow[] = [];
   const jobs: JobRow[] = [
     { company: "Stripe", title: "Software Engineer Intern", location: "Seattle", remote: false, url: "https://stripe.com/jobs/1", track: "Internship", posted_at: "2026-11-01T00:00:00Z" },
   ];
   return {
-    apps, events,
+    apps, events, leads, contacts,
     async listApps() { return apps.map((a) => ({ ...a })); },
     async insertApp(f) { const a = { ...blank(), ...(f as Partial<AppRow>) }; apps.push(a); return { ...a }; },
     async updateApp(id, f) { const a = apps.find((x) => x.id === id); if (!a) return null; Object.assign(a, f); return { ...a }; },
@@ -26,6 +33,26 @@ function memoryStore(seed: Partial<AppRow>[] = []): Store & { apps: AppRow[]; ev
     async hasEvent(ref) { return events.some((x) => x.source_ref === ref); },
     async searchJobs(p) { return jobs.filter((j) => !p.query || `${j.title} ${j.company}`.toLowerCase().includes(p.query.toLowerCase())).slice(0, p.limit); },
     async ghostDays() { return 21; },
+    async listLeads() { return leads.map((l) => ({ ...l })); },
+    async insertLead(f) {
+      const l: LeadRow = {
+        id: `lead-${++n}`, company: "", role: "", track: "Internship", location: "", pay: "", url: "", source: "",
+        status: "New", fit_note: "", date_found: "2026-11-11", ...(f as Partial<LeadRow>),
+      };
+      leads.push(l);
+      return { ...l };
+    },
+    async updateLead(id, f) { const l = leads.find((x) => x.id === id); if (!l) return null; Object.assign(l, f); return { ...l }; },
+    async listContacts() { return contacts.map((c) => ({ ...c })); },
+    async insertContact(f) {
+      const c: ContactRow = {
+        id: `contact-${++n}`, person_name: "", company: "", status: "", next_step: "", next_step_on: null, notes: "",
+        ...(f as Partial<ContactRow>),
+      };
+      contacts.push(c);
+      return { ...c };
+    },
+    async updateContact(id, f) { const c = contacts.find((x) => x.id === id); if (!c) return null; Object.assign(c, f); return { ...c }; },
   };
 }
 
@@ -82,6 +109,54 @@ describe("MCP tools", () => {
     expect(wrongEnum.result.content[0].text).toMatch(/must be one of/);
   });
 
+  it("runs the leads pipeline without ever applying", async () => {
+    const s = memoryStore();
+
+    const added = await call(s, "add_lead", { company: "Stripe", role: "Software Engineer Intern", url: "https://stripe.com/jobs/1", source: "Job board" });
+    expect(added.result.isError).toBe(false);
+    const lead = added.result.structuredContent.created as { id: string; status: string };
+    expect(lead.status).toBe("New");
+
+    // the same company + role is returned, not duplicated
+    const dupe = await call(s, "add_lead", { company: "stripe", role: "Software Engineer Intern" });
+    expect(dupe.result.structuredContent.existing).toBe(true);
+    expect(s.leads).toHaveLength(1);
+
+    const queued = await call(s, "update_lead", { id: lead.id, status: "Queued" });
+    expect((queued.result.structuredContent.updated as { status: string }).status).toBe("Queued");
+
+    const listed = await call(s, "list_leads", { status: "Queued" });
+    expect(listed.result.structuredContent.count).toBe(1);
+    expect(await call(s, "list_leads", { status: "Closed" }).then((r) => r.result.structuredContent.count)).toBe(0);
+
+    // bad enum + unknown id are readable errors, and no application was ever created
+    expect((await call(s, "update_lead", { id: lead.id, status: "Hired!!" })).result.content[0].text).toMatch(/must be one of/);
+    expect((await call(s, "update_lead", { id: "nope", status: "Closed" })).result.isError).toBe(true);
+    expect(s.apps).toHaveLength(0);
+  });
+
+  it("tracks networking contacts with due next steps first", async () => {
+    const s = memoryStore();
+    const a = await call(s, "add_contact", { person_name: "Priya Nair", company: "Copperline", next_step: "Week 2 touch", next_step_on: "2026-11-01" });
+    const b = await call(s, "add_contact", { person_name: "Marcus Webb", company: "Atlas", next_step: "Follow up", next_step_on: "2027-01-01" });
+    expect(a.result.isError).toBe(false);
+    expect(b.result.isError).toBe(false);
+
+    const all = await call(s, "list_contacts");
+    expect((all.result.structuredContent.contacts as { person_name: string }[]).map((c) => c.person_name)).toEqual(["Priya Nair", "Marcus Webb"]);
+
+    // due_only keeps only contacts with a dated next step in the past/present
+    const due = await call(s, "list_contacts", { due_only: true });
+    expect((due.result.structuredContent.contacts as { person_name: string }[]).map((c) => c.person_name)).toEqual(["Priya Nair"]);
+
+    // clearing the next step takes the contact out of the due list
+    const ca = (a.result.structuredContent.created as { id: string }).id;
+    const done = await call(s, "update_contact", { id: ca, next_step: "" });
+    expect((done.result.structuredContent.updated as { next_step: string | null }).next_step).toBeNull();
+    expect((await call(s, "list_contacts", { due_only: true })).result.structuredContent.count).toBe(0);
+    expect((await call(s, "update_contact", { id: "nope", status: "x" })).result.isError).toBe(true);
+  });
+
   it("answers protocol basics and ignores notifications", async () => {
     const s = memoryStore();
     expect(await handleBody({ jsonrpc: "2.0", method: "notifications/initialized" }, s)).toBeNull();
@@ -120,6 +195,7 @@ describe("works with the official MCP client", () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
       "get_summary", "list_applications", "add_application", "update_application", "process_job_email", "check_job_scam", "search_jobs",
+      "list_leads", "add_lead", "update_lead", "list_contacts", "add_contact", "update_contact",
     ]);
 
     const added = await client.callTool({ name: "add_application", arguments: { company: "Stripe", role: "SWE Intern" } });

@@ -7,7 +7,7 @@ description: Keep the user's Pulse Find job tracker current from their email, an
 
 Pulse Find is the user's job application tracker. You reach it through the `pulse-find` MCP server
 (tools listed below). If those tools aren't available, tell the user to connect it first:
-https://pulsefind-app.vercel.app/app/connect
+https://pulse-find-two.vercel.app/app/connect
 
 ## Hard rules
 

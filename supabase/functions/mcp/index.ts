@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
   const token = auth.match(/^Bearer\s+(pf_[A-Za-z0-9]{40})$/)?.[1];
   const unauthorized = (msg: string) =>
     reply({ jsonrpc: "2.0", id: null, error: { code: -32001, message: msg } }, 401, { "WWW-Authenticate": 'Bearer realm="pulse-find"' });
-  if (!token) return unauthorized("Add your Pulse Find access token: Authorization: Bearer pf_...  Create one at https://pulsefind-app.vercel.app/app/connect");
+  if (!token) return unauthorized("Add your Pulse Find access token: Authorization: Bearer pf_...  Create one at https://pulse-find-two.vercel.app/app/connect");
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const { data: row } = await db.from("api_tokens").select("id,user_id,revoked_at,last_used_at").eq("token_hash", await sha256Hex(token)).maybeSingle();

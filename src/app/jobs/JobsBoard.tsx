@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
+import { accountPipelineStore, leadKey } from "@/lib/pipeline";
+import { TRACKS, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
 import { SwipeDeck } from "./SwipeDeck";
 
@@ -63,7 +65,49 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [history, setHistory] = useState<{ job: Job; prev: Mark | undefined }[]>([]);
   const [view, setView] = useState<"swipe" | "list">("swipe");
   const [meta, setMeta] = useState<{ companies: number; refreshed: string | null }>({ companies: 0, refreshed: null });
+  const [leadKeys, setLeadKeys] = useState<ReadonlySet<string>>(new Set());
   const { toast, toastNode } = useToast();
+
+  // which of these jobs are already in the user's leads pipeline
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    let alive = true;
+    accountPipelineStore(supabase, userId)
+      .loadLeads()
+      .then((leads) => {
+        if (alive) setLeadKeys(new Set(leads.map(leadKey)));
+      })
+      .catch(() => undefined); // leads are a bonus here; the board works without them
+    return () => { alive = false; };
+  }, [supabase, userId]);
+
+  /** Saves a board job into the user's leads pipeline (their decision list — never an application). */
+  async function saveLead(job: Job) {
+    if (!supabase || !userId) return;
+    const key = leadKey({ company: job.company, role: job.title });
+    if (leadKeys.has(key)) {
+      toast(`${job.company} is already in your leads`);
+      return;
+    }
+    try {
+      await accountPipelineStore(supabase, userId).createLead({
+        company: job.company,
+        role: job.title,
+        track: (TRACKS as readonly string[]).includes(job.track) ? (job.track as Track) : "Other",
+        location: job.location,
+        pay: "",
+        url: job.url,
+        source: "Job board",
+        status: "New",
+        fit_note: "",
+        date_found: todayISO(),
+      });
+      setLeadKeys((prev) => new Set(prev).add(key));
+      toast(`Saved ${job.company} to your Leads`);
+    } catch {
+      toast("Couldn't save that lead. Try again.", "error");
+    }
+  }
 
   // debounce the search box
   useEffect(() => {
@@ -197,7 +241,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const toggle = "flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-medium";
 
   return (
-    <main className="gutter mx-auto flex w-full max-w-[1180px] flex-col gap-5 pb-20 pt-8">
+    <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-5 pb-20 pt-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Find openings</h1>
@@ -304,6 +348,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
+                      {userId && <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>}
                       {userId && <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>}
                       <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => setMark(j, null)}>✕</button>
                     </div>
@@ -338,6 +383,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                     ) : (
                       <>
                         <button className={btn.ghost} onClick={() => mark(j, "saved")} disabled={m === "saved"}>{m === "saved" ? "Saved" : "Save"}</button>
+                        <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>
                         <button className={btn.ghost} onClick={() => mark(j, "applied")}>I applied</button>
                         <button className={btn.ghost} onClick={() => mark(j, "hidden")} aria-label={`Hide ${j.title}`}>Hide</button>
                       </>

@@ -17,7 +17,7 @@ export default async function JobsPage() {
     const supabase = await createClient();
     userId = (await supabase.auth.getUser()).data.user?.id ?? null;
   }
-  return (
+  const board = (
     <>
       <TopBar
         home={userId ? "/app" : "/"}
@@ -26,4 +26,7 @@ export default async function JobsPage() {
       <JobsBoard userId={userId} />
     </>
   );
+  // Signed-in users stay in the dark redesign shell so the board reads as the
+  // same product as the tracker; signed-out visitors get the public palette.
+  return userId ? <div className="pf-shell min-h-dvh">{board}</div> : board;
 }

@@ -2,11 +2,13 @@
 // Auth: "Authorization: Bearer pf_..." personal access token created in the app.
 // The service role is used, so EVERY query below is explicitly scoped to the token's user.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.118.0";
-import { handleBody, type AppRow, type JobRow, type Store } from "../_shared/mcp.ts";
+import { handleBody, type AppRow, type ContactRow, type JobRow, type LeadRow, type Store } from "../_shared/mcp.ts";
 
 const MAX_BODY = 256 * 1024;
 const APP_COLS =
   "id,company,role,track,status,date_applied,last_contact,latest_update,action_needed,action_due,interviews_done,oa_received,link,notes";
+const LEAD_COLS = "id,company,role,track,location,pay,url,source,status,fit_note,date_found";
+const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -71,6 +73,38 @@ function userStore(db: SupabaseClient, uid: string): Store {
     async ghostDays() {
       const { data } = await db.from("profiles").select("ghost_days").eq("user_id", uid).maybeSingle();
       return (data as { ghost_days: number } | null)?.ghost_days ?? 21;
+    },
+    async listLeads() {
+      const { data, error } = await db.from("job_leads").select(LEAD_COLS).eq("user_id", uid).order("date_found", { ascending: false });
+      fail(error);
+      return (data ?? []) as LeadRow[];
+    },
+    async insertLead(fields) {
+      const { data, error } = await db.from("job_leads").insert({ ...fields, user_id: uid }).select(LEAD_COLS).single();
+      fail(error);
+      return data as LeadRow;
+    },
+    async updateLead(id, fields) {
+      const { data, error } = await db.from("job_leads").update(fields).eq("id", id).eq("user_id", uid).select(LEAD_COLS).maybeSingle();
+      if (error && /invalid input syntax for type uuid/i.test(error.message)) return null;
+      fail(error);
+      return (data as LeadRow | null) ?? null;
+    },
+    async listContacts() {
+      const { data, error } = await db.from("networking_contacts").select(CONTACT_COLS).eq("user_id", uid).order("next_step_on", { ascending: true, nullsFirst: false });
+      fail(error);
+      return (data ?? []) as ContactRow[];
+    },
+    async insertContact(fields) {
+      const { data, error } = await db.from("networking_contacts").insert({ ...fields, user_id: uid }).select(CONTACT_COLS).single();
+      fail(error);
+      return data as ContactRow;
+    },
+    async updateContact(id, fields) {
+      const { data, error } = await db.from("networking_contacts").update(fields).eq("id", id).eq("user_id", uid).select(CONTACT_COLS).maybeSingle();
+      if (error && /invalid input syntax for type uuid/i.test(error.message)) return null;
+      fail(error);
+      return (data as ContactRow | null) ?? null;
     },
   };
 }

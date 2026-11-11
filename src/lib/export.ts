@@ -8,25 +8,31 @@ const STATUS_FILL: Partial<Record<Application["status"], string>> = {
   Incomplete: "FFEDEDED",
 };
 
+/**
+ * The same columns, in the same order, as the user's Excel tracker — so an
+ * export drops into that sheet and the .xlsx import reads it straight back.
+ * "Email" holds the posting link or contact email (the tracker's Email column).
+ */
 const COLUMNS = [
   { header: "Company", key: "company", width: 26 },
   { header: "Role", key: "role", width: 40 },
   { header: "Track", key: "track", width: 12 },
-  { header: "Status", key: "status", width: 17 },
   { header: "Date Applied", key: "date_applied", width: 13 },
+  { header: "Status", key: "status", width: 17 },
   { header: "Last Contact", key: "last_contact", width: 13 },
-  { header: "Days Quiet", key: "days", width: 11 },
-  { header: "Follow-Up", key: "flag", width: 16 },
-  { header: "Interviews", key: "interviews_done", width: 11 },
+  { header: "Days Since Contact", key: "days", width: 12 },
+  { header: "Follow-Up Flag", key: "flag", width: 17 },
+  { header: "OA Received", key: "oa_received", width: 11 },
+  { header: "Interviews Done", key: "interviews_done", width: 12 },
   { header: "Latest Update", key: "latest_update", width: 40 },
-  { header: "Action Needed (You)", key: "action_needed", width: 44 },
+  { header: "Email", key: "email", width: 30 },
+  { header: "Notes", key: "notes", width: 30 },
+  { header: "Action Needed", key: "action_needed", width: 44 },
   { header: "Action Due", key: "action_due", width: 12 },
   { header: "Tech Role", key: "tech", width: 10 },
-  { header: "Link", key: "link", width: 30 },
-  { header: "Notes", key: "notes", width: 30 },
 ] as const;
 
-const FLAG_LABEL = { ghosted: "GHOSTED: follow up", soon: "Follow up soon", waiting: "Waiting" } as const;
+const FLAG_LABEL = { ghosted: "GHOSTED - follow up", soon: "Follow up soon", waiting: "Waiting" } as const;
 
 const toDate = (s: ISODate | null) => {
   if (!s) return null;
@@ -80,8 +86,9 @@ export async function buildWorkbook(apps: Application[], settings: Settings, tod
       action_due: toDate(a.action_due),
       days: a.last_contact ? daysBetween(a.last_contact, today) : null,
       flag: flag ? FLAG_LABEL[flag] : "",
+      oa_received: a.oa_received ? "Y" : "N",
       tech: tech ? "Tech" : "",
-      link: a.link ? { text: a.link, hyperlink: a.link } : "",
+      email: /^https?:\/\//i.test(a.link) ? { text: a.link, hyperlink: a.link } : a.link,
     });
     const base = STATUS_FILL[a.status];
     row.eachCell({ includeEmpty: true }, (c, col) => {

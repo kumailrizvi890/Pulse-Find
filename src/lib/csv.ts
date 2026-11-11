@@ -84,16 +84,15 @@ export interface ImportResult {
   mapped: Partial<Record<keyof ApplicationInput, string>>;
 }
 
-export function importCsv(text: string, today: ISODate = todayISO()): ImportResult {
-  const parsed = Papa.parse<Record<string, string>>(text.replace(/^﻿/, ""), {
-    header: true,
-    skipEmptyLines: "greedy",
-    transformHeader: (h) => h.trim(),
-  });
-  const headers = parsed.meta.fields ?? [];
+/**
+ * Shared row importer for CSV and .xlsx: maps header aliases to fields and
+ * normalizes every row. `line` numbers in skipped entries are 1-based sheet
+ * rows (header = line 1), matching what the user sees in Excel.
+ */
+export function importRecords(headers: string[], data: Record<string, string>[], today: ISODate = todayISO()): ImportResult {
   const mapped: ImportResult["mapped"] = {};
   for (const [field, aliases] of Object.entries(HEADER_ALIASES) as [keyof ApplicationInput, string[]][]) {
-    const hit = headers.find((h) => aliases.includes(h.toLowerCase()));
+    const hit = headers.find((h) => aliases.includes(h.trim().toLowerCase()));
     if (hit) mapped[field] = hit;
   }
   const get = (row: Record<string, string>, f: keyof ApplicationInput) => (mapped[f] ? (row[mapped[f]!] ?? "").trim() : "");
@@ -103,7 +102,7 @@ export function importCsv(text: string, today: ISODate = todayISO()): ImportResu
   if (!mapped.company) {
     return { rows, skipped: [{ line: 1, reason: "No Company column found. Name one column “Company”." }], mapped };
   }
-  parsed.data.forEach((row, i) => {
+  data.forEach((row, i) => {
     const line = i + 2;
     const company = get(row, "company");
     if (!company) {
@@ -114,6 +113,10 @@ export function importCsv(text: string, today: ISODate = todayISO()): ImportResu
     const status = normalizeStatus(get(row, "status"));
     const applied = parseDate(get(row, "date_applied"));
     const interviews = parseInt(get(row, "interviews_done"), 10);
+    const rawLink = get(row, "link");
+    // The tracker column is "Email": it holds posting URLs and, in the user's
+    // own sheet, contact email addresses. Keep either; drop anything else.
+    const link = /^https?:\/\//i.test(rawLink) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawLink) ? rawLink.slice(0, 2000) : "";
     rows.push({
       company: company.slice(0, 200),
       role: role.slice(0, 300),
@@ -124,13 +127,22 @@ export function importCsv(text: string, today: ISODate = todayISO()): ImportResu
       oa_received: yes(get(row, "oa_received")) || status === "OA Received" || status === "OA Completed",
       interviews_done: Number.isFinite(interviews) ? Math.min(Math.max(interviews, 0), 50) : 0,
       latest_update: get(row, "latest_update").slice(0, 1000),
-      link: /^https?:\/\//i.test(get(row, "link")) ? get(row, "link").slice(0, 2000) : "",
+      link,
       notes: get(row, "notes").slice(0, 4000),
       action_needed: get(row, "action_needed").slice(0, 500),
       action_due: parseDate(get(row, "action_due")),
     });
   });
   return { rows, skipped, mapped };
+}
+
+export function importCsv(text: string, today: ISODate = todayISO()): ImportResult {
+  const parsed = Papa.parse<Record<string, string>>(text.replace(/^﻿/, ""), {
+    header: true,
+    skipEmptyLines: "greedy",
+    transformHeader: (h) => h.trim(),
+  });
+  return importRecords(parsed.meta.fields ?? [], parsed.data, today);
 }
 
 export const CSV_TEMPLATE =

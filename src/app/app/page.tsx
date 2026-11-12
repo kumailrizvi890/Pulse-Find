@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell, shellNavLink } from "@/components/AppShell";
@@ -11,6 +12,14 @@ export default async function AppPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login?next=/app");
+
+  if ((await cookies()).get("pulse-find-setup-done")?.value !== "1") {
+    const { count } = await supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", data.user.id);
+    if (count === 0) redirect("/app/setup");
+  }
 
   return (
     <AppShell

@@ -88,7 +88,7 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
         )}
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="l-email">
           Email
-          <input id="l-email" type="email" required className={field} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          <input id="l-email" type="email" required className={field} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@work.com" autoComplete="email" />
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="l-pass">
           Password
@@ -103,6 +103,13 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
           />
         </label>
+        {mode === "signin" && (
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-sm font-medium text-accent hover:brightness-110">
+              Forgot password?
+            </Link>
+          </div>
+        )}
       </div>
       {error && <p role="alert" className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
       <button type="submit" className={`${btn.primary} mt-5 w-full py-2.5`} disabled={busy}>

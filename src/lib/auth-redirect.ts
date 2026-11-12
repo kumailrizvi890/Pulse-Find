@@ -67,5 +67,6 @@ export function isAlreadyConfirmedSignUp(
   data: { user?: { identities?: unknown[] | null } | null } | null,
   message?: string | null,
 ): boolean {
-  return isExistingUserSignUp(data) || isAlreadyRegisteredMessage(message);
+  if (data !== null && isExistingUserSignUp(data)) return true;
+  return isAlreadyRegisteredMessage(message);
 }

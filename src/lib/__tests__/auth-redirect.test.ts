@@ -4,6 +4,7 @@ import {
   getEmailRedirectTo,
   getPasswordResetRedirectTo,
   isAlreadyConfirmedMessage,
+  isAlreadyConfirmedSignUp,
   isAlreadyRegisteredMessage,
   isExistingUserSignUp,
   isRateLimitMessage,
@@ -50,5 +51,14 @@ describe("auth error classification", () => {
     expect(isExistingUserSignUp({ user: { identities: [] } })).toBe(true);
     expect(isExistingUserSignUp({ user: { identities: [{ id: "1" }] } })).toBe(false);
     expect(isExistingUserSignUp({ user: null })).toBe(false);
+  });
+
+  it("detects an already-confirmed account from a sign-up response", () => {
+    expect(isAlreadyConfirmedSignUp({ user: { identities: [] } })).toBe(true);
+    expect(isAlreadyConfirmedSignUp({ user: null }, "User already registered")).toBe(true);
+    expect(isAlreadyConfirmedSignUp({ user: null }, "Email already confirmed")).toBe(true);
+    expect(isAlreadyConfirmedSignUp({ user: { identities: [{ id: "1" }] } })).toBe(false);
+    expect(isAlreadyConfirmedSignUp({ user: null }, "Email rate limit exceeded")).toBe(false);
+    expect(isAlreadyConfirmedSignUp({ user: null })).toBe(false);
   });
 });

@@ -84,7 +84,13 @@ export default function SetupWizard({ userId }: { userId: string }) {
   const [endpoint, setEndpoint] = useState(() => getMcpEndpoint());
 
   useEffect(() => {
-    setEndpoint(getMcpEndpoint(window.location.origin));
+    let live = true;
+    void Promise.resolve().then(() => {
+      if (live) setEndpoint(getMcpEndpoint(window.location.origin));
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   useEffect(() => {

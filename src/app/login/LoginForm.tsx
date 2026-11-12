@@ -33,6 +33,16 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
   const nextParam = params.get("next") ?? "/app";
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/app";
 
+  function goToSignIn() {
+    // A plain link to /login is not enough when the user is already on
+    // /login in sign-up mode: the form state would stay put. Switch the
+    // form to sign-in mode explicitly, then go to the login page.
+    setSent(false);
+    setAlreadyHaveAccount(false);
+    setMode("signin");
+    router.replace("/login");
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setAlreadyHaveAccount(false);
@@ -100,9 +110,9 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
           This email already has a Pulse Find account, so no new confirmation email is sent.
           Sign in with your existing password instead.
         </p>
-        <Link href="/login" className={`${btn.primary} mt-5 inline-flex w-full justify-center`}>
+        <button type="button" onClick={goToSignIn} className={`${btn.primary} mt-5 inline-flex w-full justify-center`}>
           Go to sign in
-        </Link>
+        </button>
         <button
           type="button"
           onClick={() => setAlreadyHaveAccount(false)}
@@ -122,7 +132,7 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
           We sent a confirmation link to <b className="text-ink">{email}</b>. Open it on this device
           to finish creating your account.
         </p>
-        <ResendConfirmation email={email} onEmailChange={setEmail} next={next} />
+        <ResendConfirmation email={email} onEmailChange={setEmail} next={next} onGoToSignIn={goToSignIn} />
       </div>
     );
   }
@@ -183,7 +193,7 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
         </p>
       </form>
       {mode === "signin" && (
-        <ResendConfirmation email={email} onEmailChange={setEmail} next={next} />
+        <ResendConfirmation email={email} onEmailChange={setEmail} next={next} onGoToSignIn={goToSignIn} />
       )}
     </>
   );

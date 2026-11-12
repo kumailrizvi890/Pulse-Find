@@ -77,7 +77,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
 
   return (
     <div className="mx-auto flex w-full max-w-[380px] flex-col items-center">
-      <div className="relative h-[400px] w-full select-none">
+      <div className="relative h-[400px] w-full select-none overflow-hidden">
         {!top ? (
           <div className="absolute inset-0 flex items-center justify-center rounded-3xl border border-dashed border-line p-6 text-center text-sm text-muted">
             {loading ? "Loading openings…" : emptyText}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getPasswordResetRedirectTo } from "@/lib/auth-redirect";
 import { isConfigured } from "@/lib/env";
 import { btn, field } from "@/components/dashboard/ui";
 
@@ -12,7 +13,6 @@ export function ForgotPasswordForm() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
-
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!isConfigured()) {
@@ -23,7 +23,7 @@ export function ForgotPasswordForm() {
     setError("");
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`,
+      redirectTo: getPasswordResetRedirectTo(),
     });
     setBusy(false);
     if (error) {
@@ -62,10 +62,7 @@ export function ForgotPasswordForm() {
       <p className="mt-2 text-sm leading-6 text-muted">
         Enter the email you signed up with and we will send you a link to choose a new password.
       </p>
-      <label
-        htmlFor="fp-email"
-        className="mt-4 flex flex-col gap-1.5 text-xs font-medium text-muted"
-      >
+      <label className="mt-4 flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="fp-email">
         Email
         <input
           id="fp-email"

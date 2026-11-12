@@ -203,7 +203,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
         </>
       ) : (
         <>
-                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={(a) => setDrawer({ open: true, editing: a })} onShowWaiting={} => setFilter("action")} />
+                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={(a) => setDrawer({ open: true, editing: a })} onShowWaiting={() => setFilter("action")} />
 
           {extras}
 

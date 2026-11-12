@@ -5,7 +5,7 @@ import { useState } from "react";
 import { btn, field } from "@/components/dashboard/ui";
 import {
   getEmailRedirectTo,
-  isAlreadyConfirmedMessage,
+  isAlreadyConfirmedSignUp,
   isRateLimitMessage,
 } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/client";
@@ -41,16 +41,25 @@ export default function ResendConfirmation({
     setStatus("sending");
     setErrorMessage("");
     const supabase = createClient();
-    const { error } = await supabase.auth.resend({
-      type: "signup",
+    // A plain resend cannot tell a confirmed account apart: Supabase
+    // returns success for one even though it sends nothing. So the resend
+    // goes through sign-up instead. For an address that already has a
+    // confirmed account Supabase returns a user with no identities, or an
+    // "already registered" error, and the already-confirmed panel below
+    // points back to sign-in. For an address that is still unconfirmed,
+    // sign-up sends a fresh confirmation email, so that case needs no
+    // second call. The password is random and discarded: it is never used
+    // to sign in, and an existing account is never changed by the attempt.
+    const { data, error } = await supabase.auth.signUp({
       email: trimmedEmail,
+      password: crypto.randomUUID(),
       options: { emailRedirectTo: getEmailRedirectTo(next) },
     });
+    if (isAlreadyConfirmedSignUp(data, error?.message)) {
+      setStatus("already-confirmed");
+      return;
+    }
     if (error) {
-      if (isAlreadyConfirmedMessage(error.message)) {
-        setStatus("already-confirmed");
-        return;
-      }
       const errorStatus = (error as { status?: number }).status;
       if (isRateLimitMessage(error.message, errorStatus)) {
         setStatus("rate-limited");
@@ -65,9 +74,7 @@ export default function ResendConfirmation({
 
   return (
     <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm font-semibold text-white">
-        {"Didn't get the email? Resend it"}
-      </p>
+      <p className="text-sm font-semibold text-white">{"Didn't get the email? Resend it"}</p>
       <p className="mt-1 text-xs text-zinc-400">
         Enter the email address you signed up with and we will send a new confirmation link.
       </p>
@@ -84,17 +91,27 @@ export default function ResendConfirmation({
         />
       </label>
       {status === "already-confirmed" ? (
-        <div role="alert" className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
+        <div
+          role="alert"
+          className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3"
+        >
           <p className="text-sm font-semibold text-amber-200">You already have an account</p>
           <p className="mt-1 text-sm text-zinc-300">
             Your account is already confirmed — sign in below
           </p>
           {onGoToSignIn ? (
-            <button type="button" onClick={onGoToSignIn} className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
+            <button
+              type="button"
+              onClick={onGoToSignIn}
+              className={`${btn.primary} mt-3 inline-flex w-full justify-center`}
+            >
               Go to sign in
             </button>
           ) : (
-            <Link href="/login" className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
+            <Link
+              href="/login"
+              className={`${btn.primary} mt-3 inline-flex w-full justify-center`}
+            >
               Go to sign in
             </Link>
           )}

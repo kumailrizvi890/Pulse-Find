@@ -13,6 +13,7 @@ export function AccountDashboard({ userId }: { userId: string }) {
   return (
     <Dashboard
       store={store}
+      userId={userId}
       headerActions={<Link href="/jobs" className={btn.secondary}>Find jobs</Link>}
       extras={<NewOpenings />}
     />

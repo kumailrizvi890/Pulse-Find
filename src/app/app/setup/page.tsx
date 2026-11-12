@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import AppShell from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import SetupWizard from "@/components/SetupWizard";
 import { createClient } from "@/lib/supabase/server";
 

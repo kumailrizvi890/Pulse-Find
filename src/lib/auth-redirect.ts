@@ -56,3 +56,16 @@ export function isExistingUserSignUp(data: {
   const identities = data?.user?.identities;
   return Array.isArray(identities) && identities.length === 0;
 }
+
+/**
+ * True when a sign-up response means the email already has a confirmed
+ * account: either Supabase returned a user with no identities, or the
+ * call failed with an "already registered" error. A resend for such an
+ * email must point back to sign-in instead of saying to check email.
+ */
+export function isAlreadyConfirmedSignUp(
+  data: { user?: { identities?: unknown[] | null } | null } | null,
+  message?: string | null,
+): boolean {
+  return isExistingUserSignUp(data) || isAlreadyRegisteredMessage(message);
+}

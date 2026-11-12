@@ -23,9 +23,11 @@ describe("agent prompt", () => {
       token: "pf_x",
     });
     for (const phrase of [
-      "read-only Gmail",
-      "get_applications",
-      "create_application",
+      "read-only",
+      "process_job_email",
+      "get_summary",
+      "list_applications",
+      "add_application",
       "Ghosted",
       "Never send email",
       "never apply",

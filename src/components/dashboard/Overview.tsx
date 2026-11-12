@@ -107,7 +107,7 @@ export function Overview({
     });
     const total = days.reduce((s, d) => s + d.value, 0);
     const prevStart = addDays(monday, -7);
-    const prevTotal = apps.filter((a) => a.date_applied >= prevStart && a.date_applied < monday).length;
+    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
     const change = prevTotal === 0 ? null : Math.round(((total - prevTotal) / prevTotal) * 100);
     return { days, total, change };
   }, [apps, monday]);
@@ -122,9 +122,9 @@ export function Overview({
   ];
 
   const response = useMemo(() => {
-    const responded = apps.filter((a) => a.last_contact && a.last_contact > a.date_applied);
+    const responded = apps.filter((a) => a.last_contact && a.date_applied && a.last_contact > a.date_applied);
     if (responded.length === 0) return null;
-    const days = responded.map((a) => daysBetween(a.date_applied, a.last_contact ?? a.date_applied));
+    const days = responded.map((a) => a.date_applied && a.last_contact ? daysBetween(a.date_applied, a.last_contact) : 0);
     return { average: days.reduce((s, d) => s + d, 0) / days.length, count: responded.length };
   }, [apps]);
 

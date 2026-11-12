@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import ImportDialog from "./dashboard/ImportDialog";
+import { ImportDialog } from "./dashboard/ImportDialog";
 import { btn, field, Panel } from "./dashboard/ui";
 import { buildAgentPrompt, getMcpEndpoint } from "@/lib/agent-prompt";
 import { createAgentToken } from "@/lib/agent-tokens";
@@ -97,8 +97,8 @@ export default function SetupWizard({ userId }: { userId: string }) {
     let cancelled = false;
     store
       .load()
-      .then((rows) => {
-        if (!cancelled) setApps(rows);
+      .then((state) => {
+        if (!cancelled) setApps(state.apps);
       })
       .catch(() => undefined);
     return () => {

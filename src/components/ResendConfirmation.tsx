@@ -74,7 +74,9 @@ export default function ResendConfirmation({
 
   return (
     <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm font-semibold text-white">{"Didn't get the email? Resend it"}</p>
+      <p className="text-sm font-semibold text-white">
+        {"Didn't get the email? Resend it"}
+      </p>
       <p className="mt-1 text-xs text-zinc-400">
         Enter the email address you signed up with and we will send a new confirmation link.
       </p>
@@ -91,27 +93,17 @@ export default function ResendConfirmation({
         />
       </label>
       {status === "already-confirmed" ? (
-        <div
-          role="alert"
-          className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3"
-        >
+        <div role="alert" className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
           <p className="text-sm font-semibold text-amber-200">You already have an account</p>
           <p className="mt-1 text-sm text-zinc-300">
             Your account is already confirmed — sign in below
           </p>
           {onGoToSignIn ? (
-            <button
-              type="button"
-              onClick={onGoToSignIn}
-              className={`${btn.primary} mt-3 inline-flex w-full justify-center`}
-            >
+            <button type="button" onClick={onGoToSignIn} className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
               Go to sign in
             </button>
           ) : (
-            <Link
-              href="/login"
-              className={`${btn.primary} mt-3 inline-flex w-full justify-center`}
-            >
+            <Link href="/login" className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
               Go to sign in
             </Link>
           )}

@@ -21,10 +21,12 @@ export default function ResendConfirmation({
   email,
   onEmailChange,
   next = "/dashboard",
+  onGoToSignIn,
 }: {
   email: string;
   onEmailChange: (email: string) => void;
   next?: string;
+  onGoToSignIn?: () => void;
 }) {
   const [status, setStatus] = useState<ResendStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -87,9 +89,15 @@ export default function ResendConfirmation({
           <p className="mt-1 text-sm text-zinc-300">
             Your account is already confirmed — sign in below
           </p>
-          <Link href="/login" className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
-            Go to sign in
-          </Link>
+          {onGoToSignIn ? (
+            <button type="button" onClick={onGoToSignIn} className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
+              Go to sign in
+            </button>
+          ) : (
+            <Link href="/login" className={`${btn.primary} mt-3 inline-flex w-full justify-center`}>
+              Go to sign in
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setStatus("idle")}

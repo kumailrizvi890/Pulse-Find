@@ -5,12 +5,12 @@ import type { Application, ApplicationInput, Settings, TrackerEvent } from "@/li
 import { DEFAULT_SETTINGS, emptyApplication } from "@/lib/types";
 import {
   actionQueue, applyFilter, daysBetween, followUp, funnel, hasAction, isTechRole, sortForTable,
-  summarize, todayISO, weekly, CLOSED, type Filter,
+  summarize, todayISO, CLOSED, type Filter,
 } from "@/lib/metrics";
 import type { TrackerStore } from "@/lib/store";
 import { dedupeImport } from "@/lib/sheet";
 import { buildWorkbook, download, toCsv } from "@/lib/export";
-import { Funnel, WeeklyBars } from "./Charts";
+import { Overview } from "./Overview";
 import { ApplicationDrawer } from "./ApplicationDrawer";
 import { ImportDialog } from "./ImportDialog";
 import { Panel, StatusPill, Tag, btn, cx, field, fmtDate, useToast } from "./ui";
@@ -30,7 +30,7 @@ function greeting(name: string | null) {
   return name ? `${part}, ${name}` : part;
 }
 
-export function Dashboard({ store, banner, headerActions, extras }: { store: TrackerStore; banner?: ReactNode; headerActions?: ReactNode; extras?: ReactNode }) {
+export function Dashboard({ store, banner, headerActions, extras, userId }: { store: TrackerStore; banner?: ReactNode; headerActions?: ReactNode; extras?: ReactNode; userId?: string; }) {
   const [apps, setApps] = useState<Application[]>([]);
   const [events, setEvents] = useState<TrackerEvent[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -73,7 +73,6 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
   const sum = useMemo(() => summarize(apps, today, settings.ghost_days), [apps, today, settings.ghost_days]);
   const queue = useMemo(() => actionQueue(apps), [apps]);
   const steps = useMemo(() => funnel(apps), [apps]);
-  const weeks = useMemo(() => weekly(apps, today), [apps, today]);
   const rows = useMemo(() => sortForTable(applyFilter(apps, filter, today, settings.ghost_days, query)), [apps, filter, today, settings.ghost_days, query]);
   const counts = useMemo(
     () => Object.fromEntries(FILTERS.map((f) => [f.id, applyFilter(apps, f.id, today, settings.ghost_days).length])) as Record<Filter, number>,
@@ -170,7 +169,6 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
   }
 
   const loading = state === "loading";
-  const weekPct = Math.min(1, sum.thisWeek / Math.max(settings.weekly_goal, 1));
 
   return (
     <Shell banner={banner}>
@@ -205,60 +203,9 @@ export function Dashboard({ store, banner, headerActions, extras }: { store: Tra
         </>
       ) : (
         <>
-          <Panel
-            title="Waiting on you"
-            hint="Assessments, replies and forms where the next move is yours."
-            className={queue.length ? "border-danger/30" : undefined}
-            action={queue.length ? <Tag tone="danger">{queue.length} open{sum.overdue ? ` · ${sum.overdue} overdue` : ""}</Tag> : undefined}
-          >
-            {loading ? (
-              <Skeleton lines={3} />
-            ) : queue.length === 0 ? (
-              <p className="text-sm text-good">Nothing is waiting on you right now.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {queue.map((a) => {
-                  const d = a.action_due ? daysBetween(today, a.action_due) : null;
-                  const due = d === null ? "No date" : d < 0 ? `Overdue ${-d}d` : d === 0 ? "Due today" : d === 1 ? "Due tomorrow" : `Due ${fmtDate(a.action_due)}`;
-                  return (
-                    <li key={a.id} className="grid grid-cols-1 gap-2 py-3 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-danger">
-                          {a.company} <span className="font-normal text-muted">· {a.role || "Role not set"}</span>
-                        </p>
-                        <p className="mt-0.5 text-sm">{a.action_needed}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Tag tone={d !== null && d <= 1 ? "danger" : "warn"}>{due}</Tag>
-                        <button className={btn.secondary} onClick={() => markDone(a)}>Done</button>
-                        <button className={btn.ghost} onClick={() => setDrawer({ open: true, editing: a })}>Open</button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
+                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={(a) => setDrawer({ open: true, editing: a })} onShowWaiting={} => setFilter("action")} />
 
           {extras}
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="This week" value={`${sum.thisWeek}`} sub={`/ ${settings.weekly_goal} goal`} bar={weekPct} loading={loading} />
-            <Stat label="Applications" value={`${sum.total}`} sub={`${sum.tech} tech`} loading={loading} />
-            <Stat label="Response rate" value={`${Math.round(sum.responseRate * 100)}%`} loading={loading} />
-            <Stat label="Interviews" value={`${sum.interviews}`} sub={`${sum.oas} assessments`} loading={loading} />
-            <Stat label="Offers" value={`${sum.offers}`} tone={sum.offers ? "good" : undefined} loading={loading} />
-            <Stat label="Ghosted" value={`${sum.ghosted}`} sub={`quiet ${settings.ghost_days}+ days`} tone={sum.ghosted ? "danger" : undefined} loading={loading} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-            <Panel title="Pipeline" hint="How far your applications get. Each one counts at every stage it reached.">
-              {loading ? <Skeleton lines={4} /> : <Funnel steps={steps} />}
-            </Panel>
-            <Panel title="Applications per week" hint="The last 12 weeks by date applied.">
-              {loading ? <Skeleton lines={5} /> : <WeeklyBars weeks={weeks} goal={settings.weekly_goal} />}
-            </Panel>
-          </div>
 
           <Panel
             title="All applications"
@@ -359,27 +306,6 @@ function Shell({ banner, children }: { banner?: ReactNode; children: ReactNode }
       {banner}
       <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6">{children}</main>
     </>
-  );
-}
-
-function Stat({ label, value, sub, bar, tone, loading }: { label: string; value: string; sub?: string; bar?: number; tone?: "good" | "danger"; loading?: boolean }) {
-  return (
-    <div className="min-w-0 rounded-2xl border border-line bg-surface px-4 py-3.5 shadow-panel">
-      <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-faint">{label}</p>
-      {loading ? (
-        <div className="mt-2 h-7 w-12 animate-pulse rounded bg-surface-2" />
-      ) : (
-        <p className={cx("tnum mt-1 font-display text-[26px] font-bold leading-tight", tone === "good" && "text-good", tone === "danger" && "text-danger")}>
-          {value}
-          {sub && <span className="ml-1.5 font-sans text-xs font-normal text-muted">{sub}</span>}
-        </p>
-      )}
-      {bar !== undefined && (
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.round(bar * 100)}%` }} />
-        </div>
-      )}
-    </div>
   );
 }
 

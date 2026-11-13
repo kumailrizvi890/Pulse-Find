@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.refresh-jobs]
 verify_jwt = true
+[functions.sync-trigger]
+# pg_cron calls this with the project's anon key, like refresh-jobs.
+verify_jwt = true

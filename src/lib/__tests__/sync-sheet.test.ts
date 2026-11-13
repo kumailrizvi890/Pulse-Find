@@ -14,10 +14,10 @@ function existing(overrides: Partial<Application> = {}): Application {
     last_contact: "2026-11-01",
     oa_received: false,
     interviews_done: 0,
-    latest_update: null,
-    link: null,
-    notes: null,
-    action_needed: false,
+    latest_update: "",
+    link: "",
+    notes: "",
+    action_needed: "",
     action_due: null,
     created_at: "2026-11-01T00:00:00Z",
     updated_at: "2026-11-01T00:00:00Z",
@@ -35,10 +35,10 @@ function incoming(overrides: Partial<ApplicationInput> = {}): ApplicationInput {
     last_contact: "2026-11-01",
     oa_received: false,
     interviews_done: 0,
-    latest_update: null,
-    link: null,
-    notes: null,
-    action_needed: false,
+    latest_update: "",
+    link: "",
+    notes: "",
+    action_needed: "",
     action_due: null,
     ...overrides,
   };
@@ -76,7 +76,12 @@ describe("buildSyncPlan", () => {
   });
 
   it("treats null and an empty string as the same blank", () => {
-    const plan = buildSyncPlan([existing({ track: "Part-Time", notes: null })], [incoming({ notes: "" })]);
+    // The database can hand back null for a text column even though the
+    // application type calls it a string.
+    const plan = buildSyncPlan(
+      [existing({ track: "Part-Time", notes: null as unknown as string })],
+      [incoming({ notes: "" })],
+    );
     expect(plan.updates).toHaveLength(0);
   });
 

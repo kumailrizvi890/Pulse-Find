@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     if (error || !data) {
       throw new Error(`Could not download the tracker: ${error?.message ?? "empty file"}`);
     }
-    const parsed = importXlsx(await data.arrayBuffer(), startedAt.slice(0, 10));
+    const parsed = await importXlsx(await data.arrayBuffer(), startedAt.slice(0, 10));
     trackerRows = parsed.rows.length + parsed.skipped.length;
     counts = await syncApplications(supabase, owner, parsed.rows);
     await recordSyncRun(supabase, {

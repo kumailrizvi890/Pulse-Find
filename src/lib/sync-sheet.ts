@@ -54,9 +54,12 @@ function sameValue(left: unknown, right: unknown): boolean {
   return a === b;
 }
 
+/* A patch only carries the fields that changed, as plain column values. */
+export type SyncPatch = Record<string, string | number | boolean | null>;
+
 export type SyncPlan = {
   creates: ApplicationInput[];
-  updates: { id: string; patch: Partial<ApplicationInput> }[];
+  updates: { id: string; patch: SyncPatch }[];
   skipped: number;
 };
 
@@ -86,7 +89,7 @@ export function buildSyncPlan(existing: Application[], incoming: ApplicationInpu
       creates.push(row);
       continue;
     }
-    const patch: Partial<ApplicationInput> = {};
+    const patch: SyncPatch = {};
     for (const field of SYNC_FIELDS) {
       if (!sameValue(current[field], row[field])) patch[field] = row[field];
     }

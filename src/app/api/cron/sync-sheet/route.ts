@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  DISMISSAL_KIND,
+  DISMISSAL_WINDOW_DAYS,
   TRACKER_BUCKET,
   TRACKER_PATH,
   recordSyncRun,
   syncApplications,
   type SyncRunRecord,
 } from "@/lib/sync-sheet";
+import type { TrackerEvent } from "@/lib/types";
 import { importXlsx } from "@/lib/xlsx";
 
 export const runtime = "nodejs";
@@ -45,6 +48,8 @@ export async function POST(request: Request) {
   const source = typeof body.source === "string" && body.source.length > 0 ? body.source : "cron";
   let counts = { created: 0, updated: 0, skipped: 0, total: 0 };
   let trackerRows = 0;
+  let dismissals = 0;
+  let dismissalsSkipped = false;
   try {
     const { data, error } = await supabase.storage.from(TRACKER_BUCKET).download(TRACKER_PATH);
     if (error || !data) {
@@ -52,7 +57,34 @@ export async function POST(request: Request) {
     }
     const parsed = await importXlsx(await data.arrayBuffer(), startedAt.slice(0, 10));
     trackerRows = parsed.rows.length + parsed.skipped.length;
-    counts = await syncApplications(supabase, owner, parsed.rows);
+    /*
+     * A dismissal in the app must stick everywhere. Read the recent
+     * "Action done" events so the sync does not restore a dismissed
+     * action. If the events cannot be read, the sync still runs with the
+     * old behaviour for this one run (and says so); the external python
+     * sync writes the dismissal back to the tracker, so the next run
+     * converges. The events read failing must never block the sync.
+     */
+    let events: TrackerEvent[] = [];
+    try {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - DISMISSAL_WINDOW_DAYS);
+      const { data: eventRows, error: eventsError } = await supabase
+        .from("events")
+        .select("application_id,event_date,kind,details")
+        .eq("user_id", owner)
+        .eq("kind", DISMISSAL_KIND)
+        .gte("event_date", cutoff.toISOString().slice(0, 10))
+        .order("event_date", { ascending: false })
+        .limit(500);
+      if (eventsError) throw new Error(eventsError.message);
+      events = (eventRows ?? []) as TrackerEvent[];
+    } catch {
+      dismissalsSkipped = true;
+    }
+    const { writebacks, ...syncCounts } = await syncApplications(supabase, owner, parsed.rows, events);
+    counts = syncCounts;
+    dismissals = writebacks.length;
     await recordSyncRun(supabase, {
       user_id: owner,
       started_at: startedAt,
@@ -62,7 +94,7 @@ export async function POST(request: Request) {
       ...counts,
       error: null,
     });
-    return NextResponse.json({ ok: true, trackerRows, ...counts });
+    return NextResponse.json({ ok: true, trackerRows, ...counts, dismissals, dismissalsSkipped });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
     // Record the failure too, so a broken run stays visible in the log.

@@ -2,7 +2,7 @@
 // Auth: "Authorization: Bearer pf_..." personal access token created in the app.
 // The service role is used, so EVERY query below is explicitly scoped to the token's user.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.118.0";
-import { handleBody, type AppRow, type ContactRow, type JobRow, type LeadRow, type Store } from "../_shared/mcp.ts";
+import { handleBody, type AppRow, type ContactRow, type EventRow, type JobRow, type LeadRow, type Store } from "../_shared/mcp.ts";
 
 const MAX_BODY = 256 * 1024;
 const APP_COLS =
@@ -56,6 +56,15 @@ function userStore(db: SupabaseClient, uid: string): Store {
       const { count, error } = await db.from("events").select("id", { count: "exact", head: true }).eq("user_id", uid).eq("source_ref", ref);
       fail(error);
       return (count ?? 0) > 0;
+    },
+    async listEvents(p) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - p.days);
+      let q = db.from("events").select("id,application_id,event_date,kind,details").eq("user_id", uid).gte("event_date", cutoff.toISOString().slice(0, 10)).order("event_date", { ascending: false }).limit(200);
+      if (p.kind) q = q.eq("kind", p.kind);
+      const { data, error } = await q;
+      fail(error);
+      return (data ?? []) as EventRow[];
     },
     async searchJobs(p) {
       let q = db.from("jobs").select("company,title,location,remote,url,track,posted_at").eq("active", true);

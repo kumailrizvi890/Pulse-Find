@@ -30,7 +30,7 @@
 - **Waiting-on-you queue** — every assessment, reply and unfinished application in one list, soonest deadline first
 - **MCP server built in** — Claude, Cursor or any MCP client syncs the tracker straight from job email; Pulse Find itself never reads your inbox and needs no AI API key
 - **Ghost detection and pipeline stats** — days-since-contact follow-up flags, a stage funnel, and weekly pace against your goal
-- **Live job board** — ~14,000 openings pulled from company Greenhouse, Lever and Ashby boards, one click to start tracking
+- **Live job board** — ~14,000 openings across all roles and levels, pulled from company Greenhouse, Lever and Ashby boards, one click to start tracking
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Supabase (Postgres, Auth, RLS, Edge Functions) · Model Context Protocol · Vitest · GitHub Actions CI
 
@@ -78,7 +78,7 @@ Want your own copy? [Self-hosting guide](docs/SELF_HOST.md): free Supabase + Ver
 - **Export that looks right everywhere.** Excel export uses the same sixteen tracker columns and writes colors directly onto cells instead of using formula-based rules, so it renders the same in Excel, Numbers, Google Sheets and phone previews — and imports straight back. CSV export guards against spreadsheet formula injection.
 - **Leads pipeline.** `/app/leads` holds roles you haven't applied to yet — New, Queued, Applied, Problem, Not eligible, Closed — with fit notes, pay and links. Save finds straight from the job board, or let your agent file them; promote one and it becomes a tracked application.
 - **Networking next-steps.** `/app/networking` tracks who you owe a follow-up, with overdue and due-today steps highlighted — the counterpart of a networking spreadsheet, kept next to the search it supports.
-- **Job board.** `/jobs` searches ~14,000 open roles pulled straight from company Greenhouse, Lever and Ashby boards, with internship, new-grad, remote and tech-only filters, plus a swipe deck. Mark one "Applied" and it lands in your tracker; save it as a lead and it lands in your pipeline.
+- **Job board.** `/jobs` searches ~14,000 open roles across all levels, pulled straight from company Greenhouse, Lever and Ashby boards, with internship, new-grad, remote and tech-only filters, plus a swipe deck. (The homepage headline counts tech internships only.) Mark one "Applied" and it lands in your tracker; save it as a lead and it lands in your pipeline.
 - **Agent access.** Personal access tokens (only a SHA-256 fingerprint is stored, revocable any time) for the MCP server above.
 - **In-app sync.** Vercel Cron and Supabase pg_cron keep the tracker current every 2 hours.
 - **Public demo.** `/demo` runs the full dashboard on invented sample data, entirely in the browser.

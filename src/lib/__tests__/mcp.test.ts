@@ -8,7 +8,7 @@ import { handleBody, type AppRow, type ContactRow, type JobRow, type LeadRow, ty
 /** In-memory Store standing in for Supabase. */
 function memoryStore(seed: Partial<AppRow>[] = []): Store & {
   apps: AppRow[];
-  events: { application_id: string; kind: string; source_ref: string | null }[];
+  events: { id: string; application_id: string; event_date: string; kind: string; details: string; source_ref: string | null }[];
   leads: LeadRow[];
   contacts: ContactRow[];
 } {
@@ -18,7 +18,7 @@ function memoryStore(seed: Partial<AppRow>[] = []): Store & {
     latest_update: "", action_needed: "", action_due: null, interviews_done: 0, oa_received: false, link: "", notes: "",
   });
   const apps: AppRow[] = seed.map((s) => ({ ...blank(), ...s }));
-  const events: { application_id: string; kind: string; source_ref: string | null }[] = [];
+  const events: { id: string; application_id: string; event_date: string; kind: string; details: string; source_ref: string | null }[] = [];
   const leads: LeadRow[] = [];
   const contacts: ContactRow[] = [];
   const jobs: JobRow[] = [
@@ -29,8 +29,18 @@ function memoryStore(seed: Partial<AppRow>[] = []): Store & {
     async listApps() { return apps.map((a) => ({ ...a })); },
     async insertApp(f) { const a = { ...blank(), ...(f as Partial<AppRow>) }; apps.push(a); return { ...a }; },
     async updateApp(id, f) { const a = apps.find((x) => x.id === id); if (!a) return null; Object.assign(a, f); return { ...a }; },
-    async addEvent(e) { if (e.source_ref && events.some((x) => x.source_ref === e.source_ref)) return false; events.push(e); return true; },
+    async addEvent(e) { if (e.source_ref && events.some((x) => x.source_ref === e.source_ref)) return false; events.push({ id: `ev-${++n}`, ...e }); return true; },
     async hasEvent(ref) { return events.some((x) => x.source_ref === ref); },
+    async listEvents(p) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - p.days);
+      const day = cutoff.toISOString().slice(0, 10);
+      return events
+        .filter((e) => (!p.kind || e.kind === p.kind) && e.event_date >= day)
+        .sort((a, b) => b.event_date.localeCompare(a.event_date))
+        .slice(0, 200)
+        .map((e) => ({ ...e }));
+    },
     async searchJobs(p) { return jobs.filter((j) => !p.query || `${j.title} ${j.company}`.toLowerCase().includes(p.query.toLowerCase())).slice(0, p.limit); },
     async ghostDays() { return 21; },
     async listLeads() { return leads.map((l) => ({ ...l })); },
@@ -107,6 +117,23 @@ describe("MCP tools", () => {
     expect(missing.result.isError).toBe(true);
     const wrongEnum = await call(s, "add_application", { company: "Acme", status: "Hired!!" });
     expect(wrongEnum.result.content[0].text).toMatch(/must be one of/);
+  });
+
+  it("lists recent events, optionally filtered by kind", async () => {
+    const s = memoryStore([{ company: "Roblox", role: "Software Engineer, Early Career" }]);
+    const today = new Date().toISOString().slice(0, 10);
+    const appId = s.apps[0].id;
+    await s.addEvent({ application_id: appId, kind: "Action done", details: "Complete the HackerRank", event_date: today, source_ref: null });
+    await s.addEvent({ application_id: appId, kind: "Applied", details: "Applied", event_date: today, source_ref: null });
+
+    const all = await call(s, "list_events", {});
+    expect(all.result.structuredContent.count).toBe(2);
+    const done = await call(s, "list_events", { kind: "Action done" });
+    expect(done.result.structuredContent.count).toBe(1);
+    const ev = (done.result.structuredContent.events as { application_id: string; kind: string; details: string }[])[0];
+    expect(ev).toMatchObject({ application_id: appId, kind: "Action done", details: "Complete the HackerRank" });
+    const recent = await call(s, "list_events", { days: 1 });
+    expect(recent.result.structuredContent.count).toBe(2);
   });
 
   it("runs the leads pipeline without ever applying", async () => {
@@ -194,7 +221,7 @@ describe("works with the official MCP client", () => {
 
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
-      "get_summary", "list_applications", "add_application", "update_application", "process_job_email", "check_job_scam", "search_jobs",
+      "get_summary", "list_applications", "list_events", "add_application", "update_application", "process_job_email", "check_job_scam", "search_jobs",
       "list_leads", "add_lead", "update_lead", "list_contacts", "add_contact", "update_contact",
     ]);
 

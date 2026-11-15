@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSyncPlan, dedupeKey } from "../sync-sheet";
-import type { Application, ApplicationInput } from "../types";
+import { buildDismissalMap, buildSyncPlan, dedupeKey, planDismissalWritebacks } from "../sync-sheet";
+import type { Application, ApplicationInput, TrackerEvent } from "../types";
 
 function existing(overrides: Partial<Application> = {}): Application {
   return {
@@ -72,7 +72,7 @@ describe("buildSyncPlan", () => {
 
   it("plans no writes for identical rows", () => {
     const plan = buildSyncPlan([existing({ track: "Part-Time" })], [incoming()]);
-    expect(plan).toEqual({ creates: [], updates: [], skipped: 0 });
+    expect(plan).toEqual({ creates: [], updates: [], skipped: 0, writebacks: [] });
   });
 
   it("treats null and an empty string as the same blank", () => {
@@ -95,5 +95,160 @@ describe("buildSyncPlan", () => {
     const plan = buildSyncPlan([existing()], [incoming({ date_applied: "2026-11-02" })]);
     expect(plan.creates).toHaveLength(1);
     expect(plan.updates).toHaveLength(0);
+  });
+});
+
+describe("dismissed actions stick everywhere", () => {
+  // Fixed "now" so the 14-day dismissal window does not depend on the day
+  // the suite runs.
+  const NOW = new Date("2026-11-16T00:00:00Z");
+  const KEY = "dataannotation::ai trainer::2026-11-01";
+  const DISMISSED_TEXT = "Complete the HackerRank";
+
+  function dismissedApp(overrides: Partial<Application> = {}): Application {
+    // action_needed blank + action_due null = the row as markDone leaves it.
+    return existing({ action_needed: "", action_due: null, ...overrides });
+  }
+
+  function trackerWithAction(overrides: Partial<ApplicationInput> = {}): ApplicationInput {
+    // Same track as the app row so the action fields are the only drift.
+    return incoming({ track: "Other", action_needed: DISMISSED_TEXT, action_due: "2026-11-20", ...overrides });
+  }
+
+  function dismissals(texts: string[] = [DISMISSED_TEXT]): Map<string, Set<string>> {
+    return new Map([[KEY, new Set(texts)]]);
+  }
+
+  function actionDoneEvent(overrides: Partial<TrackerEvent> = {}): TrackerEvent {
+    return {
+      id: "e1",
+      application_id: "1",
+      event_date: "2026-11-15",
+      kind: "Action done",
+      details: DISMISSED_TEXT,
+      ...overrides,
+    };
+  }
+
+  it("does not restore a dismissed action into the app", () => {
+    const plan = buildSyncPlan([dismissedApp()], [trackerWithAction()], dismissals());
+    expect(plan.updates).toHaveLength(0);
+    expect(plan.writebacks).toHaveLength(1);
+  });
+
+  it("still patches other drifted fields on a dismissed row", () => {
+    const plan = buildSyncPlan(
+      [dismissedApp()],
+      [trackerWithAction({ status: "OA Received" })],
+      dismissals(),
+    );
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]?.patch).toEqual({ status: "OA Received" });
+  });
+
+  it("restores a NEW tracker action whose text differs from the dismissed one", () => {
+    const plan = buildSyncPlan(
+      [dismissedApp()],
+      [trackerWithAction({ action_needed: "Complete the CodeSignal" })],
+      dismissals(),
+    );
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]?.patch).toEqual({
+      action_needed: "Complete the CodeSignal",
+      action_due: "2026-11-20",
+    });
+    expect(plan.writebacks).toHaveLength(0);
+  });
+
+  it("restores the action when the app row has an action again", () => {
+    const plan = buildSyncPlan(
+      [existing({ action_needed: "Something else", action_due: null })],
+      [trackerWithAction()],
+      dismissals(),
+    );
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]?.patch).toEqual({
+      action_needed: DISMISSED_TEXT,
+      action_due: "2026-11-20",
+    });
+    expect(plan.writebacks).toHaveLength(0);
+  });
+
+  describe("planDismissalWritebacks", () => {
+    it("lists the tracker row that still carries the dismissed action", () => {
+      expect(planDismissalWritebacks([dismissedApp()], [trackerWithAction()], dismissals())).toEqual([
+        {
+          key: KEY,
+          company: "DataAnnotation",
+          role: "AI Trainer",
+          date_applied: "2026-11-01",
+          action_needed: DISMISSED_TEXT,
+          action_due: "2026-11-20",
+        },
+      ]);
+    });
+
+    it("lists nothing when the tracker action is new", () => {
+      expect(
+        planDismissalWritebacks(
+          [dismissedApp()],
+          [trackerWithAction({ action_needed: "Complete the CodeSignal" })],
+          dismissals(),
+        ),
+      ).toEqual([]);
+    });
+
+    it("lists nothing when the tracker row is already clear", () => {
+      expect(
+        planDismissalWritebacks([dismissedApp()], [incoming({ track: "Other" })], dismissals()),
+      ).toEqual([]);
+    });
+
+    it("lists nothing without a dismissal map", () => {
+      expect(planDismissalWritebacks([dismissedApp()], [trackerWithAction()])).toEqual([]);
+    });
+  });
+
+  describe("buildDismissalMap", () => {
+    it("takes the dismissed text from a recent Action done event", () => {
+      const map = buildDismissalMap([dismissedApp()], [actionDoneEvent()], NOW);
+      expect(map.get(KEY)).toEqual(new Set([DISMISSED_TEXT]));
+    });
+
+    it("ignores events that are not Action done", () => {
+      const map = buildDismissalMap(
+        [dismissedApp()],
+        [actionDoneEvent({ kind: "Applied", details: DISMISSED_TEXT })],
+        NOW,
+      );
+      expect(map.size).toBe(0);
+    });
+
+    it("ignores events for rows that have an action again", () => {
+      const map = buildDismissalMap(
+        [existing({ action_needed: "Something else", action_due: null })],
+        [actionDoneEvent()],
+        NOW,
+      );
+      expect(map.size).toBe(0);
+    });
+
+    it("ignores events older than the window", () => {
+      const map = buildDismissalMap(
+        [dismissedApp()],
+        [actionDoneEvent({ event_date: "2026-10-01" })],
+        NOW,
+      );
+      expect(map.size).toBe(0);
+    });
+
+    it("ignores events with no dismissed text", () => {
+      const map = buildDismissalMap(
+        [dismissedApp()],
+        [actionDoneEvent({ details: "  " })],
+        NOW,
+      );
+      expect(map.size).toBe(0);
+    });
   });
 });

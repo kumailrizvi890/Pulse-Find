@@ -35,7 +35,7 @@ export default async function SetupPage() {
     <AppShell
       active="tracker"
       right={
-        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+        <span className="text-sm text-muted">
           {data.user.email}
         </span>
       }

@@ -30,17 +30,17 @@ const PROMPTS = ["scan_inbox", "daily_digest", "find_leads"];
 describe("agent prompt", () => {
   it("fills in the real endpoint and token", () => {
     const prompt = buildAgentPrompt({
-      endpoint: "https://pulse-find-two.vercel.app/api/mcp",
+      endpoint: "https://pulsefind-app.vercel.app/api/mcp",
       token: "pf_testtoken123",
     });
-    expect(prompt).toContain("https://pulse-find-two.vercel.app/api/mcp");
+    expect(prompt).toContain("https://pulsefind-app.vercel.app/api/mcp");
     expect(prompt).toContain("Authorization: Bearer pf_testtoken123");
     expect(prompt).not.toContain("pf_YOUR_API_TOKEN");
   });
 
   it("names the agent's jobs and hard rules", () => {
     const prompt = buildAgentPrompt({
-      endpoint: "https://pulse-find-two.vercel.app/api/mcp",
+      endpoint: "https://pulsefind-app.vercel.app/api/mcp",
       token: "pf_x",
     });
     for (const phrase of [
@@ -61,15 +61,15 @@ describe("agent prompt", () => {
 
   it("template uses placeholders for the handout", () => {
     const prompt = buildAgentPromptTemplate();
-    expect(prompt).toContain("https://pulse-find-two.vercel.app/api/mcp");
+    expect(prompt).toContain("https://pulsefind-app.vercel.app/api/mcp");
     expect(prompt).toContain("pf_YOUR_API_TOKEN");
   });
 
   it("builds the endpoint from the app origin", () => {
-    expect(getMcpEndpoint("https://pulse-find-two.vercel.app/")).toBe(
-      "https://pulse-find-two.vercel.app/api/mcp",
+    expect(getMcpEndpoint("https://pulsefind-app.vercel.app/")).toBe(
+      "https://pulsefind-app.vercel.app/api/mcp",
     );
-    expect(getMcpEndpoint()).toBe("https://pulse-find-two.vercel.app/api/mcp");
+    expect(getMcpEndpoint()).toBe("https://pulsefind-app.vercel.app/api/mcp");
   });
 });
 
@@ -96,7 +96,7 @@ describe("full operator prompt", () => {
 
 describe("buildAgentHandoffPrompt", () => {
   it("is the full prompt for an already-connected agent, with no token in it", () => {
-    const p = buildAgentHandoffPrompt({ endpoint: "https://pulse-find-two.vercel.app/api/mcp" });
+    const p = buildAgentHandoffPrompt({ endpoint: "https://pulsefind-app.vercel.app/api/mcp" });
     expect(p).toContain("You are already connected to the MCP server");
     expect(p).toContain("Do not ask me for a token");
     expect(p).toContain("Set me up first, automatically");

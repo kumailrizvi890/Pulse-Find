@@ -13,12 +13,12 @@ import {
 
 describe("getAuthCallbackUrl", () => {
   it("always points at the live app, never localhost", () => {
-    expect(LIVE_APP_URL).toBe("https://pulse-find-two.vercel.app");
+    expect(LIVE_APP_URL).toBe("https://pulsefind-app.vercel.app");
     expect(getAuthCallbackUrl()).toBe(
-      "https://pulse-find-two.vercel.app/auth/callback?next=%2Fdashboard",
+      "https://pulsefind-app.vercel.app/auth/callback?next=%2Fdashboard",
     );
     expect(getAuthCallbackUrl("/auth/reset-password")).toBe(
-      "https://pulse-find-two.vercel.app/auth/callback?next=%2Fauth%2Freset-password",
+      "https://pulsefind-app.vercel.app/auth/callback?next=%2Fauth%2Freset-password",
     );
     expect(getAuthCallbackUrl()).not.toContain("localhost");
   });

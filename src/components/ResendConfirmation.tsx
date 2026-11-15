@@ -73,14 +73,14 @@ export default function ResendConfirmation({
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm font-semibold text-white">
+    <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-4">
+      <p className="text-sm font-semibold text-ink">
         {"Didn't get the email? Resend it"}
       </p>
-      <p className="mt-1 text-xs text-zinc-400">
+      <p className="mt-1 text-xs text-muted">
         Enter the email address you signed up with and we will send a new confirmation link.
       </p>
-      <label className="mt-3 block text-sm font-medium text-zinc-300" htmlFor="resend-email">
+      <label className="mt-3 block text-sm font-medium text-muted" htmlFor="resend-email">
         Email
         <input
           id="resend-email"
@@ -93,9 +93,9 @@ export default function ResendConfirmation({
         />
       </label>
       {status === "already-confirmed" ? (
-        <div role="alert" className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3">
-          <p className="text-sm font-semibold text-amber-200">You already have an account</p>
-          <p className="mt-1 text-sm text-zinc-300">
+        <div role="alert" className="mt-4 rounded-xl border border-warn/30 bg-warn-soft p-3">
+          <p className="text-sm font-semibold text-warn">You already have an account</p>
+          <p className="mt-1 text-sm text-muted">
             Your account is already confirmed — sign in below
           </p>
           {onGoToSignIn ? (
@@ -110,7 +110,7 @@ export default function ResendConfirmation({
           <button
             type="button"
             onClick={() => setStatus("idle")}
-            className="mt-2 w-full text-center text-xs text-zinc-400 underline"
+            className="mt-2 w-full text-center text-xs text-muted underline"
           >
             Use a different email
           </button>
@@ -126,17 +126,17 @@ export default function ResendConfirmation({
         </button>
       )}
       {status === "sent" && (
-        <p role="status" className="mt-3 text-sm text-emerald-300">
+        <p role="status" className="mt-3 text-sm text-good">
           Check your email — we sent a new confirmation link
         </p>
       )}
       {status === "rate-limited" && (
-        <p role="alert" className="mt-3 text-sm text-amber-200">
+        <p role="alert" className="mt-3 text-sm text-warn">
           Give it a minute, then try again
         </p>
       )}
       {status === "error" && errorMessage && (
-        <p role="alert" className="mt-3 text-sm text-red-300">
+        <p role="alert" className="mt-3 text-sm text-danger">
           {errorMessage}
         </p>
       )}

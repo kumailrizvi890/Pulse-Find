@@ -145,7 +145,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Get set up</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-muted">
           Three steps and your tracker takes care of itself: bring your
           applications, connect your agent, and give it its instructions.
         </p>
@@ -166,10 +166,10 @@ export default function SetupWizard({ userId }: { userId: string }) {
                 aria-current={current ? "step" : undefined}
                 className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${
                   current
-                    ? "border-zinc-900 bg-zinc-900 font-semibold text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                    ? "border-accent bg-accent font-semibold text-accent-ink"
                     : done
-                      ? "border-emerald-600 text-emerald-700 dark:border-emerald-500 dark:text-emerald-400"
-                      : "border-zinc-200 text-zinc-500 dark:border-zinc-700"
+                      ? "border-good/40 text-good"
+                      : "border-line text-faint"
                 }`}
               >
                 <span aria-hidden="true">{done ? "✓" : number}</span>
@@ -185,7 +185,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
       {step === 1 && (
         <Panel>
           <h2 className="text-lg font-semibold">Step 1 — Add your tracker</h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-muted">
             Upload the Excel sheet you already use to track your applications.
             Pulse Find reads the same columns as the sheet export. The dialog
             also offers a blank template to download if you want to start from
@@ -203,7 +203,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
           {importResult && (
             <p
               role="status"
-              className="mt-4 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+              className="mt-4 rounded-lg border border-good/30 bg-good-soft px-3 py-2 text-sm text-good"
             >
               Imported {importResult.imported} application
               {importResult.imported === 1 ? "" : "s"}. Skipped{" "}
@@ -240,7 +240,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
       {step === 2 && (
         <Panel>
           <h2 className="text-lg font-semibold">Step 2 — Connect your agent</h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-muted">
             Your agent talks to Pulse Find through the MCP server. Create one
             API token for it — Pulse Find stores only a hash of the token, so
             keep the copy below safe.
@@ -267,7 +267,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
                 </button>
               </div>
               {tokenError && (
-                <p role="alert" className="text-sm text-red-600">
+                <p role="alert" className="text-sm text-danger">
                   {tokenError}
                 </p>
               )}
@@ -277,7 +277,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
             <div className="mt-4 space-y-3">
               <p
                 role="status"
-                className="rounded-lg border border-amber-600/30 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                className="rounded-lg border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn"
               >
                 This token is shown once. Copy it now — you won&apos;t be able
                 to see it again. You can revoke it or create more tokens
@@ -289,7 +289,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
               </p>
               <div>
                 <p className="text-sm font-medium">Your API token</p>
-                <code className="mt-1 block break-all rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                <code className="mt-1 block break-all rounded-lg border border-line bg-surface-2 p-3 font-mono text-sm">
                   {token}
                 </code>
                 <div className="mt-2">
@@ -298,7 +298,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
               </div>
               <div>
                 <p className="text-sm font-medium">MCP endpoint</p>
-                <code className="mt-1 block break-all rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                <code className="mt-1 block break-all rounded-lg border border-line bg-surface-2 p-3 font-mono text-sm">
                   {endpoint}
                 </code>
                 <div className="mt-2">
@@ -332,13 +332,13 @@ export default function SetupWizard({ userId }: { userId: string }) {
           <h2 className="text-lg font-semibold">
             Step 3 — Give your agent its instructions
           </h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-muted">
             Paste this into any AI agent — ChatGPT, Claude, Gemini, or your own.
             Your MCP endpoint and API token are already filled in.
           </p>
           {!token ? (
             <div className="mt-4 space-y-3">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm text-muted">
                 Create your API token in step 2 first, so the prompt can include it.
               </p>
               <button
@@ -351,7 +351,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
             </div>
           ) : (
             <>
-              <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-relaxed dark:border-zinc-700 dark:bg-zinc-800">
+              <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-4 font-mono text-xs leading-relaxed">
                 {prompt}
               </pre>
               <div className="mt-4 flex flex-wrap gap-3">
@@ -377,7 +377,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
       )}
 
       <p className="text-center text-sm">
-        <button type="button" className="text-zinc-500 underline" onClick={finishSetup}>
+        <button type="button" className="text-muted underline" onClick={finishSetup}>
           Skip setup for now
         </button>
       </p>

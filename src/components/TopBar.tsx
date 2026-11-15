@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "./Logo";
+import { PulseTrace } from "./PulseTrace";
 
 export function TopBar({ right, home = "/" }: { right?: ReactNode; home?: string }) {
   return (
     <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 border-b border-line bg-bg/85 backdrop-blur">
+      <PulseTrace className="block h-[12px] w-full" glow />
       <div className="gutter mx-auto flex h-14 w-full max-w-[1180px] items-center justify-between gap-3">
         <Logo href={home} />
         <nav className="flex items-center gap-1 text-sm">{right}</nav>

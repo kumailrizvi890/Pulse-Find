@@ -17,6 +17,14 @@ export type DeckJob = {
 
 const THRESHOLD = 110;
 
+/** Company-avatar tones, cycled from the company-name hash — the measured palette only. */
+const SWIPE_TONES = [
+  "bg-accent-soft text-accent",
+  "bg-warn-soft text-warn",
+  "bg-good-soft text-good",
+  "bg-danger-soft text-danger",
+];
+
 function initials(name: string) {
   const w = name.replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/).filter(Boolean);
   return w.length ? (w[0][0] + (w[1]?.[0] ?? "")).toUpperCase() : "?";
@@ -121,8 +129,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
                   </>
                 )}
                 <div
-                  className="mt-6 flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold text-white"
-                  style={{ background: `conic-gradient(from 210deg, hsl(${h} 70% 50%), hsl(${(h + 60) % 360} 70% 58%), hsl(${(h + 120) % 360} 65% 50%), hsl(${h} 70% 50%))` }}
+                  className={cx("mt-6 flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold", SWIPE_TONES[h % SWIPE_TONES.length])}
                 >
                   {initials(j.company)}
                 </div>
@@ -130,7 +137,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
                 <h3 className="mt-1 line-clamp-3 font-display text-xl font-bold leading-snug tracking-tight">{j.title}</h3>
                 <p className="mt-2 line-clamp-2 text-sm text-muted">{j.location || "Location not listed"}</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                  <span className="rounded-full border border-line px-2.5 py-0.5 font-mono text-[11px] text-muted">{j.track}</span>
+                  <span className="rounded-md border border-line px-2.5 py-0.5 font-mono text-[11px] text-muted">{j.track}</span>
                   {j.tech && <span className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-0.5 font-mono text-[11px] text-accent">Tech</span>}
                   {j.remote && <span className="rounded-full border border-good/30 bg-good-soft px-2.5 py-0.5 font-mono text-[11px] text-good">Remote</span>}
                 </div>
@@ -159,7 +166,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
           aria-label="Pass"
           disabled={!top}
           onClick={() => decide("hidden")}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-danger text-xl text-white shadow-panel transition hover:scale-105 disabled:opacity-35"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-applied text-xl text-applied-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
         >
           ✕
         </button>
@@ -177,7 +184,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
           aria-label="Save"
           disabled={!top}
           onClick={() => decide("saved")}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-good text-xl text-white shadow-panel transition hover:scale-105 disabled:opacity-35"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-interview text-xl text-interview-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
         >
           ✓
         </button>

@@ -238,7 +238,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   }, [view, state, moreAvailable, queue.length, jobs.length]);
 
   const visible = jobs.filter((j) => marks[j.id] !== "hidden");
-  const toggle = "flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-medium";
+  const toggle = "flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-xs font-medium";
 
   return (
     <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-5 pb-20 pt-8">
@@ -271,7 +271,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
               aria-pressed={track === t}
               onClick={() => resetTo(setTrack)(t)}
               className={cx(
-                "rounded-full border px-3 py-1.5 font-mono text-xs transition",
+                "rounded-lg border px-3 py-1.5 font-mono text-xs transition",
                 track === t ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink",
               )}
             >

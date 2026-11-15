@@ -80,6 +80,7 @@ Want your own copy? [Self-hosting guide](docs/SELF_HOST.md): free Supabase + Ver
 - **Networking next-steps.** `/app/networking` tracks who you owe a follow-up, with overdue and due-today steps highlighted — the counterpart of a networking spreadsheet, kept next to the search it supports.
 - **Job board.** `/jobs` searches ~14,000 open roles pulled straight from company Greenhouse, Lever and Ashby boards, with internship, new-grad, remote and tech-only filters, plus a swipe deck. Mark one "Applied" and it lands in your tracker; save it as a lead and it lands in your pipeline.
 - **Agent access.** Personal access tokens (only a SHA-256 fingerprint is stored, revocable any time) for the MCP server above.
+- **In-app sync.** Vercel Cron and Supabase pg_cron keep the tracker current every 2 hours.
 - **Public demo.** `/demo` runs the full dashboard on invented sample data, entirely in the browser.
 - **Private by default.** Postgres row-level security on every table. Light and dark themes, works on phones.
 

@@ -6,7 +6,7 @@
 //
 // Set the route's secret as an Edge Function secret named CRON_SECRET.
 // verify_jwt stays on: pg_cron calls this with the project's anon key.
-const SYNC_URL = "https://pulse-find-two.vercel.app/api/cron/sync-sheet";
+const SYNC_URL = "https://pulsefind-app.vercel.app/api/cron/sync-sheet";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

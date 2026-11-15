@@ -78,6 +78,82 @@ describe("sheet sorting and filtering", () => {
   });
 });
 
+describe("global filter matches every column", () => {
+  const rows = sheetRows(
+    [
+      app({
+        company: "Nimbus",
+        role: "Software Engineer Intern",
+        track: "New Grad",
+        status: "Interviewing",
+        date_applied: "2026-11-03",
+        last_contact: "2026-11-10",
+        oa_received: true,
+        interviews_done: 2,
+        latest_update: "Recruiter replied",
+        link: "https://job-boards.greenhouse.io/nimbus/jobs/1",
+        notes: "Met the hiring manager at the career fair",
+        action_needed: "Schedule the onsite",
+        action_due: "2026-11-20",
+      }),
+      app({
+        company: "Acme",
+        role: "Product Designer",
+        track: "Internship",
+        status: "Applied",
+        date_applied: "2026-10-20",
+        last_contact: "2026-10-01",
+      }),
+      app({
+        company: "Halo",
+        role: "Marketing Intern",
+        track: "Part-Time",
+        status: "Rejected",
+        date_applied: "2026-09-15",
+        last_contact: "2026-09-20",
+        notes: "Campus ambassador program",
+      }),
+    ],
+    TODAY,
+    GHOST,
+  );
+  const companies = (q: string) => filterSheet(rows, q).map((r) => r.app.company);
+
+  it("finds tech roles from 'tech jobs'", () => {
+    expect(companies("tech jobs")).toEqual(["Nimbus"]);
+    expect(companies("TECH")).toEqual(["Nimbus"]);
+  });
+
+  it("matches track, status, and flag", () => {
+    expect(companies("new grad")).toEqual(["Nimbus"]);
+    expect(companies("interview")).toEqual(["Nimbus"]);
+    expect(companies("ghosted")).toEqual(["Acme"]);
+  });
+
+  it("matches dates by month name, month number, and year", () => {
+    expect(companies("nov")).toEqual(["Nimbus"]);
+    expect(companies("nov 20")).toEqual(["Nimbus"]);
+    expect(companies("2026-11")).toEqual(["Nimbus"]);
+  });
+
+  it("matches link, notes, and action needed", () => {
+    expect(companies("greenhouse")).toEqual(["Nimbus"]);
+    expect(companies("career fair")).toEqual(["Nimbus"]);
+    expect(companies("schedule onsite")).toEqual(["Nimbus"]);
+  });
+
+  it("matches OA and interview counts", () => {
+    expect(companies("oa received")).toEqual(["Nimbus"]);
+    expect(companies("interviews 2")).toEqual(["Nimbus"]);
+    expect(companies("oa")).toEqual(["Nimbus"]);
+  });
+
+  it("treats a stopword-only query as no filter", () => {
+    expect(companies("jobs")).toHaveLength(3);
+    expect(companies("")).toHaveLength(3);
+  });
+});
+
 describe("import dedupe", () => {
   const existing = [app({ company: "Stripe", role: "SWE Intern", date_applied: "2026-10-01" })];
 

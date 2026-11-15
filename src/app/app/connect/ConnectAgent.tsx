@@ -67,7 +67,7 @@ export function ConnectAgent() {
   const [copied, setCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [reload, setReload] = useState(0);
-  const [origin, setOrigin] = useState("https://pulse-find-two.vercel.app");
+  const [origin, setOrigin] = useState("https://pulsefind-app.vercel.app");
 
   useEffect(() => {
     let live = true;

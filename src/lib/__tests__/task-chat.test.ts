@@ -50,7 +50,7 @@ function ctx(over: Partial<TaskChatContext> = {}): TaskChatContext {
     events: EVENTS,
     contacts: CONTACTS,
     today: TODAY,
-    origin: "https://pulse-find-two.vercel.app",
+    origin: "https://pulsefind-app.vercel.app",
     ...over,
   };
 }

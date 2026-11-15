@@ -7,9 +7,9 @@
 <p align="center">
   A job application tracker that tells you what's waiting on you,<br />
   and an MCP server so the AI agent you already use can keep it current from your email.<br />
-  <a href="https://pulse-find-two.vercel.app"><b>Live app</b></a> ·
-  <a href="https://pulse-find-two.vercel.app/demo"><b>Try the demo</b></a> (no sign-up) ·
-  <a href="https://pulse-find-two.vercel.app/jobs"><b>Job board</b></a> ·
+  <a href="https://pulsefind-app.vercel.app"><b>Live app</b></a> ·
+  <a href="https://pulsefind-app.vercel.app/demo"><b>Try the demo</b></a> (no sign-up) ·
+  <a href="https://pulsefind-app.vercel.app/jobs"><b>Job board</b></a> ·
   <a href="docs/SELF_HOST.md"><b>Self-host</b></a>
 </p>
 
@@ -34,7 +34,7 @@
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Supabase (Postgres, Auth, RLS, Edge Functions) · Model Context Protocol · Vitest · GitHub Actions CI
 
-**Try it:** [Live app](https://pulse-find-two.vercel.app) · [Demo, no sign-up](https://pulse-find-two.vercel.app/demo) · [Job board](https://pulse-find-two.vercel.app/jobs)
+**Try it:** [Live app](https://pulsefind-app.vercel.app) · [Demo, no sign-up](https://pulsefind-app.vercel.app/demo) · [Job board](https://pulsefind-app.vercel.app/jobs)
 
 ## Why
 
@@ -47,8 +47,8 @@ Pulse Find puts those at the top of the page.
 Pulse Find doesn't call any AI API and never touches your inbox. Instead it's an [MCP](https://modelcontextprotocol.io) server: you hand an access token to the agent you already use (Claude, Cursor, VS Code Copilot, anything that speaks MCP), and that agent reads your email with its own tools and reports what it finds.
 
 ```bash
-# Claude Code: create a token at https://pulse-find-two.vercel.app/app/connect
-claude mcp add --transport http pulse-find https://pulse-find-two.vercel.app/api/mcp \
+# Claude Code: create a token at https://pulsefind-app.vercel.app/app/connect
+claude mcp add --transport http pulse-find https://pulsefind-app.vercel.app/api/mcp \
   --header "Authorization: Bearer pf_..."
 ```
 

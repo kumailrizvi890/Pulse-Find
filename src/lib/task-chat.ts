@@ -37,7 +37,7 @@ export interface TaskChatContext {
   origin: string;
 }
 
-export const DEFAULT_APP_ORIGIN = "https://pulse-find-two.vercel.app";
+export const DEFAULT_APP_ORIGIN = "https://pulsefind-app.vercel.app";
 
 /** Tap-to-ask starters shown when the chat opens. */
 export const TASK_CHAT_SUGGESTIONS = [

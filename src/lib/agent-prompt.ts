@@ -12,9 +12,9 @@
 
 export const MCP_PATH = "/api/mcp";
 
-export const DEFAULT_APP_ORIGIN = "https://pulse-find-two.vercel.app";
+export const DEFAULT_APP_ORIGIN = "https://pulsefind-app.vercel.app";
 
-/** The MCP endpoint for this deployment, e.g. https://pulse-find-two.vercel.app/api/mcp. */
+/** The MCP endpoint for this deployment, e.g. https://pulsefind-app.vercel.app/api/mcp. */
 export function getMcpEndpoint(origin?: string): string {
   const base = (origin ?? "").replace(/\/+$/, "") || DEFAULT_APP_ORIGIN;
   return `${base}${MCP_PATH}`;
@@ -33,7 +33,7 @@ const PROMPT_LIST = "scan_inbox, daily_digest, find_leads";
 export function buildOperatorBody(): string {
   return `Your jobs, in order
 1. Set me up first, automatically, so I can open the dashboard and start using it with nothing else to do. Start with get_summary to see what is already tracked. Then:
-   - The spreadsheet: the Sheet view at pulse-find-two.vercel.app/app/sheet is my Excel-style sheet, and it exports to .xlsx from the app. If I have an existing spreadsheet of applications, ask me to import it in the app (Import a sheet on the dashboard) or share the file with you, then check every row landed with list_applications. You cannot import the file yourself and you cannot make the .xlsx file for me.
+   - The spreadsheet: the Sheet view at pulsefind-app.vercel.app/app/sheet is my Excel-style sheet, and it exports to .xlsx from the app. If I have an existing spreadsheet of applications, ask me to import it in the app (Import a sheet on the dashboard) or share the file with you, then check every row landed with list_applications. You cannot import the file yourself and you cannot make the .xlsx file for me.
    - Gmail: you read my inbox with your own email tools (read-only; Pulse Find never sees my inbox). If you do not have access to my Gmail yet, say so plainly and tell me what to connect instead of pretending you can read it.
    - Scan my inbox for job mail (job 2 below, last 7 days) and file everything with process_job_email, oldest first.
    - Check the setup worked: call get_summary again and confirm the dashboard shows every application, then list what is waiting on me. When it is ready, tell me in one short message: how many applications are tracked and what is waiting on me.
@@ -58,7 +58,7 @@ Rules you must never break
 
 export function buildAgentPrompt(args: { endpoint: string; token: string }): string {
   const { endpoint, token } = args;
-  return `You are my job-search operator for Pulse Find, the tracker at pulse-find-two.vercel.app.
+  return `You are my job-search operator for Pulse Find, the tracker at pulsefind-app.vercel.app.
 
 Pulse Find is my single source of truth for job applications: one row per company + role, with status, dates, contacts, interviews, offers, and follow-ups. You keep it current through its MCP server. You never open the web app yourself and you never send email or apply anywhere.
 
@@ -80,7 +80,7 @@ ${buildOperatorBody()}`;
  */
 export function buildAgentHandoffPrompt(args: { endpoint: string }): string {
   const { endpoint } = args;
-  return `You are my job-search operator for Pulse Find, the tracker at pulse-find-two.vercel.app.
+  return `You are my job-search operator for Pulse Find, the tracker at pulsefind-app.vercel.app.
 
 Pulse Find is my single source of truth for job applications: one row per company + role, with status, dates, contacts, interviews, offers, and follow-ups. You keep it current through its MCP server. You never open the web app yourself and you never send email or apply anywhere.
 

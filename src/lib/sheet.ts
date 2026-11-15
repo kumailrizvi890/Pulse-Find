@@ -112,13 +112,79 @@ export function sortSheet(rows: SheetRow[], key: SheetKey, dir: SortDir): SheetR
   });
 }
 
-/** Free-text filter across company, role, notes and latest update; flag filter mirrors the tracker's. */
+/**
+ * Words that carry no filtering meaning on their own: they describe the
+ * tracker itself, not a row. Dropping them lets "tech jobs" find tech roles
+ * instead of matching nothing because no row contains the word "jobs".
+ * "Internship" is deliberately NOT here: it is a real track value.
+ */
+const QUERY_STOPWORDS: ReadonlySet<string> = new Set([
+  "job", "jobs", "role", "roles", "application", "applications",
+  "app", "apps", "position", "positions", "opening", "openings",
+]);
+
+const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const MONTHS_LONG = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+/**
+ * Turns an ISO date into searchable text: "2026-11-15" becomes
+ * "2026-11-15 november nov 15 2026", so "nov", "nov 15", "2026-11"
+ * and "2026" all match it. Non-ISO input passes through unchanged.
+ */
+function dateSearchText(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const [, y, mo, d] = m;
+  const mi = Number(mo) - 1;
+  if (mi < 0 || mi > 11) return iso;
+  const day = String(Number(d));
+  return `${iso} ${y} ${mo} ${day} ${MONTHS_SHORT[mi]} ${MONTHS_LONG[mi]} ${MONTHS_SHORT[mi]} ${day} ${y} ${MONTHS_LONG[mi]} ${day} ${y}`;
+}
+
+/**
+ * Everything a row can be found by: every visible column value (the sheet's
+ * own display strings, so the filter matches what the user sees), plus
+ * human-readable forms of the three dates. The applications table has no
+ * location field, so there is nothing location-shaped to match.
+ */
+function rowSearchText(r: SheetRow): string {
+  const dates = [r.app.date_applied, r.app.last_contact, r.app.action_due]
+    .filter((d): d is string => Boolean(d))
+    .map(dateSearchText)
+    .join(" ");
+  // Derived words the column values alone do not carry: an OA is only a Y/N
+  // cell, and an interview count is only a number, so neither answers
+  // "oa received" or "interviews 2" without these.
+  const derived = [
+    r.app.oa_received ? "oa received yes" : "",
+    r.app.interviews_done > 0 ? "interviews" : "",
+  ].join(" ");
+  return `${Object.values(r.values).join(" ")} ${dates} ${derived}`.toLowerCase();
+}
+
+/**
+ * Global filter: one box, case-insensitive, matching across every field of
+ * each row (company, role, track, status, all three dates, days quiet,
+ * follow-up flag, OA, interviews done, latest update, link, notes, action
+ * needed, action due, tech role). Multi-word queries match when every word
+ * matches somewhere in the row, so "tech jobs" finds tech roles and
+ * "interview seattle" finds interview-stage rows mentioning Seattle.
+ * The onlyActions flag mirrors the tracker's waiting-on-you filter.
+ */
 export function filterSheet(rows: SheetRow[], query: string, onlyActions = false): SheetRow[] {
-  const q = query.trim().toLowerCase();
+  const words = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && !QUERY_STOPWORDS.has(w));
   return rows.filter((r) => {
     if (onlyActions && !hasAction(r.app)) return false;
-    if (!q) return true;
-    return `${r.app.company} ${r.app.role} ${r.app.notes} ${r.app.latest_update} ${r.app.status}`.toLowerCase().includes(q);
+    if (words.length === 0) return true;
+    const hay = rowSearchText(r);
+    return words.every((w) => hay.includes(w));
   });
 }
 

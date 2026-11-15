@@ -8,7 +8,7 @@
  * of the live app. Every auth-email call now uses the explicit live URL
  * below instead of the current origin or the Supabase project default.
  */
-export const LIVE_APP_URL = "https://pulse-find-two.vercel.app";
+export const LIVE_APP_URL = "https://pulsefind-app.vercel.app";
 
 /** Absolute URL of the auth callback, preserving the post-login `next` page. */
 export function getAuthCallbackUrl(next = "/dashboard"): string {

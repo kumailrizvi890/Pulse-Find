@@ -35,7 +35,7 @@ create index if not exists sync_runs_started_at_idx on public.sync_runs (started
 
 select cron.schedule('sync-sheet', '35 */2 * * *', $$
   select net.http_post(
-    url := 'https://pulse-find-two.vercel.app/api/cron/sync-sheet',
+    url := 'https://pulsefind-app.vercel.app/api/cron/sync-sheet',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')

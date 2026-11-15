@@ -1,77 +1,42 @@
 @import "tailwindcss";
 
 /*
-  Pulse Find design tokens
-  Layout: a "signal console": what's waiting on you first, then the numbers, then the full list.
-  Color: cool paper neutrals with a cobalt pulse accent; teal marks tech roles; red is reserved
-  for things that need the user. Type: Bricolage Grotesque for display, Geist for UI, Geist Mono for data.
+  Pulse Find design tokens — measured from the reference mock
+  (Pulse Find dashboard + AI Assistant, sent Nov 15 2026).
+  Warm black + signal red, one dark theme everywhere. The palette was
+  sampled from the reference images with Python/PIL (not guessed); exact
+  hex values and the sampling method are documented in STYLE.md.
+  Layout: a "signal console": what's waiting on you first, then the numbers,
+  then the full list. Type: Bricolage Grotesque for display, Geist for UI,
+  Geist Mono for data.
 */
 :root {
-  --bg: #f4f6f9;
-  --surface: #ffffff;
-  --surface-2: #f8f9fb;
-  --ink: #0f1729;
-  --muted: #586174;
-  --faint: #8a93a6;
-  --line: #e2e6ed;
-  --accent: #2f4bff;
+  --bg: #0d0c10;
+  --surface: #16151d;
+  --surface-2: #1f1d27;
+  --ink: #f5f3f5;
+  --muted: #a79fa9;
+  --faint: #6e6a72;
+  --line: #26232e;
+  --accent: #fd585d;
   --accent-ink: #ffffff;
-  --accent-soft: #e8ecff;
-  --tech: #0b8f80;
-  --tech-soft: #e0f5f2;
-  --danger: #c8321f;
-  --danger-soft: #fdebe8;
-  --warn: #a15c07;
-  --warn-soft: #fdf1dc;
-  --good: #0b7a4b;
-  --good-soft: #e1f4ea;
-  --shadow: 0 1px 2px rgb(15 23 41 / 0.05), 0 8px 24px -12px rgb(15 23 41 / 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a0e16;
-    --surface: #111827;
-    --surface-2: #0e1420;
-    --ink: #e8ebf2;
-    --muted: #a0a8b8;
-    --faint: #6b7487;
-    --line: #232c3d;
-    --accent: #7086ff;
-    --accent-ink: #0a0e16;
-    --accent-soft: #1b2347;
-    --tech: #34d2bd;
-    --tech-soft: #0f2d2a;
-    --danger: #ff7a66;
-    --danger-soft: #3a1712;
-    --warn: #f5b544;
-    --warn-soft: #33250c;
-    --good: #4ad08f;
-    --good-soft: #0f2a1d;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0a0e16;
-  --surface: #111827;
-  --surface-2: #0e1420;
-  --ink: #e8ebf2;
-  --muted: #a0a8b8;
-  --faint: #6b7487;
-  --line: #232c3d;
-  --accent: #7086ff;
-  --accent-ink: #0a0e16;
-  --accent-soft: #1b2347;
-  --tech: #34d2bd;
-  --tech-soft: #0f2d2a;
-  --danger: #ff7a66;
-  --danger-soft: #3a1712;
-  --warn: #f5b544;
+  --accent-soft: #432429;
+  --tech: #fd585d;
+  --tech-soft: #432429;
+  --danger: #f87171;
+  --danger-soft: #331b24;
+  --warn: #e8a83c;
   --warn-soft: #33250c;
-  --good: #4ad08f;
+  --good: #5eac6d;
   --good-soft: #0f2a1d;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --track: #372d40;
+  --applied: #f66367;
+  --applied-ink: #ffffff;
+  --oa: #c87b27;
+  --oa-ink: #fff2c9;
+  --interview: #4e874f;
+  --interview-ink: #e7fbe6;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 32px -16px rgb(0 0 0 / 0.65);
   color-scheme: dark;
 }
 
@@ -94,6 +59,13 @@
   --color-warn-soft: var(--warn-soft);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
+  --color-track: var(--track);
+  --color-applied: var(--applied);
+  --color-applied-ink: var(--applied-ink);
+  --color-oa: var(--oa);
+  --color-oa-ink: var(--oa-ink);
+  --color-interview: var(--interview);
+  --color-interview-ink: var(--interview-ink);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-bricolage), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -154,35 +126,15 @@ h1, h2, h3 {
 .rise-3 { animation-delay: 0.19s; }
 
 /*
-  Redesign shell palette (Phase 1 unification): the 3D-redesign look — near-black
-  blue background, sky pulse accent, emerald for tech/positive — scoped to signed-in
-  and auth surfaces via .pf-shell so public pages keep the signal-console palette.
-  Tailwind color utilities resolve through the same CSS variables, so every existing
-  component reskins inside the shell with no markup changes.
+  Signed-in + auth shell. The shell now inherits the global measured
+  palette (the old sky-blue/emerald variable overrides are gone); only the
+  red radial glow behind the header remains, echoing the ECG pulse-line
+  identity of the reference mock.
 */
 .pf-shell {
-  --bg: #060a13;
-  --surface: #0c1424;
-  --surface-2: #0a1120;
-  --ink: #eaf2fb;
-  --muted: #9db2c8;
-  --faint: #647d95;
-  --line: #1c2c44;
-  --accent: #38bdf8;
-  --accent-ink: #04121f;
-  --accent-soft: #0e2a3f;
-  --tech: #34d399;
-  --tech-soft: #0c2b22;
-  --danger: #f87171;
-  --danger-soft: #33141a;
-  --warn: #fbbf24;
-  --warn-soft: #2f2410;
-  --good: #34d399;
-  --good-soft: #0c2b22;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 32px -16px rgb(0 0 0 / 0.65);
   background:
-    radial-gradient(720px 300px at 85% -60px, rgb(56 189 248 / 0.13), transparent 65%),
-    radial-gradient(560px 260px at 8% -40px, rgb(52 211 153 / 0.07), transparent 60%),
+    radial-gradient(720px 300px at 85% -60px, rgb(253 88 93 / 0.14), transparent 65%),
+    radial-gradient(560px 260px at 8% -40px, rgb(248 52 62 / 0.07), transparent 60%),
     var(--bg);
   color: var(--ink);
   color-scheme: dark;

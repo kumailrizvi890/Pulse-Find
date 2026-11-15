@@ -39,22 +39,22 @@ export function Panel({ title, hint, action, children, className }: { title?: st
 }
 
 const STATUS_TONE: Record<Status, string> = {
-  Applied: "bg-surface-2 text-muted border-line",
+  Applied: "bg-applied text-applied-ink border-applied",
   Incomplete: "bg-danger-soft text-danger border-danger/25",
-  "OA Received": "bg-warn-soft text-warn border-warn/25",
-  "OA Completed": "bg-warn-soft text-warn border-warn/25",
-  "Recruiter Screen": "bg-accent-soft text-accent border-accent/25",
-  "Interview Invited": "bg-accent-soft text-accent border-accent/25",
-  Interviewing: "bg-accent-soft text-accent border-accent/25",
-  "Final Round": "bg-accent-soft text-accent border-accent/25",
-  Offer: "bg-good-soft text-good border-good/25",
-  Accepted: "bg-good-soft text-good border-good/25",
+  "OA Received": "bg-oa text-oa-ink border-oa",
+  "OA Completed": "bg-oa text-oa-ink border-oa",
+  "Recruiter Screen": "bg-applied text-applied-ink border-applied",
+  "Interview Invited": "bg-interview text-interview-ink border-interview",
+  Interviewing: "bg-interview text-interview-ink border-interview",
+  "Final Round": "bg-interview text-interview-ink border-interview",
+  Offer: "bg-interview text-interview-ink border-interview",
+  Accepted: "bg-interview text-interview-ink border-interview",
   Rejected: "bg-surface-2 text-faint border-line",
   Withdrawn: "bg-surface-2 text-faint border-line",
 };
 
 export function StatusPill({ status }: { status: Status }) {
-  return <span className={cx("inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium", STATUS_TONE[status])}>{status}</span>;
+  return <span className={cx("inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-medium", STATUS_TONE[status])}>{status}</span>;
 }
 
 export function Tag({ tone, children }: { tone: "tech" | "danger" | "warn" | "muted"; children: ReactNode }) {

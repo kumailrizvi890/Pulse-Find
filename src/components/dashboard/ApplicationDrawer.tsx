@@ -53,7 +53,7 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <button aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <form
         onSubmit={submit}
         className="relative flex h-full w-full max-w-[460px] flex-col overflow-y-auto border-l border-line bg-surface shadow-panel"

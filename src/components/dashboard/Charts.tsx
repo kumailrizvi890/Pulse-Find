@@ -135,36 +135,36 @@ export function WeeklyPace({
         <div className="flex items-end gap-2" role="list" aria-label="Applications per day this week">
           {days.map((d) => (
             <div key={d.label} role="listitem" className="flex flex-1 flex-col items-center gap-1">
-              <span className="text-xs font-semibold tabular-nums text-foreground">{d.value}</span>
-              <div className="flex h-28 w-full items-end overflow-hidden rounded-md bg-muted/40">
+              <span className="text-xs font-semibold tabular-nums text-ink">{d.value}</span>
+              <div className="flex h-28 w-full items-end overflow-hidden rounded-md bg-track">
                 <div
-                  className="w-full rounded-md bg-emerald-500"
+                  className="w-full rounded-md bg-accent"
                   style={{ height: d.value === 0 ? "4px" : `${Math.max(10, (d.value / max) * 100)}%` }}
                   title={`${d.label}: ${d.value}`}
                 />
               </div>
-              <span className="text-center text-[11px] leading-tight text-muted-foreground">{d.label}</span>
-              <span className="text-center text-[10px] leading-tight text-muted-foreground">{d.sub}</span>
+              <span className="text-center text-[11px] leading-tight text-muted">{d.label}</span>
+              <span className="text-center text-[10px] leading-tight text-muted">{d.sub}</span>
             </div>
           ))}
         </div>
         {max > 0 && days.length > 1 && (
           <svg className="pointer-events-none absolute inset-x-0 top-5 h-28 w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline points={points} fill="none" stroke="#f43f5e" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            <polyline points={points} fill="none" stroke="#f8343e" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
           </svg>
         )}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full bg-emerald-500/15 px-3 py-1 font-medium text-emerald-400">
+        <span className="rounded-full bg-accent-soft px-3 py-1 font-medium text-accent">
           Total this week: {total}
         </span>
-        <span className="rounded-full bg-muted px-3 py-1 font-medium text-muted-foreground">
+        <span className="rounded-full bg-surface-2 px-3 py-1 font-medium text-muted">
           Avg / day: {average.toFixed(1)}
         </span>
         {change === null ? (
-          <span className="font-medium text-muted-foreground">No applications last week</span>
+          <span className="font-medium text-muted">No applications last week</span>
         ) : (
-          <span className={change >= 0 ? "font-medium text-emerald-400" : "font-medium text-rose-400"}>
+          <span className={change >= 0 ? "font-medium text-good" : "font-medium text-danger"}>
             {change >= 0 ? "↗" : "↘"} {Math.abs(change)}% vs last week
           </span>
         )}

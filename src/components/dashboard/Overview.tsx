@@ -24,10 +24,10 @@ import { Funnel, WeeklyPace, type PaceDay } from "./Charts";
 import { Panel, Tag, btn, cx, fmtDate } from "./ui";
 
 const AVATAR_TONES = [
-  "bg-emerald-500/15 text-emerald-400",
-  "bg-sky-500/15 text-sky-400",
-  "bg-amber-500/15 text-amber-400",
-  "bg-rose-500/15 text-rose-400",
+  "bg-accent-soft text-accent",
+  "bg-warn-soft text-warn",
+  "bg-good-soft text-good",
+  "bg-danger-soft text-danger",
 ];
 
 function initials(name: string) {
@@ -114,11 +114,11 @@ export function Overview({
 
   const hired = useMemo(() => apps.filter((a) => a.status === "Accepted").length, [apps]);
   const funnelSteps: (FunnelStep & { color?: string })[] = [
-    { label: "Applied", value: steps[0]?.value ?? sum.total, color: "#10b981" },
-    { label: "Screening", value: steps[1]?.value ?? 0, color: "#10b981" },
-    { label: "Interview", value: steps[2]?.value ?? 0, color: "#10b981" },
-    { label: "Offer", value: steps[3]?.value ?? 0, color: "#f97316" },
-    { label: "Hired", value: hired, color: "#f43f5e" },
+    { label: "Applied", value: steps[0]?.value ?? sum.total, color: "#f66367" },
+    { label: "Screening", value: steps[1]?.value ?? 0, color: "#c87b27" },
+    { label: "Interview", value: steps[2]?.value ?? 0, color: "#4e874f" },
+    { label: "Offer", value: steps[3]?.value ?? 0, color: "#4e874f" },
+    { label: "Hired", value: hired, color: "#4e874f" },
   ];
 
   const response = useMemo(() => {
@@ -175,7 +175,7 @@ export function Overview({
 
   return (
     <div className="space-y-4">
-      <div style={{ "--accent": "#f43f5e" } as CSSProperties} aria-hidden="true">
+      <div style={{ "--accent": "#f8343e" } as CSSProperties} aria-hidden="true">
         <PulseTrace className="h-6 w-full" />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
@@ -247,7 +247,7 @@ export function Overview({
           action={
             <span
               className={cx(
-                "rounded-full px-2 py-0.5 font-mono text-xs",
+                "rounded-md px-2 py-0.5 font-mono text-xs",
                 dueCount ? "bg-good-soft text-good" : "bg-surface-2 text-muted",
               )}
             >

@@ -157,11 +157,11 @@ export function SheetView({ store }: { store: TrackerStore }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="tnum rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.total}</b> applications</span>
-        <span className="tnum rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.tech}</b> tech</span>
-        <span className="tnum rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.actions}</b> waiting on you</span>
-        <span className="tnum rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.ghosted}</b> ghosted</span>
-        <span className="tnum rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.rejected}</b> rejections</span>
+        <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.total}</b> applications</span>
+        <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.tech}</b> tech</span>
+        <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.actions}</b> waiting on you</span>
+        <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.ghosted}</b> ghosted</span>
+        <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.rejected}</b> rejections</span>
         <span className="ml-auto flex items-center gap-2">
           <input
             type="search"
@@ -172,7 +172,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
             aria-label="Filter the sheet"
           />
           <button
-            className={cx("rounded-full border px-3 py-1.5 font-mono text-xs transition", onlyActions ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            className={cx("rounded-lg border px-3 py-1.5 font-mono text-xs transition", onlyActions ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
             aria-pressed={onlyActions}
             onClick={() => setOnlyActions((v) => !v)}
           >

@@ -45,7 +45,7 @@ export function ImportDialog({ open, onClose, onImport }: { open: boolean; onClo
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="import-title">
-      <button aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative m-4 w-full max-w-lg rounded-2xl border border-line bg-surface p-5 shadow-panel">
         <h2 id="import-title" className="font-display text-lg font-bold tracking-tight">Import from a spreadsheet</h2>
         <p className="mt-1 text-sm text-muted">

@@ -209,7 +209,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
 
           <Panel
             title="All applications"
-            hint="Teal tag marks a tech role. Red company names have something waiting on you."
+            hint="Red tag marks a tech role. Red company names have something waiting on you."
             action={
               <input
                 id="search"
@@ -228,7 +228,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
                   onClick={() => setFilter(f.id)}
                   aria-pressed={filter === f.id}
                   className={cx(
-                    "whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-xs transition",
+                    "whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition",
                     filter === f.id ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink",
                   )}
                 >
@@ -409,7 +409,7 @@ function SettingsDialog({ settings, onClose, onSave }: { settings: Settings; onC
   const [s, setS] = useState(settings);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <button aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <form
         className="relative m-4 w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-panel"
         onSubmit={(e) => { e.preventDefault(); onSave(s); }}

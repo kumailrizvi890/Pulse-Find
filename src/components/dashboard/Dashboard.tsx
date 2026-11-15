@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import type { Application, ApplicationInput, Settings, TrackerEvent } from "@/lib/types";
 import { DEFAULT_SETTINGS, emptyApplication } from "@/lib/types";
 import {
@@ -12,6 +13,7 @@ import { dedupeImport } from "@/lib/sheet";
 import { buildWorkbook, download, toCsv } from "@/lib/export";
 import { Overview } from "./Overview";
 import { ApplicationDrawer } from "./ApplicationDrawer";
+import { TaskChatPanel } from "./TaskChatPanel";
 import { ImportDialog } from "./ImportDialog";
 import { Panel, StatusPill, Tag, btn, cx, field, fmtDate, useToast } from "./ui";
 
@@ -39,6 +41,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [drawer, setDrawer] = useState<{ open: boolean; editing: Application | null }>({ open: false, editing: null });
+  const [chatOpen, setChatOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast, toastNode } = useToast();
@@ -84,7 +87,18 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
     return rest;
   }, [drawer.editing, today]);
 
-  const closeDrawer = useCallback(() => setDrawer({ open: false, editing: null }), []);
+  const closeDrawer = useCallback(() => {
+    setDrawer({ open: false, editing: null });
+    setChatOpen(false);
+  }, []);
+
+  // Opening a task also opens its chat on wide screens, where there is room
+  // for the chat next to the drawer. On phones the chat stays one tap away
+  // in the drawer header so it never covers the form uninvited.
+  const openTask = useCallback((a: Application) => {
+    setDrawer({ open: true, editing: a });
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) setChatOpen(true);
+  }, []);
 
   const logEvent = async (application_id: string, kind: string, details: string) => {
     try {
@@ -203,7 +217,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
         </>
       ) : (
         <>
-                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={(a) => setDrawer({ open: true, editing: a })} onShowWaiting={() => setFilter("action")} />
+                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={openTask} onShowWaiting={() => setFilter("action")} />
 
           {extras}
 
@@ -241,7 +255,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
             ) : rows.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted">No applications match this filter.</p>
             ) : (
-              <AppList rows={rows} today={today} ghostDays={settings.ghost_days} onOpen={(a) => setDrawer({ open: true, editing: a })} />
+              <AppList rows={rows} today={today} ghostDays={settings.ghost_days} onOpen={openTask} />
             )}
           </Panel>
 
@@ -279,11 +293,23 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
           onClose={closeDrawer}
           onSave={save}
           onDelete={remove}
+          chatOpen={chatOpen}
+          onToggleChat={() => setChatOpen((o) => !o)}
+        />
+      )}
+      {drawer.open && drawer.editing && chatOpen && (
+        <TaskChatPanel
+          key={`chat-${drawer.editing.id}`}
+          application={drawer.editing}
+          events={events}
+          userId={userId}
+          onClose={() => setChatOpen(false)}
         />
       )}
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onImport={importRows} />
       {settingsOpen && <SettingsDialog
         settings={settings}
+        userId={userId}
         onClose={() => setSettingsOpen(false)}
         onSave={async (s) => {
           try {
@@ -405,35 +431,48 @@ function ExportMenu({ onXlsx, onCsv, disabled }: { onXlsx: () => void; onCsv: ()
   );
 }
 
-function SettingsDialog({ settings, onClose, onSave }: { settings: Settings; onClose: () => void; onSave: (s: Settings) => Promise<void> }) {
+function SettingsDialog({ settings, userId, onClose, onSave }: { settings: Settings; userId?: string; onClose: () => void; onSave: (s: Settings) => Promise<void> }) {
   const [s, setS] = useState(settings);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <form
-        className="relative m-4 w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-panel"
-        onSubmit={(e) => { e.preventDefault(); onSave(s); }}
-      >
+      <div className="relative m-4 w-full max-w-sm rounded-2xl border border-line bg-surface p-5 shadow-panel">
         <h2 id="settings-title" className="font-display text-lg font-bold">Settings</h2>
-        <div className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-name">
-            Your first name
-            <input id="s-name" className={field} value={s.display_name ?? ""} maxLength={60} onChange={(e) => setS({ ...s, display_name: e.target.value || null })} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-ghost">
-            Call it ghosted after this many quiet days
-            <input id="s-ghost" type="number" min={3} max={120} className={field} value={s.ghost_days} onChange={(e) => setS({ ...s, ghost_days: Math.max(3, Math.min(120, Number(e.target.value) || 21)) })} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-goal">
-            Weekly application goal
-            <input id="s-goal" type="number" min={1} max={200} className={field} value={s.weekly_goal} onChange={(e) => setS({ ...s, weekly_goal: Math.max(1, Math.min(200, Number(e.target.value) || 25)) })} />
-          </label>
+        <form
+          onSubmit={(e) => { e.preventDefault(); onSave(s); }}
+        >
+          <div className="mt-4 flex flex-col gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-name">
+              Your first name
+              <input id="s-name" className={field} value={s.display_name ?? ""} maxLength={60} onChange={(e) => setS({ ...s, display_name: e.target.value || null })} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-ghost">
+              Call it ghosted after this many quiet days
+              <input id="s-ghost" type="number" min={3} max={120} className={field} value={s.ghost_days} onChange={(e) => setS({ ...s, ghost_days: Math.max(3, Math.min(120, Number(e.target.value) || 21)) })} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-muted" htmlFor="s-goal">
+              Weekly application goal
+              <input id="s-goal" type="number" min={1} max={200} className={field} value={s.weekly_goal} onChange={(e) => setS({ ...s, weekly_goal: Math.max(1, Math.min(200, Number(e.target.value) || 25)) })} />
+            </label>
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className={btn.secondary} onClick={onClose}>Cancel</button>
+            <button type="submit" className={btn.primary}>Save</button>
+          </div>
+        </form>
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-faint">Account and agent</h3>
+          <div className="mt-2 flex flex-col gap-1">
+            <Link href="/app/connect" className="rounded-lg px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-2">Connect your agent →</Link>
+            <Link href="/app/setup" className="rounded-lg px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-2">Get set up in 3 steps →</Link>
+            {userId && (
+              <form action="/auth/signout" method="post">
+                <button type="submit" className="w-full rounded-lg px-2 py-1.5 text-left text-sm font-medium text-danger transition hover:bg-surface-2">Sign out</button>
+              </form>
+            )}
+          </div>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className={btn.secondary} onClick={onClose}>Cancel</button>
-          <button type="submit" className={btn.primary}>Save</button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

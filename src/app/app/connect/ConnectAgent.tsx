@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { buildAgentPrompt } from "@/lib/agent-prompt";
 import { btn, cx, field, Panel } from "@/components/dashboard/ui";
 
 type TokenRow = { id: string; name: string; prefix: string; created_at: string; last_used_at: string | null; revoked_at: string | null };
@@ -64,6 +65,7 @@ export function ConnectAgent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
   const [reload, setReload] = useState(0);
   const [origin, setOrigin] = useState("https://pulse-find-two.vercel.app");
 
@@ -108,6 +110,12 @@ export function ConnectAgent() {
   async function copy(text: string) {
     await navigator.clipboard.writeText(text);
     setCopied(true);
+  }
+
+  async function copyPrompt(text: string) {
+    await navigator.clipboard.writeText(text);
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2600);
   }
 
   const shown = fresh ?? "pf_YOUR_TOKEN";
@@ -174,6 +182,34 @@ export function ConnectAgent() {
           Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs.
           Agents are told to stay read-only in your inbox and never send email or apply for you.
         </p>
+      </Panel>
+
+      <Panel title="4. Copy the full agent prompt" hint="Everything your agent needs, in one paste.">
+        <p className="text-sm leading-relaxed text-muted">
+          This is the full operator prompt: every capability, the automatic setup (your spreadsheet, Gmail, the inbox
+          scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
+          dashboard and start using it with nothing else to do.
+        </p>
+        <div className="relative mt-3">
+          <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
+            {fresh
+              ? buildAgentPrompt({ endpoint: url, token: fresh })
+              : buildAgentPrompt({ endpoint: url, token: "pf_YOUR_TOKEN" })}
+          </pre>
+          <button
+            className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")}
+            onClick={() =>
+              copyPrompt(
+                fresh
+                  ? buildAgentPrompt({ endpoint: url, token: fresh })
+                  : buildAgentPrompt({ endpoint: url, token: "pf_YOUR_TOKEN" }),
+              )
+            }
+          >
+            {promptCopied ? "Copied" : "Copy full prompt"}
+          </button>
+        </div>
+        {!fresh && <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the token from step 1.</p>}
       </Panel>
 
       <Panel title="Your tokens" hint={tokens ? `${active.length} active` : "Loading…"}>

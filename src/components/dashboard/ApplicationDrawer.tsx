@@ -12,10 +12,13 @@ type Props = {
   onClose: () => void;
   onSave: (v: ApplicationInput) => Promise<void>;
   onDelete: () => Promise<void>;
+  /** Whether the task chat panel is open (existing applications only). */
+  chatOpen?: boolean;
+  onToggleChat?: () => void;
 };
 
 /** Mount this only while open (and key it by record) so each opening starts from fresh state. */
-export function ApplicationDrawer({ initial, editing, events, onClose, onSave, onDelete }: Omit<Props, "open">) {
+export function ApplicationDrawer({ initial, editing, events, onClose, onSave, onDelete, chatOpen, onToggleChat }: Omit<Props, "open">) {
   const [v, setV] = useState<ApplicationInput>(initial);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -61,7 +64,14 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-4">
           <h2 id={titleId} className="font-display text-lg font-bold tracking-tight">{editing ? editing.company : "Add application"}</h2>
-          <button type="button" onClick={onClose} className={btn.ghost}>Close</button>
+          <div className="flex items-center gap-1">
+            {editing && onToggleChat && (
+              <button type="button" onClick={onToggleChat} className={btn.ghost} aria-pressed={chatOpen}>
+                {chatOpen ? "Hide chat" : "Chat"}
+              </button>
+            )}
+            <button type="button" onClick={onClose} className={btn.ghost}>Close</button>
+          </div>
         </header>
 
         <div className="flex flex-col gap-4 px-5 py-5">
@@ -117,6 +127,21 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
             <textarea id="f-notes" rows={3} className={field} value={v.notes} onChange={(e) => set("notes", e.target.value)} maxLength={4000} />
           </Row>
 
+          <div className="flex items-center justify-between gap-2 border-t border-line pt-4">
+            {editing ? (
+              confirmDelete ? (
+                <span className="flex items-center gap-2 text-sm">
+                  <button type="button" className={btn.danger} onClick={onDelete}>Delete for good</button>
+                  <button type="button" className={btn.ghost} onClick={() => setConfirmDelete(false)}>Keep</button>
+                </span>
+              ) : (
+                <button type="button" className={btn.ghost} onClick={() => setConfirmDelete(true)}>Delete</button>
+              )
+            ) : <span />}
+            <button type="submit" className={btn.primary} disabled={busy}>{busy ? "Saving…" : editing ? "Save changes" : "Add application"}</button>
+          </div>
+          {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+
           {history.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-faint">History</h3>
@@ -130,22 +155,7 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
               </ul>
             </div>
           )}
-          {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
         </div>
-
-        <footer className="sticky bottom-0 mt-auto flex items-center justify-between gap-2 border-t border-line bg-surface px-5 py-4">
-          {editing ? (
-            confirmDelete ? (
-              <span className="flex items-center gap-2 text-sm">
-                <button type="button" className={btn.danger} onClick={onDelete}>Delete for good</button>
-                <button type="button" className={btn.ghost} onClick={() => setConfirmDelete(false)}>Keep</button>
-              </span>
-            ) : (
-              <button type="button" className={btn.ghost} onClick={() => setConfirmDelete(true)}>Delete</button>
-            )
-          ) : <span />}
-          <button type="submit" className={btn.primary} disabled={busy}>{busy ? "Saving…" : editing ? "Save changes" : "Add application"}</button>
-        </footer>
       </form>
     </div>
   );

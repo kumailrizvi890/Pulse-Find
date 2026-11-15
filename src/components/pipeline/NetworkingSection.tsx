@@ -210,7 +210,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
   const set = <K extends keyof ContactInput>(k: K, val: ContactInput[K]) => setV((p) => ({ ...p, [k]: val }));
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="contact-title">
-      <button aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <form
         className="relative m-4 max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-panel"
         onSubmit={async (e) => {

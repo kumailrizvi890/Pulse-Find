@@ -12,14 +12,14 @@ import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dash
 const STATUS_TONE: Record<LeadStatus, string> = {
   New: "bg-accent-soft text-accent border-accent/25",
   Queued: "bg-warn-soft text-warn border-warn/25",
-  Applied: "bg-good-soft text-good border-good/25",
+  Applied: "bg-applied text-applied-ink border-applied",
   Problem: "bg-danger-soft text-danger border-danger/25",
   "Not eligible": "bg-surface-2 text-faint border-line",
   Closed: "bg-surface-2 text-faint border-line",
 };
 
 export function LeadPill({ status }: { status: LeadStatus }) {
-  return <span className={cx("inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium", STATUS_TONE[status])}>{status}</span>;
+  return <span className={cx("inline-flex whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-medium", STATUS_TONE[status])}>{status}</span>;
 }
 
 /**
@@ -163,7 +163,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
         <button
           onClick={() => setFilter("all")}
           aria-pressed={filter === "all"}
-          className={cx("whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-xs transition", filter === "all" ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+          className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === "all" ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
         >
           All <span className="tnum opacity-70">{leads.length}</span>
         </button>
@@ -172,7 +172,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
             key={s}
             onClick={() => setFilter(s)}
             aria-pressed={filter === s}
-            className={cx("whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-xs transition", filter === s ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === s ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
           >
             {s} <span className="tnum opacity-70">{counts[s]}</span>
           </button>
@@ -279,7 +279,7 @@ function LeadForm({ initial, editing, onClose, onSave }: { initial: LeadInput; e
   const set = <K extends keyof LeadInput>(k: K, val: LeadInput[K]) => setV((p) => ({ ...p, [k]: val }));
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="lead-title">
-      <button aria-label="Close" className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <form
         className="relative m-4 max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-5 shadow-panel"
         onSubmit={async (e) => {

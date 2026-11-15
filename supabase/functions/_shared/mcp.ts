@@ -52,6 +52,14 @@ export interface ContactRow {
   notes: string;
 }
 
+export interface EventRow {
+  id: string;
+  application_id: string;
+  event_date: string;
+  kind: string;
+  details: string;
+}
+
 /** Data access for ONE user. Every implementation must scope reads and writes to that user. */
 export interface Store {
   listApps(): Promise<AppRow[]>;
@@ -60,6 +68,8 @@ export interface Store {
   /** Returns false when sourceRef was already recorded (duplicate email). */
   addEvent(e: { application_id: string; kind: string; details: string; event_date: string; source_ref: string | null }): Promise<boolean>;
   hasEvent(sourceRef: string): Promise<boolean>;
+  /** Recent activity on the user's applications, newest first. */
+  listEvents(p: { kind?: string; days: number }): Promise<EventRow[]>;
   searchJobs(p: { query?: string; track?: string; remote?: boolean; tech_only?: boolean; limit: number }): Promise<JobRow[]>;
   ghostDays(): Promise<number>;
   listLeads(): Promise<LeadRow[]>;
@@ -206,6 +216,35 @@ export const TOOLS: ToolDef[] = [
         return true;
       });
       return { count: rows.length, applications: rows };
+    },
+  },
+  {
+    name: "list_events",
+    title: "List tracker events",
+    description: "Recent activity on the user's applications: status changes, actions marked done, emails processed. The tracker sync uses this to tell a dismissed \"waiting on you\" action apart from a new one. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "Only events of this kind, e.g. \"Action done\"" },
+        days: { type: "number", description: "How many days back to look (default 14, max 90)" },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+    run: async (s, a) => {
+      const kind = str(a, "kind", 60);
+      const days = int(a, "days", 1, 90) ?? 14;
+      const rows = await s.listEvents({ kind, days });
+      return {
+        count: rows.length,
+        events: rows.map((e) => ({
+          id: e.id,
+          application_id: e.application_id,
+          event_date: e.event_date,
+          kind: e.kind,
+          details: e.details || null,
+        })),
+      };
     },
   },
   {

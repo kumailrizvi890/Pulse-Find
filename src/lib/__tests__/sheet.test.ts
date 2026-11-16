@@ -78,6 +78,34 @@ describe("sheet sorting and filtering", () => {
   });
 });
 
+describe("status filter", () => {
+  const rows = sheetRows(
+    [
+      app({ company: "Nebius", role: "AI/ML Specialist", status: "OA Received", oa_received: true, last_contact: "2026-11-10", action_needed: "Complete the GDPR consent click", action_due: "2026-12-09" }),
+      app({ company: "Acme", role: "SWE Intern", status: "Applied", last_contact: "2026-11-10" }),
+      app({ company: "Beta", role: "SWE Intern", status: "OA Received", oa_received: true, last_contact: "2026-11-09", action_needed: "Finish the coding assessment" }),
+      app({ company: "Gamma", role: "SWE Intern", status: "Interviewing", interviews_done: 1, last_contact: "2026-11-12" }),
+      app({ company: "Delta", role: "SWE Intern", status: "Rejected", last_contact: "2026-11-01" }),
+    ],
+    TODAY,
+    GHOST,
+  );
+
+  it("shows only the selected status and restores everything on All", () => {
+    expect(filterSheet(rows, "", false, "OA Received").map((r) => r.app.company)).toEqual(["Nebius", "Beta"]);
+    expect(filterSheet(rows, "", false, "Interviewing").map((r) => r.app.company)).toEqual(["Gamma"]);
+    expect(filterSheet(rows, "", false, "Rejected").map((r) => r.app.company)).toEqual(["Delta"]);
+    expect(filterSheet(rows, "", false, "All")).toHaveLength(5);
+    expect(filterSheet(rows, "")).toHaveLength(5); // status defaults to All
+  });
+
+  it("composes with the text search and the waiting-on-you flag", () => {
+    expect(filterSheet(rows, "neb", false, "OA Received").map((r) => r.app.company)).toEqual(["Nebius"]);
+    expect(filterSheet(rows, "acme", false, "OA Received")).toHaveLength(0); // Acme is Applied, not OA Received
+    expect(filterSheet(rows, "", true, "OA Received").map((r) => r.app.company)).toEqual(["Nebius", "Beta"]);
+  });
+});
+
 describe("global filter matches every column", () => {
   const rows = sheetRows(
     [

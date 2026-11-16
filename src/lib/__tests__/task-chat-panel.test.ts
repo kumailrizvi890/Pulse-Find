@@ -62,7 +62,9 @@ describe("task chat panel sizing", () => {
     expect(src).toContain("Talk to Agent");
     expect(src).toContain("setHandoffOpen(true)");
     expect(src).toContain("Copy for my agent");
-    expect(src).toContain('href="/app/connect"');
+    // Demo visitors go to /demo/connect, signed-in users to /app/connect
+    // (demo-connect package). The link must split on userId, not hardcode.
+    expect(src).toContain('userId ? "/app/connect" : "/demo/connect"');
   });
 
   it("keeps the greeting, suggestions, thinking state and due line", () => {

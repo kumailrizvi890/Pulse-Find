@@ -12,7 +12,7 @@ export function cx(...c: (string | false | null | undefined)[]) {
 
 export const btn = {
   primary:
-    "inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-ink shadow-[0_8px_24px_-10px_rgb(253_88_93/0.45)] transition hover:brightness-110 disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-ink shadow-[0_10px_32px_-6px_rgb(253_88_93/0.75),0_0_20px_-4px_rgb(248_52_62/0.55)] transition hover:brightness-110 disabled:opacity-50",
   secondary:
     "inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium text-ink transition hover:border-accent/40 hover:bg-surface-2 disabled:opacity-50",
   ghost: "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-ink",

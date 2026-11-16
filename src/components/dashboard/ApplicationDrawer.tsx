@@ -59,7 +59,7 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
       <button aria-label="Close" className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
       <form
         onSubmit={submit}
-        className="relative flex h-full w-full max-w-[460px] flex-col overflow-y-auto border-l border-line bg-surface shadow-panel"
+        className="relative flex max-h-dvh w-full max-w-[460px] flex-col self-start overflow-y-auto border-l border-line bg-surface shadow-panel"
         style={{ paddingTop: "env(safe-area-inset-top,0px)", paddingBottom: "env(safe-area-inset-bottom,0px)", paddingRight: "env(safe-area-inset-right,0px)" }}
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-4">

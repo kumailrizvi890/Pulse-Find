@@ -32,7 +32,8 @@ function snippet(client: ClientName, url: string, token: string) {
   const auth = `Bearer ${token}`;
   switch (client) {
     case "Claude Code":
-      return `claude mcp add --transport http pulse-find ${url} \\\n  --header "Authorization: ${auth}"`;
+      return `claude mcp add --transport http pulse-find ${url} \
+  --header "Authorization: ${auth}"`;
     case "Cursor":
       return JSON.stringify({ mcpServers: { "pulse-find": { url, headers: { Authorization: auth } } } }, null, 2);
     case "VS Code":
@@ -56,7 +57,7 @@ const WHERE: Record<ClientName, string> = {
   Other: "Any MCP client that supports Streamable HTTP and custom headers.",
 };
 
-export function ConnectAgent() {
+export function ConnectAgent({ userId }: { userId: string }) {
   const db = useMemo(() => createClient(), []);
   const [tokens, setTokens] = useState<TokenRow[] | null>(null);
   const [name, setName] = useState("My agent");
@@ -74,6 +75,7 @@ export function ConnectAgent() {
     Promise.resolve().then(() => live && setOrigin(window.location.origin));
     db.from("api_tokens")
       .select("id,name,prefix,created_at,last_used_at,revoked_at")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .then(({ data, error: e }) => {
         if (!live) return;
@@ -81,7 +83,7 @@ export function ConnectAgent() {
         else setTokens((data ?? []) as TokenRow[]);
       });
     return () => { live = false; };
-  }, [db, reload]);
+  }, [db, reload, userId]);
 
   const url = `${origin}/api/mcp`;
 
@@ -102,7 +104,7 @@ export function ConnectAgent() {
   }
 
   async function revoke(id: string) {
-    const { error: e } = await db.from("api_tokens").update({ revoked_at: new Date().toISOString() }).eq("id", id);
+    const { error: e } = await db.from("api_tokens").update({ revoked_at: new Date().toISOString() }).eq("id", id).eq("user_id", userId);
     if (e) return setError("Couldn't revoke that token.");
     setReload((n) => n + 1);
   }

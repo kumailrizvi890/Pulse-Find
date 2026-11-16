@@ -145,7 +145,7 @@ h1, h2, h3 {
   background:
     radial-gradient(720px 300px at 85% -60px, rgb(253 88 93 / 0.14), transparent 65%),
     radial-gradient(560px 260px at 8% -40px, rgb(248 52 62 / 0.07), transparent 60%),
-    var(--bg);
+    transparent;
   color: var(--ink);
   color-scheme: dark;
 }
@@ -430,4 +430,105 @@ h1, h2, h3 {
   .landing-swipe-nudge { animation: none; }
   .landing-sheet-pulse { animation: none; }
   .landing-caret { animation: none; opacity: 1; }
+}
+
+/*
+  SITE-WIDE TEXTURED 3D BACKGROUND (Nov 16 2026) — the dark textured
+  look Kumail approved in the preview, carried across the whole site.
+  The hero keeps its own local depth (HeroBackdrop, untouched above);
+  this is the same atmosphere site-wide so landing sections, dashboard,
+  demo and auth pages stop reading as plain black.
+
+  How it works: one fixed layer (SiteBackdrop, mounted in the root
+  layout) holds the depth glows, the perspective grid floor, the
+  floating shards/rings, the dot grid and the grain. The body itself
+  carries the faint base gradients. Cards lift off the texture because
+  the surface colors go translucent glass here — one override, every
+  card, no per-page edits. The violet edge glows are from the approved
+  preview (the old red-only rule is deliberately relaxed for this
+  background layer only); everything else stays the existing red.
+
+  Contrast: the glows sit at 0.06–0.14 alpha, the grain at 0.05, the
+  dots at 0.05, and the glass keeps surfaces 86% opaque, so text
+  contrast is unchanged in practice — the texture is atmosphere
+  behind the content, never a wash over it. Reduced motion: the
+  floats stop outright (the global rule above already collapses every
+  animation duration) and the parallax listener in SiteBackdrop never
+  attaches.
+*/
+
+/* Faint base gradients on the body, under everything. */
+body {
+  background:
+    radial-gradient(900px 520px at 85% -10%, rgb(253 88 93 / 0.07), transparent 65%),
+    radial-gradient(760px 480px at -10% 95%, rgb(139 92 246 / 0.06), transparent 65%),
+    var(--bg);
+}
+
+/* Glass cards: translucent surfaces with a top highlight and a deeper
+   shadow, so they lift off the texture. Unlayered, so this beats the
+   Tailwind utilities that set the same classes. */
+.bg-surface {
+  background-color: color-mix(in srgb, var(--surface) 86%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), var(--shadow);
+}
+.bg-surface-2 {
+  background-color: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+/* Site backdrop glows (SiteBackdrop.tsx). */
+.pf-site-glow-far {
+  background: radial-gradient(closest-side, rgb(253 88 93 / 0.14), rgb(253 88 93 / 0.04) 55%, transparent 72%);
+}
+.pf-site-glow-near {
+  background: radial-gradient(closest-side, rgb(253 88 93 / 0.11), transparent 70%);
+}
+.pf-site-glow-violet {
+  background: radial-gradient(closest-side, rgb(139 92 246 / 0.1), transparent 70%);
+}
+
+/* Dot grid: faint, everywhere. */
+.pf-site-dots {
+  background-image: radial-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1.3px);
+  background-size: 28px 28px;
+}
+
+/* Perspective 3D grid floor, anchoring the bottom of the viewport.
+   Strongest at the bottom edge, fading into the distance. */
+.pf-site-floor {
+  background-image:
+    linear-gradient(rgb(253 88 93 / 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(253 88 93 / 0.13) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transform: perspective(520px) rotateX(62deg);
+  transform-origin: bottom center;
+  -webkit-mask-image: linear-gradient(to top, black 20%, transparent 88%);
+  mask-image: linear-gradient(to top, black 20%, transparent 88%);
+  opacity: 0.5;
+}
+
+/* Floating glass shards and rings. The tilt uses the standalone
+   `rotate` property so the float animation (transform) composes with
+   it instead of replacing it. */
+.pf-site-shard {
+  border: 1px solid rgb(253 88 93 / 0.16);
+  background: linear-gradient(135deg, rgb(253 88 93 / 0.07), rgb(139 92 246 / 0.05) 60%, transparent);
+  border-radius: 10px;
+  rotate: 18deg;
+}
+.pf-site-ring {
+  border: 1px solid rgb(253 88 93 / 0.18);
+  box-shadow: inset 0 0 24px rgb(253 88 93 / 0.06), 0 0 32px rgb(248 52 62 / 0.08);
+}
+@keyframes pf-site-float {
+  from { transform: translate3d(0, -10px, 0); }
+  to { transform: translate3d(0, 12px, 0); }
+}
+.pf-site-float-a { animation: pf-site-float 11s ease-in-out infinite alternate; }
+.pf-site-float-b { animation: pf-site-float 14s ease-in-out infinite alternate-reverse; }
+.pf-site-float-c { animation: pf-site-float 9s ease-in-out infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-site-float-a, .pf-site-float-b, .pf-site-float-c { animation: none; }
 }

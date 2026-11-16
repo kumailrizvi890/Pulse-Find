@@ -15,7 +15,7 @@ export function TopBar({ right, home = "/" }: { right?: ReactNode; home?: string
   );
 }
 
-export const navLink = "rounded-lg px-2.5 py-1.5 font-medium text-muted transition hover:bg-surface hover:text-ink";
+export const navLink = "rounded-lg px-2.5 py-1.5 font-medium text-muted transition hover:bg-surface hover:text-accent";
 
 export function GitHubLink() {
   return (

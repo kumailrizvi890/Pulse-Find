@@ -356,3 +356,78 @@ h1, h2, h3 {
   .pf-ecg-halo { animation: none; }
   .pf-hero-drift { animation: none; }
 }
+
+/*
+  LANDING SECTIONS (Nov 16 2026) — the below-hero redesign. Scroll
+  reveals, the proof marquee, widget tilt, and the small looping motions
+  in the bento and terminal. One accent only (var(--accent)); no new
+  colors. The global reduced-motion rule above already collapses every
+  transition/animation duration to 0.01ms; the rules below switch the
+  looping animations off outright so they sit still instead of jumping.
+  The reveal's settle state is deliberate: once the entrance finishes,
+  the element returns to its natural styles (no lingering transform),
+  so it can never become the containing block for a fixed-position
+  descendant — the same footgun the app-wide .rise class documents.
+*/
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.landing-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.landing-reveal.is-settled {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+@keyframes landing-marquee {
+  to { transform: translateX(-50%); }
+}
+.landing-marquee-track {
+  animation: landing-marquee 36s linear infinite;
+}
+
+/* Showcase cards tilt a few degrees toward the pointer (JS-driven,
+   fine pointers only). The transition smooths the follow. */
+.landing-tilt {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Bento mini-visuals: the swipe card nudges, one sheet cell pulses. */
+@keyframes landing-swipe-nudge {
+  0%, 100% { transform: rotate(-2deg) translateX(0); }
+  50% { transform: rotate(2deg) translateX(6px); }
+}
+.landing-swipe-nudge {
+  animation: landing-swipe-nudge 4s ease-in-out infinite;
+}
+@keyframes landing-sheet-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.landing-sheet-pulse {
+  animation: landing-sheet-pulse 2.2s ease-in-out infinite;
+}
+
+/* Terminal caret while the MCP demo types. */
+@keyframes landing-caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.landing-caret {
+  animation: landing-caret-blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-marquee-track { animation: none; }
+  .landing-swipe-nudge { animation: none; }
+  .landing-sheet-pulse { animation: none; }
+  .landing-caret { animation: none; opacity: 1; }
+}

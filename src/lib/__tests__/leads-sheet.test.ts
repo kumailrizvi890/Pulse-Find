@@ -15,6 +15,8 @@ import { describe, expect, it } from "vitest";
 // title="Click to edit" tooltip, so the hint popped up everywhere, while
 // the 59 empty cells showed nothing at all. Empty editable cells now
 // show a faint dash, and the edit hint only while the cell is hovered.
+// On touch screens the hint shows instead of the dash, since there is
+// no hover there (hover none media query in globals.css).
 // The Company column freeze was checked at the same time and already
 // works (sticky left-0, verified live at desktop + 430px), so it is
 // pinned here rather than changed.
@@ -56,10 +58,10 @@ describe("sheet empty cells", () => {
     expect(sheet).not.toContain("Click to edit\" : undefined");
   });
 
-  it("shows a faint dash in empty editable cells and the hint only on hover", () => {
+  it("shows a faint dash in empty editable cells and the hint only on hover, or always on touch", () => {
     expect(sheet).toContain('const isEmptyEditable = !!col.editable && r.values[col.key] === "";');
-    expect(sheet).toContain('className="text-faint group-hover:hidden">—</span>');
-    expect(sheet).toContain('className="hidden text-faint group-hover:inline">Click to edit</span>');
+    expect(sheet).toContain('className="text-faint group-hover:hidden touch-edit-dash">—</span>');
+    expect(sheet).toContain('className="hidden text-faint group-hover:inline touch-edit-hint">Click to edit</span>');
   });
 
   it("marks editable cells as hover groups so the hint can appear", () => {

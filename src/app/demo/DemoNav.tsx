@@ -1,15 +1,27 @@
 import Link from "next/link";
 import { TopBar, navLink } from "@/components/TopBar";
+import { PulseDot } from "@/components/PulseBrand";
 
 // Shared header for the public demo. The tabs link the dashboard demo
 // to the Sheet, Leads and Networking demo views. All demo views render
 // fictional sample data only (see the seeded demo stores).
+//
+// "Ask Pulse" links to the demo dashboard with ?chat=1, which opens the
+// general chat (see DemoDashboard / Dashboard): the chat answers from the
+// whole sample tracker, so a demo visitor can try it from any demo page
+// without opening a task first.
 export function DemoNav() {
   return (
     <>
       <TopBar
         right={
           <>
+            <Link href="/demo?chat=1" className={navLink} aria-label="Ask Pulse about the demo tracker">
+              <span className="flex items-center gap-1.5">
+                <PulseDot />
+                Ask Pulse
+              </span>
+            </Link>
             <Link href="/jobs" className={navLink}>
               Jobs
             </Link>

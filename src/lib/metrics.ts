@@ -58,6 +58,8 @@ export function followUp(app: Application, today: ISODate, ghostDays: number): F
 export const reachedInterview = (a: Application) =>
   a.interviews_done > 0 || INTERVIEW_STAGE.includes(a.status) || OFFER_STAGE.includes(a.status);
 export const reachedOA = (a: Application) => a.oa_received || OA_STAGE.includes(a.status) || reachedInterview(a);
+/** An application that actually received an assessment — the tracker's "OA". Unlike reachedOA, this does not fold interview-stage applications in, so the OA count on the dashboard matches the tracker's OA Received column. */
+export const hasOA = (a: Application) => a.oa_received || OA_STAGE.includes(a.status);
 export const hasAction = (a: Application) => a.action_needed.trim().length > 0;
 
 // ---------- summaries ----------
@@ -85,7 +87,12 @@ export function summarize(apps: Application[], today: ISODate, ghostDays: number
     tech: apps.filter((a) => isTechRole(a.role)).length,
     responseRate: apps.length ? responded / apps.length : 0,
     oas: apps.filter(reachedOA).length,
-    interviews: apps.reduce((s, a) => s + a.interviews_done, 0),
+    // Interviews counts applications at interview stage, not the sum of
+    // interviews_done: the tracker leaves interviews_done at 0 on almost
+    // every row (3 interview-stage applications summed to 0), so the old
+    // sum read 0 while the funnel said 3. The count now matches the
+    // funnel's Interview step exactly.
+    interviews: apps.filter(reachedInterview).length,
     offers: apps.filter((a) => OFFER_STAGE.includes(a.status)).length,
     rejected: apps.filter((a) => a.status === "Rejected").length,
     ghosted: apps.filter((a) => followUp(a, today, ghostDays) === "ghosted").length,
@@ -100,7 +107,7 @@ export interface FunnelStep { label: string; value: number }
 export function funnel(apps: Application[]): FunnelStep[] {
   return [
     { label: "Applied", value: apps.length },
-    { label: "Assessment", value: apps.filter(reachedOA).length },
+    { label: "OA", value: apps.filter(reachedOA).length },
     { label: "Interview", value: apps.filter(reachedInterview).length },
     { label: "Offer", value: apps.filter((a) => OFFER_STAGE.includes(a.status)).length },
   ];

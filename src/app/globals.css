@@ -96,6 +96,17 @@ h1, h2, h3 {
   outline-offset: 2px;
   border-radius: 6px;
 }
+/* Touch screens have no hover, so the sheet's "Click to edit" hint (which
+appears on hover) would never show. On coarse pointers, show the hint
+in empty editable cells instead of the faint dash. */
+@media (hover: none) {
+  .touch-edit-hint {
+    display: inline;
+  }
+  .touch-edit-dash {
+    display: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -532,3 +543,4 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pf-site-float-a, .pf-site-float-b, .pf-site-float-c { animation: none; }
 }
+

@@ -25,8 +25,21 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: "Pulse Find",
     type: "website",
+    images: [
+      {
+        url: `${siteUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Pulse Find dashboard: waiting-on-you tasks, application funnel, weekly pace, and networking follow-ups",
+      },
+    ],
   },
-  twitter: { card: "summary_large_image", title: "Pulse Find", description: "Know exactly what's waiting on you in your job search." },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pulse Find",
+    description: "Know exactly what's waiting on you in your job search.",
+    images: [`${siteUrl}/og-image.png`],
+  },
 };
 
 export const viewport: Viewport = {

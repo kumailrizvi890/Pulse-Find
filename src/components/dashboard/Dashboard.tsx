@@ -16,6 +16,7 @@ import { ApplicationDrawer } from "./ApplicationDrawer";
 import { TaskChatPanel } from "./TaskChatPanel";
 import { ImportDialog } from "./ImportDialog";
 import { Panel, StatusPill, Tag, btn, cx, field, fmtDate, useToast } from "./ui";
+import { WaitingSignal } from "@/components/PulseBrand";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
@@ -208,6 +209,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
           <p className="max-w-prose text-sm text-muted">
             Add the applications you&apos;ve already sent, or import the spreadsheet you&apos;ve been keeping. Pulse Find keeps track of who went quiet and what&apos;s waiting on you.
           </p>
+          <WaitingSignal className="mt-2" />
           <div className="mt-4 flex flex-wrap gap-2">
             <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>Add your first application</button>
             <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import a sheet</button>
@@ -253,7 +255,10 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
             {loading ? (
               <Skeleton lines={6} />
             ) : rows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted">No applications match this filter.</p>
+              <div className="py-6 text-center">
+                <p className="text-sm text-muted">No applications match this filter.</p>
+                <WaitingSignal className="mt-2 justify-center" />
+              </div>
             ) : (
               <AppList rows={rows} today={today} ghostDays={settings.ghost_days} onOpen={openTask} />
             )}

@@ -7,12 +7,17 @@ import { accountPipelineStore, demoPipelineStore } from "@/lib/pipeline";
 import { todayISO } from "@/lib/metrics";
 import type { Application, Contact, TrackerEvent } from "@/lib/types";
 import {
+  answerGeneralQuestion,
   answerTaskQuestion,
+  buildGeneralAgentHandoff,
   buildTaskAgentHandoff,
   DEFAULT_APP_ORIGIN,
+  GENERAL_CHAT_SUGGESTIONS,
+  generalChatGreeting,
   TASK_CHAT_SUGGESTIONS,
   taskChatGreeting,
   type ChatMessage,
+  type GeneralChatContext,
   type TaskChatContext,
 } from "@/lib/task-chat";
 import { btn, cx, fmtDate } from "./ui";
@@ -21,7 +26,11 @@ import { PulseDot } from "@/components/PulseBrand";
 /**
  * The task chatbot. It opens next to the task drawer when a "Waiting on
  * you" item is opened, already knowing the task: company, role, what is
- * due, the link, the history, and the people at that company.
+ * due, the link, the history, and the people at that company. It also
+ * opens in general mode from the navbar and the dashboard "Ask Pulse"
+ * button, with no task attached: then it answers from the whole tracker
+ * (what is waiting, what is due next, who went quiet, how the week is
+ * going) and docks at the right edge, since there is no drawer beside it.
  *
  * Answers come only from the tracker data (see lib/task-chat.ts). There is
  * no LLM call here. Anything the chat cannot answer is handed to the
@@ -80,13 +89,17 @@ export function PulseCrystal({ className }: { className?: string }) {
 }
 
 type Props = {
-  application: Application;
+  /** Task mode: the application this chat is about. */
+  application?: Application;
+  /** General mode: the whole tracker. One of application / general is set. */
+  general?: { apps: Application[]; ghostDays: number; weeklyGoal: number };
   events: TrackerEvent[];
   userId?: string;
   onClose: () => void;
 };
 
-export function TaskChatPanel({ application, events, userId, onClose }: Props) {
+export function TaskChatPanel({ application, general, events, userId, onClose }: Props) {
+  const isGeneral = general !== undefined;
   const today = todayISO();
   const origin = typeof window !== "undefined" ? window.location.origin : DEFAULT_APP_ORIGIN;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -113,7 +126,13 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
       .loadContacts()
       .then((rows) => {
         if (!alive) return;
-        setContacts(rows.filter((c) => c.company.trim().toLowerCase() === application.company.trim().toLowerCase()));
+        // Task mode answers about one company; general mode answers about
+        // the whole tracker, so it keeps every contact.
+        setContacts(
+          application
+            ? rows.filter((c) => c.company.trim().toLowerCase() === application.company.trim().toLowerCase())
+            : rows,
+        );
         setContactsState("ready");
       })
       .catch(() => {
@@ -123,20 +142,38 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
     return () => {
       alive = false;
     };
-  }, [pipeline, application.company]);
+  }, [pipeline, application]);
 
-  const ctx: TaskChatContext = useMemo(
-    () => ({
+  const taskCtx: TaskChatContext | null = useMemo(() => {
+    if (!application) return null;
+    return {
       app: application,
       events: events.filter((e) => e.application_id === application.id),
       contacts,
       today,
       origin,
-    }),
-    [application, events, contacts, today, origin],
-  );
+    };
+  }, [application, events, contacts, today, origin]);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [taskChatGreeting(ctx)]);
+  const generalCtx: GeneralChatContext | null = useMemo(() => {
+    if (!general) return null;
+    return {
+      apps: general.apps,
+      events,
+      contacts,
+      today,
+      origin,
+      ghostDays: general.ghostDays,
+      weeklyGoal: general.weeklyGoal,
+      trackerPath: userId ? "/app" : "/demo",
+    };
+  }, [general, events, contacts, today, origin, userId]);
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    // One of the two contexts is always set: general mode passes general,
+    // task mode passes application. The greeting is built once at mount.
+    isGeneral ? generalChatGreeting(generalCtx as GeneralChatContext) : taskChatGreeting(taskCtx as TaskChatContext),
+  ]);
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 60);
@@ -161,15 +198,20 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
     setInput("");
     setThinking(true);
     timerRef.current = window.setTimeout(() => {
-      setMessages((p) => [...p, { ...answerTaskQuestion(question, ctx), id: nextId("a") }]);
+      const reply = isGeneral
+        ? answerGeneralQuestion(question, generalCtx as GeneralChatContext)
+        : answerTaskQuestion(question, taskCtx as TaskChatContext);
+      setMessages((p) => [...p, { ...reply, id: nextId("a") }]);
       setThinking(false);
     }, 350);
   }
 
-  const handoff = useMemo(
-    () => (handoffOpen ? buildTaskAgentHandoff({ ctx, messages }) : ""),
-    [handoffOpen, ctx, messages],
-  );
+  const handoff = useMemo(() => {
+    if (!handoffOpen) return "";
+    return isGeneral
+      ? buildGeneralAgentHandoff({ ctx: generalCtx as GeneralChatContext, messages })
+      : buildTaskAgentHandoff({ ctx: taskCtx as TaskChatContext, messages });
+  }, [handoffOpen, generalCtx, taskCtx, messages, isGeneral]);
 
   async function copyHandoff() {
     setCopyFailed(false);
@@ -197,19 +239,27 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
         free strip left of both panels (right-[876px] = the panel's
         right-[476px] offset plus its 400px width), so it can never swallow
         a click meant for the drawer. On phones the sheet is modal over the
-        drawer, so the backdrop covers the whole screen above it.
+        drawer, so the backdrop covers the whole screen above it. In
+        general mode there is no drawer: the panel docks at the right edge
+        (right-4, 400px wide), so its left edge is 432px from the
+        viewport's right edge and the backdrop ends there instead.
       */}
       <button
         type="button"
         aria-label="Close chat"
-        className="fixed inset-0 z-40 lg:right-[876px]"
+        className={cx("fixed inset-0 z-40", isGeneral ? "lg:right-[432px]" : "lg:right-[876px]")}
         onClick={onClose}
       />
       <div
-        className="pf-chat-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface/95 shadow-panel backdrop-blur-md lg:inset-x-auto lg:bottom-4 lg:right-[476px] lg:w-[400px] lg:rounded-2xl lg:border lg:max-h-[calc(100dvh-32px)]"
+        className={cx(
+          "pf-chat-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface/95 shadow-panel backdrop-blur-md lg:inset-x-auto lg:bottom-4 lg:w-[400px] lg:rounded-2xl lg:border lg:max-h-[calc(100dvh-32px)]",
+          // Task mode docks left of the 476px drawer; general mode has no
+          // drawer, so it docks at the right edge instead.
+          isGeneral ? "lg:right-4" : "lg:right-[476px]",
+        )}
         role="dialog"
         aria-modal="true"
-        aria-label={`Chat about ${application.company}`}
+        aria-label={isGeneral ? "Chat about your tracker" : `Chat about ${application?.company}`}
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <style>{PANEL_CSS}</style>
@@ -221,8 +271,7 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-base font-bold tracking-tight">Ask Pulse</h2>
             <p className="truncate text-xs text-muted">
-              {application.company}
-              {application.role ? ` · ${application.role}` : ""}
+              {isGeneral ? "Your whole tracker" : `${application?.company ?? ""}${application?.role ? ` · ${application.role}` : ""}`}
             </p>
           </div>
           <button type="button" onClick={onClose} className={btn.ghost} aria-label="Close chat">
@@ -285,7 +334,7 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
             <div className="pt-1">
               <p className="mb-2 text-xs text-muted">Not sure where to start? Try one of these:</p>
               <div className="flex flex-wrap gap-1.5">
-                {TASK_CHAT_SUGGESTIONS.map((s) => (
+                {(isGeneral ? GENERAL_CHAT_SUGGESTIONS : TASK_CHAT_SUGGESTIONS).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -319,8 +368,8 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
               className="w-full min-w-0 bg-transparent text-sm text-ink placeholder:text-faint focus:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about this task…"
-              aria-label="Ask about this task"
+              placeholder={isGeneral ? "Ask about your tracker…" : "Ask about this task…"}
+              aria-label={isGeneral ? "Ask about your tracker" : "Ask about this task"}
               maxLength={500}
             />
             <button
@@ -332,7 +381,7 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
               ↑
             </button>
           </form>
-          {application.action_due && (
+          {!isGeneral && application?.action_due && (
             <p className="mt-2 text-center text-[11px] text-muted">
               Due {fmtDate(application.action_due)}
               {application.action_needed ? ` · ${application.action_needed}` : ""}

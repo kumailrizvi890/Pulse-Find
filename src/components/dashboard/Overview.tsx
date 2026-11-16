@@ -21,7 +21,8 @@ import {
 } from "@/lib/metrics";
 import type { Application, Contact } from "@/lib/types";
 import { Funnel, WeeklyPace, type PaceDay } from "./Charts";
-import { Panel, Tag, btn, cx, fmtDate } from "./ui";
+import { NotifyBadge, Panel, Tag, btn, cx, fmtDate } from "./ui";
+import { PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
 const AVATAR_TONES = [
   "bg-accent-soft text-accent",
@@ -158,6 +159,7 @@ export function Overview({
   if (loading) {
     return (
       <div className="space-y-4" aria-label="Loading dashboard">
+        <PulseHeartbeat label="Loading dashboard" />
         <div className="h-6 animate-pulse rounded-xl bg-surface-2" />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="h-72 animate-pulse rounded-2xl bg-surface-2 lg:col-span-3" />
@@ -182,17 +184,21 @@ export function Overview({
         <Panel
           title="Waiting on you"
           hint={`Tasks needing your action — ${queue.length}`}
-          className={cx("lg:col-span-3", queue.length ? "border-danger/30" : undefined)}
+          className={cx("lg:col-span-3", queue.length ? "border-danger/30 pf-glow" : undefined)}
           action={
             queue.length ? (
-              <Tag tone="danger">
-                {queue.length} open{sum.overdue ? ` · ${sum.overdue} overdue` : ""}
-              </Tag>
+              <span className="flex items-center gap-2">
+                <PulseDot />
+                <NotifyBadge count={queue.length} overdue={sum.overdue} />
+              </span>
             ) : undefined
           }
         >
           {queue.length === 0 ? (
-            <p className="text-sm text-good">Nothing is waiting on you right now.</p>
+            <>
+              <p className="text-sm text-good">Nothing is waiting on you right now.</p>
+              <WaitingSignal className="mt-2" />
+            </>
           ) : (
             <ul className="divide-y divide-line">
               {shownWaiting.map((a) => {

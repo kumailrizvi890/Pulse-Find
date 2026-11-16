@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Lead, LeadInput, LeadStatus } from "@/lib/types";
 import { LEAD_STATUSES, TRACKS, emptyLead } from "@/lib/types";
 import { todayISO } from "@/lib/metrics";
+import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
 import { leadKey } from "@/lib/pipeline";
 import type { TrackerStore } from "@/lib/store";
@@ -33,6 +34,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
   const [leads, setLeads] = useState<Lead[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState<LeadStatus | "all">("all");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<{ open: boolean; editing: Lead | null }>({ open: false, editing: null });
@@ -42,8 +44,14 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
 
   useEffect(() => {
     let alive = true;
-    pipeline
-      .loadLeads()
+    // A hung load used to sit on the skeleton forever; after 15s the
+    // timeout rejects and the error panel offers "Try again". Retrying
+    // bumps `attempt`, so a fresh load gets a fresh timer.
+    withLoadTimeout(
+      pipeline.loadLeads(),
+      LOAD_TIMEOUT_MS,
+      "Your leads are taking longer than usual to load. Check your connection and try again.",
+    )
       .then((d) => {
         if (!alive) return;
         setLeads(d);
@@ -57,7 +65,12 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
     return () => {
       alive = false;
     };
-  }, [pipeline]);
+  }, [pipeline, attempt]);
+
+  const retry = () => {
+    setState("loading");
+    setAttempt((n) => n + 1);
+  };
 
   const counts = useMemo(
     () => Object.fromEntries(LEAD_STATUSES.map((s) => [s, leads.filter((l) => l.status === s).length])) as Record<LeadStatus, number>,
@@ -142,6 +155,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
       <main className="gutter mx-auto w-full max-w-[1180px] pb-16 pt-6">
         <Panel title="Your leads didn't load">
           <p className="text-sm text-muted">{loadError}</p>
+          <button className={cx(btn.primary, "mt-4")} onClick={retry}>Try again</button>
         </Panel>
       </main>
     );

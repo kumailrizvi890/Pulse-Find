@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Application, ApplicationInput, Settings } from "@/lib/types";
+import type { Application, ApplicationInput, Settings, Status } from "@/lib/types";
 import { DEFAULT_SETTINGS, STATUSES } from "@/lib/types";
 import { dedupeImport, filterSheet, sheetRows, sortSheet, SHEET_COLUMNS, type SheetKey, type SortDir } from "@/lib/sheet";
 import { hasAction, summarize, todayISO } from "@/lib/metrics";
@@ -40,6 +40,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
   const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [onlyActions, setOnlyActions] = useState(false);
+  const [status, setStatus] = useState<Status | "All">("All");
   const [sort, setSort] = useState<{ key: SheetKey; dir: SortDir }>({ key: "last_contact", dir: "desc" });
   const [editing, setEditing] = useState<Editing>(null);
   const [draft, setDraft] = useState("");
@@ -69,8 +70,8 @@ export function SheetView({ store }: { store: TrackerStore }) {
 
   const sum = useMemo(() => summarize(apps, today, settings.ghost_days), [apps, today, settings.ghost_days]);
   const rows = useMemo(
-    () => sortSheet(filterSheet(sheetRows(apps, today, settings.ghost_days), query, onlyActions), sort.key, sort.dir),
-    [apps, today, settings.ghost_days, query, onlyActions, sort],
+    () => sortSheet(filterSheet(sheetRows(apps, today, settings.ghost_days), query, onlyActions, status), sort.key, sort.dir),
+    [apps, today, settings.ghost_days, query, onlyActions, status, sort],
   );
 
   function toggleSort(key: SheetKey) {
@@ -163,6 +164,17 @@ export function SheetView({ store }: { store: TrackerStore }) {
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.ghosted}</b> ghosted</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.rejected}</b> rejections</span>
         <span className="ml-auto flex items-center gap-2">
+          <select
+            className={cx(field, "w-40")}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as Status | "All")}
+            aria-label="Filter by status"
+          >
+            <option value="All">All statuses</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
           <input
             type="search"
             className={cx(field, "w-52")}

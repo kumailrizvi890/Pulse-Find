@@ -17,13 +17,13 @@ type Opening = { company: string; title: string; location: string; url: string }
 
 /** What the tracker does, in the hero's own words — one line per capability. */
 const HERO_CAPABILITIES = [
-  "Tracks applications, interviews, assessments, offers, and rejections.",
-  "Highlights actions that need attention.",
-  "Detects companies that have gone quiet.",
-  "Tracks weekly application goals and progress.",
-  "Finds live internships from company career pages.",
-  "Connects to Claude, Cursor, and Copilot through MCP.",
-  "Keeps personal application data private.",
+  "Reads your email to track every application and reply, so each stage shows up without you logging it.",
+  "Puts the replies, assessments and forms that need you at the top, with how long you have left.",
+  "Flags the companies that haven't replied in 21 days, so you know when to follow up.",
+  "Sets a weekly application goal and shows how far along you are.",
+  "Finds live internships straight from company career pages.",
+  "Connects to Claude, Cursor and Copilot through MCP, so your agent can read and update your tracker for you.",
+  "Keeps your real application data private, visible only to you.",
 ];
 
 /** Live count and a few of the newest tech internships, cached with the page (hourly). */
@@ -65,10 +65,6 @@ export default async function Home() {
             <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-[56px]">
               Know what&apos;s waiting <span className="text-accent">on you.</span>
             </h1>
-            <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-muted">
-              Pulse Find tracks every application, puts the assessments, replies and forms that need you at the top, and flags the companies that
-              went quiet so you know when to follow up.
-            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/demo" className={primary}>Try the live demo</Link>
               <Link href="/login?mode=signup" className={secondary}>Create a free tracker</Link>
@@ -196,7 +192,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-t border-line bg-surface">
+        <section id="mcp" className="border-t border-line bg-surface">
           <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">MCP server</p>
@@ -207,7 +203,7 @@ export default async function Home() {
                 offers. Pulse Find never sees your inbox and never sends anything.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/app/connect" className={primary}>Connect your agent</Link>
+                <Link href="#mcp" className={primary}>Connect your agent</Link>
                 <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it</Link>
               </div>
             </div>

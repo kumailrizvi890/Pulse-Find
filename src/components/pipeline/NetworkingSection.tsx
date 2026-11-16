@@ -164,7 +164,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                         {c.next_step_on && bucket === "later" && <span className="text-faint"> · {fmtDate(c.next_step_on)}</span>}
                       </p>
                     )}
-                    {c.notes && <p className="mt-0.5 truncate text-xs text-faint">{c.notes}</p>}
+                    {c.notes && <ContactNote note={c.notes} />}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(c.next_step || c.next_step_on) && <button className={btn.secondary} onClick={() => markDone(c)}>Step done</button>}
@@ -196,6 +196,32 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
       )}
       {toastNode}
     </main>
+  );
+}
+
+const NOTE_PREVIEW_LIMIT = 80;
+
+// A contact note can run to 2000 characters, but the row only shows one
+// line. Short notes render in full with no toggle. A long note renders
+// truncated with a Show more toggle that expands it in place, so the
+// whole note is readable without opening the edit form.
+export function ContactNote({ note }: { note: string }) {
+  const [expanded, setExpanded] = useState(false);
+  if (note.length <= NOTE_PREVIEW_LIMIT) {
+    return <p className="mt-0.5 text-xs text-faint">{note}</p>;
+  }
+  return (
+    <div className="min-w-0">
+      <p className={cx("mt-0.5 text-xs text-faint", expanded ? "break-words" : "truncate")}>{note}</p>
+      <button
+        type="button"
+        className="mt-0.5 text-xs font-medium text-accent hover:underline"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {expanded ? "Show less" : "Show more"}
+      </button>
+    </div>
   );
 }
 

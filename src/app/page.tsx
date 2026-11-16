@@ -123,7 +123,7 @@ export default async function Home() {
           )}
         </section>
 
-        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
+        <section className="gutter mx-auto grid w-full max-w-[1180px] border-t border-line py-16">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">One account, the whole search</p>
           <h2 className="mt-2 max-w-[22ch] font-display text-3xl font-extrabold tracking-tight">Everything in one place, private to you</h2>
           <p className="mt-3 max-w-[62ch] text-muted">
@@ -192,8 +192,8 @@ export default async function Home() {
               </div>
             </div>
             <pre className="min-w-0 overflow-x-auto rounded-2xl border border-line bg-bg p-4 font-mono text-[12.5px] leading-relaxed text-muted">
-              <span className="text-faint">$ </span>claude mcp add --transport http pulse-find \{"\n"}
-              {"    "}https://pulsefind-app.vercel.app/api/mcp \{"\n"}
+              <span className="text-faint">$ </span>claude mcp add --transport http pulse-find {"\n"}
+              {"    "}https://pulsefind-app.vercel.app/api/mcp {"\n"}
               {"    "}--header &quot;Authorization: Bearer pf_…&quot;{"\n\n"}
               <span className="text-ink">&gt; Scan my email from the last week and update Pulse Find.</span>{"\n\n"}
               <span className="text-good">✓</span> Roblox · OA received · due Nov 11{"\n"}
@@ -205,18 +205,21 @@ export default async function Home() {
       </main>
       <footer className="border-t border-line">
         <div className="gutter mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3 py-8 text-sm text-faint">
-          <p>
+          <p className="flex items-center gap-2">
+            <PulseMark className="h-4 w-4" />
+            <span className="font-display font-semibold text-muted">Pulse Find</span>
+            <span aria-hidden="true">·</span>
             Built by{" "}
-            <Link href="https://portfolio-kumailr.vercel.app" className="font-medium text-muted hover:text-ink" target="_blank" rel="noopener">
+            <Link href="https://portfolio-kumailr.vercel.app" className="font-medium text-muted hover:text-accent" target="_blank" rel="noopener">
               Kumail Rizvi
             </Link>
           </p>
           <nav className="flex gap-4">
-            <Link href="/jobs" className="hover:text-ink">Jobs</Link>
-            <Link href="/app/connect" className="hover:text-ink">Agents</Link>
-            <Link href="/demo" className="hover:text-ink">Demo</Link>
-            <Link href="https://github.com/kumailrizvi890/Pulse-Find" className="hover:text-ink" target="_blank" rel="noopener">GitHub</Link>
-            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <Link href="/jobs" className="hover:text-accent">Jobs</Link>
+            <Link href="/app/connect" className="hover:text-accent">Agents</Link>
+            <Link href="/demo" className="hover:text-accent">Demo</Link>
+            <Link href="https://github.com/kumailrizvi890/Pulse-Find" className="hover:text-accent" target="_blank" rel="noopener">GitHub</Link>
+            <Link href="/privacy" className="hover:text-accent">Privacy</Link>
           </nav>
         </div>
       </footer>

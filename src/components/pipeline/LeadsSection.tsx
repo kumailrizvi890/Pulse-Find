@@ -8,6 +8,7 @@ import type { PipelineStore } from "@/lib/pipeline";
 import { leadKey } from "@/lib/pipeline";
 import type { TrackerStore } from "@/lib/store";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
+import { WaitingSignal } from "@/components/PulseBrand";
 
 const STATUS_TONE: Record<LeadStatus, string> = {
   New: "bg-accent-soft text-accent border-accent/25",
@@ -195,11 +196,14 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">
-            {leads.length === 0
-              ? "No leads yet. Swipe some roles on Find jobs and save them here, or add one by hand."
-              : "No leads match this filter."}
-          </p>
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted">
+              {leads.length === 0
+                ? "No leads yet. Swipe some roles on Find jobs and save them here, or add one by hand."
+                : "No leads match this filter."}
+            </p>
+            <WaitingSignal className="mt-2 justify-center" />
+          </div>
         ) : (
           <ul className="divide-y divide-line">
             {rows.map((l) => (

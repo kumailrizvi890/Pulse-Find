@@ -172,8 +172,11 @@ function answerContacts(ctx: TaskChatContext): ChatMessage {
   }
   const lines = [`People you know at ${app.company}:`];
   for (const c of contacts.slice(0, 5)) {
+    // A dated contact owes a follow-up even when no step is written;
+    // an undated one gets no step text at all.
+    const step = c.next_step.trim() || (c.next_step_on ? "Follow up" : "");
     lines.push(
-      `- ${c.person_name}${c.next_step ? `: ${c.next_step}` : ""}${c.next_step_on ? ` (${fmtDay(c.next_step_on)})` : ""}`,
+      `- ${c.person_name}${step ? `: ${step}` : ""}${c.next_step_on ? ` (${fmtDay(c.next_step_on)})` : ""}`,
     );
   }
   return {
@@ -425,7 +428,8 @@ function answerGeneralStatus(ctx: GeneralChatContext): ChatMessage {
 
 function answerGeneralContacts(ctx: GeneralChatContext): ChatMessage {
   // Same due rule as the dashboard and Networking section: a contact is
-  // due only when it has both a step and a date on or before today.
+  // due when it has a date on or before today, whether or not a step is
+  // written down for it yet.
   const due = ctx.contacts
     .filter((c) => {
       const bucket = dueBucket(c, ctx.today);
@@ -443,7 +447,7 @@ function answerGeneralContacts(ctx: GeneralChatContext): ChatMessage {
   const lines = [`${due.length} follow-up${due.length === 1 ? "" : "s"} due:`];
   for (const c of due.slice(0, 5)) {
     lines.push(
-      `- ${c.person_name}${c.company ? ` (${c.company})` : ""}: ${c.next_step || "Follow up"} (${fmtDay(c.next_step_on)}).`,
+      `- ${c.person_name}${c.company ? ` (${c.company})` : ""}: ${c.next_step.trim() || "Follow up"} (${fmtDay(c.next_step_on)}).`,
     );
   }
   return { id: "contacts", role: "assistant", text: lines.join("\n"), links: [generalNetworkingLink(ctx)] };
@@ -534,8 +538,9 @@ export function buildTaskAgentHandoff(args: {
   if (contacts.length > 0) {
     lines.push(`People at ${app.company}:`);
     for (const c of contacts.slice(0, 5)) {
+      const step = c.next_step.trim() || (c.next_step_on ? "Follow up" : "");
       lines.push(
-        `- ${c.person_name}${c.next_step ? `: ${c.next_step}` : ""}${c.next_step_on ? ` (${fmtDay(c.next_step_on)})` : ""}`,
+        `- ${c.person_name}${step ? `: ${step}` : ""}${c.next_step_on ? ` (${fmtDay(c.next_step_on)})` : ""}`,
       );
     }
   }

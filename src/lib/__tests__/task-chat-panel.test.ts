@@ -15,9 +15,12 @@ const src = readFileSync(
 );
 
 function rootClasses(): string {
-  const m = src.match(/className="(pf-chat-in fixed[^"]*)"/);
-  if (!m) throw new Error("no chat panel root div found in TaskChatPanel.tsx");
-  return m[1];
+  // The shared dock classes are one literal inside cx(...); the right
+  // offset is a conditional segment (lg:right-4 in general mode,
+  // lg:right-[476px] beside the drawer in task mode).
+  const m = src.match(/"pf-chat-in fixed[^"]*"/);
+  if (!m) throw new Error("no chat panel root classes found in TaskChatPanel.tsx");
+  return m[0];
 }
 
 function messageListClasses(): string {
@@ -27,7 +30,9 @@ function messageListClasses(): string {
 }
 
 function backdropClasses(): string {
-  const m = src.match(/aria-label="Close chat"\s+className="([^"]*)"/);
+  // The backdrop is cx("fixed inset-0 z-40", isGeneral ? ... : ...):
+  // the base literal plus the conditional offset segment.
+  const m = src.match(/aria-label="Close chat"[\s\S]{0,200}?className=\{cx\(([^)]*)\)\}/);
   if (!m) throw new Error("no chat backdrop button found in TaskChatPanel.tsx");
   return m[1];
 }
@@ -71,7 +76,7 @@ describe("task chat panel sizing", () => {
     expect(src).toContain("taskChatGreeting");
     expect(src).toContain("TASK_CHAT_SUGGESTIONS");
     expect(src).toContain("Thinking it over");
-    expect(src).toContain("application.action_due");
+    expect(src).toContain("application?.action_due");
     expect(src).toContain("Ask about this task");
   });
 
@@ -91,20 +96,35 @@ describe("task chat outside-click to close", () => {
   it("covers the screen on phones but stops at the panel on desktop, so it never swallows drawer clicks", () => {
     const backdrop = backdropClasses();
     expect(backdrop).toContain("fixed inset-0");
-    // The panel sits at right-[476px] and is 400px wide, so its left edge
-    // is 876px from the viewport's right edge. The backdrop ends exactly
-    // there on desktop: the free strip left of both panels is clickable,
-    // the drawer on the right is not covered.
-    expect(backdrop).toContain("lg:right-[876px]");
+    // Task mode: the panel sits at right-[476px] and is 400px wide, so
+    // its left edge is 876px from the viewport's right edge. General
+    // mode has no drawer: the panel docks at right-4, so its left edge
+    // is 432px from the right. The backdrop ends exactly there on
+    // desktop in each mode: the free strip left of the panel is
+    // clickable, the panel (and the drawer, in task mode) is not covered.
+    expect(backdrop).toContain('isGeneral ? "lg:right-[432px]" : "lg:right-[876px]"');
   });
 
   it("sits below the panel in stacking order", () => {
-    const backdrop = backdropClasses();
-    expect(backdrop).toContain("z-40");
+    expect(backdropClasses()).toContain("z-40");
     expect(rootClasses()).toContain("z-50");
   });
 
   it("stays transparent so it does not double-dim over the drawer's backdrop", () => {
     expect(backdropClasses()).not.toContain("bg-black");
+  });
+});
+
+describe("task chat general mode docking", () => {
+  it("docks beside the drawer in task mode and at the right edge in general mode", () => {
+    expect(src).toContain('isGeneral ? "lg:right-4" : "lg:right-[476px]"');
+  });
+
+  it("still bottom-anchors and caps its height in both modes", () => {
+    const root = rootClasses();
+    expect(root).toContain("bottom-0");
+    expect(root).toContain("lg:bottom-4");
+    expect(root).toContain("max-h-[92dvh]");
+    expect(root).toContain("lg:max-h-[calc(100dvh-32px)]");
   });
 });

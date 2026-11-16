@@ -191,7 +191,9 @@ describe("answerGeneralQuestion", () => {
     expect(a.links?.[0].href).toContain("/demo/networking");
   });
 
-  it("does not list a contact with a date today but no step as due", () => {
+  it("lists a contact with a date today but no step as due, with the Follow up fallback", () => {
+    // Gap fix: a date alone is enough to be due, so this contact is now
+    // listed; the line reads "Follow up" instead of an empty step.
     const blank: Contact = {
       id: "c-blank",
       person_name: "No Step Nora",
@@ -202,9 +204,10 @@ describe("answerGeneralQuestion", () => {
       notes: "",
     };
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [blank] }));
-    expect(a.text).toContain("no follow-ups due right now");
-    expect(a.text).not.toContain("No Step Nora");
-    expect(dueBucket(blank, TODAY)).toBe("none");
+    expect(a.text).toContain("1 follow-up due");
+    expect(a.text).toContain("No Step Nora");
+    expect(a.text).toContain("Follow up");
+    expect(dueBucket(blank, TODAY)).toBe("today");
   });
 
   it("lists a contact with a date today and a step as due", () => {
@@ -240,18 +243,20 @@ describe("answerGeneralQuestion", () => {
   });
 
   it("never renders an empty step in a due line", () => {
-    // A blank step is excluded by the shared due rule before rendering,
-    // so the "Follow up" fallback is defensive — but no due line may ever
-    // show an empty step, whatever the contact data holds.
+    // Blank-step due contacts are now listed (date alone is due), and
+    // every due line carries the "Follow up" fallback instead of an
+    // empty step, whatever the contact data holds.
     const contacts: Contact[] = [
       { id: "c-blank", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "" },
       { id: "c-space", person_name: "Spacey Sue", company: "Globex", status: "Connected", next_step: "   ", next_step_on: "2026-11-14", notes: "" },
       { id: "c-due", person_name: "Due Dan", company: "Globex", status: "Connected", next_step: "Send the intro", next_step_on: TODAY, notes: "" },
     ];
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts }));
-    expect(a.text).toContain("1 follow-up due");
-    expect(a.text).not.toContain("Blank Ben");
-    expect(a.text).not.toContain("Spacey Sue");
+    expect(a.text).toContain("3 follow-ups due");
+    expect(a.text).toContain("Blank Ben");
+    expect(a.text).toContain("Spacey Sue");
+    expect(a.text).toContain("Blank Ben (Globex): Follow up (Nov 15).");
+    expect(a.text).toContain("Spacey Sue (Globex): Follow up (Nov 14).");
     expect(a.text).not.toContain(":  (");
     expect(a.text).not.toContain(": (");
   });
@@ -268,12 +273,14 @@ describe("answerGeneralQuestion", () => {
       const b = dueBucket(c, TODAY);
       return b === "overdue" || b === "today";
     }).length;
-    expect(expected).toBe(2);
+    // Blank Ben counts now: his date is today even though no step is written.
+    expect(expected).toBe(3);
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts }));
-    expect(a.text).toContain("2 follow-ups due");
+    expect(a.text).toContain("3 follow-ups due");
     expect(a.text).toContain("Overdue Olive");
     expect(a.text).toContain("Today Tom");
-    expect(a.text).not.toContain("Blank Ben");
+    expect(a.text).toContain("Blank Ben");
+    expect(a.text).toContain("Blank Ben (Globex): Follow up (Nov 15).");
     expect(a.text).not.toContain("Future Fay");
     expect(a.text).not.toContain("No Date Ned");
   });

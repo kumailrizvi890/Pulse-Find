@@ -15,6 +15,7 @@ import {
   daysBetween,
   followUp,
   hasOA,
+  monthly,
   parseISO,
   reachedInterview,
   todayISO,
@@ -27,6 +28,8 @@ import type { Application, Contact } from "@/lib/types";
 import { Funnel, WeeklyBars, WeeklyPace, type PaceDay } from "./Charts";
 import { Panel, StatusPill, Tag, btn, cx, fmtDate } from "./ui";
 import { NotifyBell, PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
+
+type PaceRange = "7d" | "30d" | "12m";
 
 const AVATAR_TONES = [
   "bg-accent-soft text-accent",
@@ -72,7 +75,7 @@ function OverviewStat({
 
 /**
  * The dashboard overview from the mock: a red pulse line, then Waiting on you,
- * the Application Funnel with Weekly Pace, and Networking Follow-ups in three
+ * the Application Funnel with Pace, and Networking Follow-ups in three
  * columns, with the stats row underneath. Every number comes from the tracker
  * data passed in, so the demo keeps its sample numbers.
  */
@@ -104,9 +107,25 @@ export function Overview({
   const today = todayISO();
   const monday = weekStart(today);
 
+  // The pace window is trailing, not the calendar week: on a Monday the
+  // old Mon–Sun window was all zeros and read as broken. The segmented
+  // control below switches between the last 7 days, the last 30 days, and
+  // the last 12 months.
+  const [range, setRange] = useState<PaceRange>("7d");
+  const rangeDays = range === "7d" ? 7 : range === "30d" ? 30 : 0;
+
+  // Days from this week's Monday to today (0 on a Monday). The trailing
+  // window starts at today minus (rangeDays - 1), which is `monday` plus
+  // this offset minus (rangeDays - 1) — so the memo below only depends on
+  // `monday` and two numbers, never on a second date string. (React
+  // Compiler refuses to preserve a memo whose window start is a second
+  // today-derived date value alongside `monday`.)
+  const daysSinceMonday = (parseISO(today).getDay() + 6) % 7;
   const pace = useMemo(() => {
-    const days: PaceDay[] = Array.from({ length: 7 }, (_, i) => {
-      const iso = addDays(monday, i);
+    if (rangeDays === 0) return null;
+    const start = addDays(monday, daysSinceMonday - (rangeDays - 1));
+    const days: PaceDay[] = Array.from({ length: rangeDays }, (_, i) => {
+      const iso = addDays(start, i);
       const date = parseISO(iso);
       return {
         label: date.toLocaleDateString(undefined, { weekday: "short" }),
@@ -115,16 +134,53 @@ export function Overview({
       };
     });
     const total = days.reduce((s, d) => s + d.value, 0);
-    const prevStart = addDays(monday, -7);
-    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
+    const prevStart = addDays(start, -rangeDays);
+    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < start).length;
     const change = prevTotal === 0 ? null : Math.round(((total - prevTotal) / prevTotal) * 100);
     return { days, total, prevTotal, change };
-  }, [apps, monday]);
+  }, [apps, monday, daysSinceMonday, rangeDays]);
 
   // The last 12 weeks for the chart under the pace, drawn by WeeklyBars
-  // with the weekly goal as its dashed rule. WeeklyBars and weekly() have
-  // existed unused until now.
+  // with the weekly goal as its dashed rule.
   const weeks = useMemo(() => weekly(apps, today), [apps, today]);
+
+  // The last 12 months for the yearly view, drawn by the same WeeklyBars
+  // chart with a monthly goal line.
+  const months = useMemo(() => monthly(apps, today), [apps, today]);
+  const monthTotal = useMemo(() => months.reduce((s, m) => s + m.tech + m.other, 0), [months]);
+
+  // The goal is a weekly target. The 7-day view compares one week of
+  // applications against it; the 30-day view and the 12-month chart
+  // compare against four weeks of it, labelled honestly as the monthly
+  // target.
+  const rangeGoal = range === "7d" ? weeklyGoal : weeklyGoal * 4;
+
+  // The goal line under the daily chart (7d and 30d only — the 12-month
+  // view shows its goal as the chart's dashed line instead).
+  const goalRow = pace ? (
+    <div className="mt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
+        <span className="font-medium">
+          {pace.total} / {rangeGoal} {range === "7d" ? "in the last 7 days" : "in the last 30 days"}
+        </span>
+        <span className="text-muted">
+          {pace.total >= rangeGoal ? "Goal reached" : `${rangeGoal - pace.total} to go`}
+        </span>
+      </div>
+      <div
+        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-track"
+        role="progressbar"
+        aria-valuenow={pace.total}
+        aria-valuemax={rangeGoal}
+        aria-label={`${range === "7d" ? "Weekly" : "Monthly"} goal: ${pace.total} of ${rangeGoal} applications`}
+      >
+        <div
+          className="h-full rounded-full bg-accent"
+          style={{ width: `${Math.min(100, Math.round((pace.total / Math.max(rangeGoal, 1)) * 100))}%` }}
+        />
+      </div>
+    </div>
+  ) : null;
 
   // OAs in the tracker's sense — oa_received or an OA status — not the
   // funnel's cumulative "reached an assessment" count, which also folds
@@ -273,54 +329,79 @@ export function Overview({
         >
           <Funnel steps={funnelSteps} />
           <div className="mt-5 border-t border-line pt-4">
-            <h3 className="text-sm font-semibold">Weekly Pace</h3>
-            <p className="mt-0.5 text-xs text-muted">Applications per day</p>
-            {/*
-              A zero week used to render as seven flat bars and "Total this
-              week: 0" with no other explanation, which read as a broken
-              section. Say so plainly instead, with last week's total for
-              context — and always show the goal, which used to live only
-              in Settings and never appeared on the dashboard at all.
-            */}
-            {pace.total === 0 ? (
-              <p className="mt-3 text-sm text-muted">
-                No applications yet this week
-                {pace.prevTotal > 0 ? ` — ${pace.prevTotal} last week.` : " — none last week either."}
-              </p>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold">Pace</h3>
+              <div className="flex gap-1.5" role="group" aria-label="Pace range">
+                {(["7d", "30d", "12m"] as PaceRange[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRange(r)}
+                    aria-pressed={range === r}
+                    className={cx(
+                      "whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition",
+                      range === r ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink",
+                    )}
+                  >
+                    {r === "7d" ? "Last 7 days" : r === "30d" ? "Last 30 days" : "Last 12 months"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-0.5 text-xs text-muted">
+              {range === "7d"
+                ? "Applications per day, last 7 days"
+                : range === "30d"
+                  ? "Applications per day, last 30 days"
+                  : "Applications per month, last 12 months"}
+            </p>
+            {range === "12m" ? (
+              <>
+                {monthTotal === 0 ? (
+                  <p className="mt-3 text-sm text-muted">No applications in the last 12 months.</p>
+                ) : (
+                  <div className="mt-3">
+                    <WeeklyBars weeks={months} goal={Math.max(rangeGoal, 1)} unit="month" />
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-muted">
+                  {monthTotal} total · {(monthTotal / 12).toFixed(1)} avg / month · monthly goal {rangeGoal}
+                </p>
+              </>
+            ) : pace === null ? null : pace.total === 0 ? (
+              <>
+                <p className="mt-3 text-sm text-muted">
+                  {range === "7d" ? "No applications in the last 7 days" : "No applications in the last 30 days"}
+                  {pace.prevTotal > 0
+                    ? ` — ${pace.prevTotal} in the ${range === "7d" ? "7" : "30"} days before that.`
+                    : ` — none in the ${range === "7d" ? "7" : "30"} days before that either.`}
+                </p>
+                {goalRow}
+              </>
             ) : (
-              <div className="mt-3">
-                <WeeklyPace days={pace.days} total={pace.total} change={pace.change} />
+              <>
+                <div className="mt-3">
+                  <WeeklyPace
+                    days={pace.days}
+                    total={pace.total}
+                    change={pace.change}
+                    totalLabel={range === "7d" ? "Total in the last 7 days" : "Total in the last 30 days"}
+                    prevLabel={range === "7d" ? "prior 7 days" : "prior 30 days"}
+                    compact={range === "30d"}
+                    ariaLabel={range === "7d" ? "Applications per day, last 7 days" : "Applications per day, last 30 days"}
+                  />
+                </div>
+                {goalRow}
+              </>
+            )}
+            {range !== "12m" && (
+              <div className="mt-5 border-t border-line pt-4">
+                <h3 className="text-sm font-semibold">Last 12 weeks</h3>
+                <p className="mt-0.5 text-xs text-muted">Applications per week — the dashed line is your weekly goal</p>
+                <div className="mt-3">
+                  <WeeklyBars weeks={weeks} goal={Math.max(weeklyGoal, 1)} />
+                </div>
               </div>
             )}
-            <div className="mt-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
-                <span className="font-medium">
-                  {pace.total} / {weeklyGoal} this week
-                </span>
-                <span className="text-muted">
-                  {pace.total >= weeklyGoal ? "Goal reached" : `${weeklyGoal - pace.total} to go`}
-                </span>
-              </div>
-              <div
-                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-track"
-                role="progressbar"
-                aria-valuenow={pace.total}
-                aria-valuemax={weeklyGoal}
-                aria-label={`Weekly goal: ${pace.total} of ${weeklyGoal} applications`}
-              >
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.min(100, Math.round((pace.total / Math.max(weeklyGoal, 1)) * 100))}%` }}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="mt-5 border-t border-line pt-4">
-            <h3 className="text-sm font-semibold">Last 12 weeks</h3>
-            <p className="mt-0.5 text-xs text-muted">Applications per week — the dashed line is your weekly goal</p>
-            <div className="mt-3">
-              <WeeklyBars weeks={weeks} goal={Math.max(weeklyGoal, 1)} />
-            </div>
           </div>
         </Panel>
         <Panel
@@ -405,12 +486,6 @@ export function Overview({
           )}
         </Panel>
       </div>
-      {/*
-        Dedicated OA and Interview sections. Until now those counts only
-        appeared in the funnel bars and one stats tile — and the tile read
-        0, because it summed interviews_done, which the tracker leaves at
-        0 on almost every row. Each company opens its application.
-      */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Panel title="OAs" hint={`${oaList.length} with an assessment`}>
           {oaList.length === 0 ? (
@@ -444,8 +519,6 @@ export function Overview({
               <ul className="divide-y divide-line">
                 {interviewList.slice(0, 6).map((a) => {
                   const ghosted = followUp(a, today, ghostDays) === "ghosted";
-                  // An offer still needs a decision, so it stays Active;
-                  // only a rejection, a withdrawal or an acceptance is done.
                   const finished = a.status === "Rejected" || a.status === "Withdrawn" || a.status === "Accepted";
                   return (
                     <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">

@@ -17,6 +17,12 @@ import { emptyApplication, type Application } from "../types";
 //    progress bar. The 12-week WeeklyBars chart and weekly() existed but
 //    were never rendered anywhere.
 //
+//    UPDATE (pace-range package, Nov 16): the pace window is now TRAILING
+//    — the last 7 days instead of the calendar week — with a segmented
+//    control for Last 7 days / Last 30 days / Last 12 months. The empty
+//    state and goal line below now say "in the last 7 days" instead of
+//    "this week". Everything else in this file is unchanged.
+//
 // 2. There were no dedicated OA/Interview sections — only funnel bars and
 //    one stats tile. The "Interviews" tile read 0 because summarize()
 //    summed interviews_done (0 on all 191 live rows), while 3 applications
@@ -141,16 +147,21 @@ describe("demo counts (Monday 2026-11-16)", () => {
   });
 });
 
-describe("Weekly Pace section", () => {
-  it("shows an explicit empty state when nothing was applied this week", () => {
+describe("Pace section", () => {
+  it("shows an explicit empty state when nothing was applied in the last 7 days", () => {
+    // Pace-range update: the window is trailing now, so the copy says
+    // "in the last 7 days" (with the 7 days before that for context),
+    // not "yet this week".
     expect(overview).toContain("pace.total === 0");
-    expect(overview).toContain("No applications yet this week");
+    expect(overview).toContain("No applications in the last 7 days");
     expect(overview).toContain("pace.prevTotal");
-    expect(overview).toContain("last week");
+    expect(overview).toContain("days before that.");
   });
 
-  it("shows the weekly goal as 'N / goal this week' with a progress bar", () => {
-    expect(overview).toContain("{pace.total} / {weeklyGoal} this week");
+  it("shows the weekly goal as 'N / goal in the last 7 days' with a progress bar", () => {
+    // The range wording is a ternary in source, so pin the two halves.
+    expect(overview).toContain("{pace.total} / {rangeGoal}");
+    expect(overview).toContain('"in the last 7 days"');
     expect(overview).toContain('role="progressbar"');
     expect(overview).toContain("Goal reached");
     expect(overview).toContain("to go");

@@ -477,6 +477,13 @@ export function answerGeneralQuestion(question: string, ctx: GeneralChatContext)
   if (/\b(help|what can you do|what can i ask)\b/.test(q)) return answerGeneralHelp();
   // "Who went quiet?" has both "who" and "quiet": check quiet first.
   if (/\b(quiet|ghost|silent|no reply|heard from)\b/.test(q)) return answerGeneralQuiet(ctx);
+    // Networking follow-ups name people, not application tasks: check them
+    // before the generic "what is due / waiting" handler, which would
+    // otherwise answer a "follow-ups due" question with the waiting
+    // applications. "networking" and "follow-ups" do not match the
+    // word-boundary checks below (networking carries a suffix, follow-ups
+    // a plural), so this check spells the variants out.
+    if (/\b(networking|follow[- ]?ups?|contacts?)\b/.test(q)) return answerGeneralContacts(ctx);
   if (/\b(waiting|due|deadline|next|should i|what do i do|to-?do|todo)\b/.test(q)) return answerGeneralWaiting(ctx);
   if (/\b(week|pace|goal|applied this week|progress)\b/.test(q)) return answerGeneralWeek(ctx);
   if (/\b(who|contact|know|people|network|recruiter|follow-?up)\b/.test(q)) return answerGeneralContacts(ctx);

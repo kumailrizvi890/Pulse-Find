@@ -469,7 +469,7 @@ function SettingsDialog({ settings, userId, onClose, onSave }: { settings: Setti
           <h3 className="text-xs font-semibold uppercase tracking-wider text-faint">Account and agent</h3>
           <div className="mt-2 flex flex-col gap-1">
             <Link href={userId ? "/app/connect" : "/demo/connect"} className="rounded-lg px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-2">Connect your agent →</Link>
-            <Link href="/app/setup" className="rounded-lg px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-2">Get set up in 3 steps →</Link>
+            <Link href={userId ? "/app/setup" : "/demo/connect"} className="rounded-lg px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-2">Get set up in 3 steps →</Link>
             {userId && (
               <form action="/auth/signout" method="post">
                 <button type="submit" className="w-full rounded-lg px-2 py-1.5 text-left text-sm font-medium text-danger transition hover:bg-surface-2">Sign out</button>

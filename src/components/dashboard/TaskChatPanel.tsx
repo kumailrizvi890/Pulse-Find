@@ -16,6 +16,7 @@ import {
   type TaskChatContext,
 } from "@/lib/task-chat";
 import { btn, cx, fmtDate } from "./ui";
+import { PulseDot } from "@/components/PulseBrand";
 
 /**
  * The task chatbot. It opens next to the task drawer when a "Waiting on
@@ -38,13 +39,6 @@ const PANEL_CSS = `
   50% { filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.85)); transform: scale(1.07); }
 }
 .pf-pulse-crystal { animation: pf-crystal-glow 2.8s ease-in-out infinite; }
-@keyframes pf-thinking-dot {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-3px); opacity: 1; }
-}
-.pf-thinking-dot { animation: pf-thinking-dot 1.1s ease-in-out infinite; }
-.pf-thinking-dot:nth-child(2) { animation-delay: 0.15s; }
-.pf-thinking-dot:nth-child(3) { animation-delay: 0.3s; }
 /* The panel docks from below: a short rise, no slide-across. */
 @keyframes pf-chat-in {
   from { opacity: 0; transform: translateY(10px); }
@@ -276,10 +270,8 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
           {thinking && (
             <div className="pf-msg-in flex items-start gap-2.5">
               <PulseCrystal className="mt-0.5 h-6 w-6" />
-              <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-3 shadow-sm" aria-label="Pulse is thinking">
-                <span className="pf-thinking-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                <span className="pf-thinking-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                <span className="pf-thinking-dot h-1.5 w-1.5 rounded-full bg-accent" />
+              <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-3 shadow-sm" aria-label="Pulse is thinking">
+                <PulseDot />
                 <span className="ml-1 text-xs text-muted">Thinking it over…</span>
               </div>
             </div>

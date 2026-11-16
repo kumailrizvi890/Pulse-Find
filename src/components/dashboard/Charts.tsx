@@ -35,7 +35,7 @@ export function Funnel({ steps }: { steps: (FunnelStep & { color?: string })[] }
 }
 
 /** Stacked weekly bars drawn to one scale, with the weekly goal as a dashed rule. */
-export function WeeklyBars({ weeks, goal }: { weeks: WeekBucket[]; goal: number }) {
+export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]; goal: number; unit?: "week" | "month" }) {
   // Draw in real pixels so labels stay readable at any width.
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(560);
@@ -53,12 +53,17 @@ export function WeeklyBars({ weeks, goal }: { weeks: WeekBucket[]; goal: number 
   const slot = (W - L - R) / weeks.length;
   const bw = Math.min(26, slot * 0.62);
   const ticks = [0, niceMax / 2, niceMax].map((v) => Math.round(v));
-  const label = (s: string) => parseISO(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  // Month buckets start on the 1st, so the day would read "Dec 1" — the
+  // month name alone is the honest label there.
+  const label = (s: string) =>
+    unit === "month"
+      ? parseISO(s).toLocaleDateString(undefined, { month: "short" })
+      : parseISO(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const total = weeks.reduce((s, w) => s + w.tech + w.other, 0);
   const labelEvery = W < 420 ? 4 : 3;
   return (
     <figure ref={ref}>
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block max-w-full" role="img" aria-label={`Applications per week, ${total} total`}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block max-w-full" role="img" aria-label={`Applications per ${unit}, ${total} total`}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeWidth="1" />
@@ -79,7 +84,7 @@ export function WeeklyBars({ weeks, goal }: { weeks: WeekBucket[]; goal: number 
               {w.tech > 0 && <rect x={x} y={yTech} width={bw} height={yOther - yTech} rx="3" fill="var(--tech)" />}
               {((weeks.length - 1 - i) % labelEvery === 0) && (
                 <text x={last ? Math.min(x + bw / 2 + 14, W - 2) : x + bw / 2} y={H - 8} textAnchor={last ? "end" : "middle"} fontSize="10" fill="var(--faint)" fontFamily="var(--font-mono)">
-                  {last ? "This wk" : label(w.start)}
+                  {last ? (unit === "month" ? "This mo" : "This wk") : label(w.start)}
                 </text>
               )}
             </g>
@@ -110,15 +115,29 @@ export interface PaceDay {
   value: number;
 }
 
-/** Applications per day for the current week, with a red trend line over the bars. */
+/**
+ * Applications per day over a trailing window, with a red trend line over
+ * the bars. `totalLabel` is the full chip prefix ("Total this week" by
+ * default); `prevLabel` names the comparison window ("last week" by
+ * default). `compact` is for long windows (30 days): it hides the per-day
+ * date and labels only every fifth bar, so the labels stay readable.
+ */
 export function WeeklyPace({
   days,
   total,
   change,
+  totalLabel = "Total this week",
+  prevLabel = "last week",
+  compact = false,
+  ariaLabel = "Applications per day this week",
 }: {
   days: PaceDay[];
   total: number;
   change: number | null;
+  totalLabel?: string;
+  prevLabel?: string;
+  compact?: boolean;
+  ariaLabel?: string;
 }) {
   const max = Math.max(...days.map((d) => d.value), 1);
   const average = days.length === 0 ? 0 : total / days.length;
@@ -132,9 +151,9 @@ export function WeeklyPace({
   return (
     <div>
       <div className="relative">
-        <div className="flex items-end gap-2" role="list" aria-label="Applications per day this week">
-          {days.map((d) => (
-            <div key={d.label} role="listitem" className="flex flex-1 flex-col items-center gap-1">
+        <div className="flex items-end gap-2" role="list" aria-label={ariaLabel}>
+          {days.map((d, i) => (
+            <div key={d.sub} role="listitem" className="flex flex-1 flex-col items-center gap-1">
               <span className="text-xs font-semibold tabular-nums text-ink">{d.value}</span>
               <div className="flex h-28 w-full items-end overflow-hidden rounded-md bg-track">
                 <div
@@ -143,8 +162,12 @@ export function WeeklyPace({
                   title={`${d.label}: ${d.value}`}
                 />
               </div>
-              <span className="text-center text-[11px] leading-tight text-muted">{d.label}</span>
-              <span className="text-center text-[10px] leading-tight text-muted">{d.sub}</span>
+              {(!compact || i % 5 === 0 || i === days.length - 1) && (
+                <span className="text-center text-[11px] leading-tight text-muted">{d.label}</span>
+              )}
+              {!compact && (
+                <span className="text-center text-[10px] leading-tight text-muted">{d.sub}</span>
+              )}
             </div>
           ))}
         </div>
@@ -156,16 +179,16 @@ export function WeeklyPace({
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-accent-soft px-3 py-1 font-medium text-accent">
-          Total this week: {total}
+          {totalLabel}: {total}
         </span>
         <span className="rounded-full bg-surface-2 px-3 py-1 font-medium text-muted">
           Avg / day: {average.toFixed(1)}
         </span>
         {change === null ? (
-          <span className="font-medium text-muted">No applications last week</span>
+          <span className="font-medium text-muted">No applications in the {prevLabel}</span>
         ) : (
           <span className={change >= 0 ? "font-medium text-good" : "font-medium text-danger"}>
-            {change >= 0 ? "↗" : "↘"} {Math.abs(change)}% vs last week
+            {change >= 0 ? "↗" : "↘"} {Math.abs(change)}% vs {prevLabel}
           </span>
         )}
       </div>

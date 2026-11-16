@@ -6,6 +6,13 @@
  * v2 (Nov 15 2026): the trace is neon now, like the reference — a wide
  * low-opacity halo stroke, a mid stroke, and a bright white core that
  * draws itself. Same three-spike geometry; only the rendering changed.
+ *
+ * Heartbeat (Nov 16 2026): the core still draws itself once on load, and
+ * a glowing head now travels the line in a double beat (lub-dub) on a
+ * slow loop, while the halo thumps twice in time with it. The line is
+ * never hidden: the fully drawn base is always there, the head is a
+ * short bright segment on top of it. Reduced motion hides the head and
+ * shows the line fully drawn (see globals.css).
  */
 export function PulseTrace({ className = "h-6 w-full", glow = true }: { className?: string; glow?: boolean }) {
   const d =
@@ -13,7 +20,7 @@ export function PulseTrace({ className = "h-6 w-full", glow = true }: { classNam
   return (
     <svg viewBox="0 0 600 40" preserveAspectRatio="none" className={className} aria-hidden="true" focusable="false">
       {glow && (
-        <>
+        <g className="pf-ecg-halo">
           <path
             d={d}
             fill="none"
@@ -32,7 +39,7 @@ export function PulseTrace({ className = "h-6 w-full", glow = true }: { classNam
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-        </>
+        </g>
       )}
       <path
         d={d}
@@ -44,6 +51,18 @@ export function PulseTrace({ className = "h-6 w-full", glow = true }: { classNam
         pathLength={120}
         className="pulse-trace"
       />
+      {glow && (
+        <path
+          d={d}
+          fill="none"
+          stroke="var(--accent-ink)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          pathLength={120}
+          className="pf-ecg-head"
+        />
+      )}
     </svg>
   );
 }

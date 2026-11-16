@@ -3,6 +3,7 @@ import { GitHubLink, TopBar, navLink } from "@/components/TopBar";
 import { HeroPreview } from "@/components/HeroPreview";
 import { PulseMark } from "@/components/Logo";
 import { PulseDot } from "@/components/PulseBrand";
+import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { PulseTrace } from "@/components/PulseTrace";
 import { env } from "@/lib/env";
 
@@ -57,8 +58,9 @@ export default async function Home() {
         }
       />
       <main>
-        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 pb-16 pt-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:pt-20">
-          <div className="min-w-0">
+        <section className="gutter relative mx-auto grid min-h-[calc(100dvh-69px)] w-full max-w-[1180px] grid-cols-1 items-center gap-x-10 gap-y-6 pb-4 pt-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:content-between lg:pt-6">
+          <HeroBackdrop />
+          <div className="relative min-w-0">
             <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted">
               <PulseMark className="h-3.5 w-3.5" animate /> Job search tracker
             </p>
@@ -81,11 +83,10 @@ export default async function Home() {
             </ul>
           </div>
           <HeroPreview />
+          <div className="relative lg:col-span-2" aria-hidden="true">
+            <PulseTrace className="h-10 w-full" />
+          </div>
         </section>
-
-        <div className="gutter mx-auto w-full max-w-[1180px] pb-4" aria-hidden="true">
-          <PulseTrace className="h-10 w-full" />
-        </div>
 
         <section className="border-y border-line bg-surface">
           <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-8 py-14 md:grid-cols-3">

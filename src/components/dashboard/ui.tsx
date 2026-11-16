@@ -4,15 +4,17 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Status } from "@/lib/types";
 import { parseISO } from "@/lib/metrics";
 
+import { PulseDot } from "@/components/PulseBrand";
+
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
 export const btn = {
   primary:
-    "inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-ink shadow-[0_8px_24px_-10px_rgb(253_88_93/0.45)] transition hover:brightness-110 disabled:opacity-50",
   secondary:
-    "inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium text-ink transition hover:bg-surface-2 disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium text-ink transition hover:border-accent/40 hover:bg-surface-2 disabled:opacity-50",
   ghost: "inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-ink",
   danger:
     "inline-flex items-center justify-center gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3.5 py-2 text-sm font-semibold text-danger transition hover:brightness-95",
@@ -67,6 +69,20 @@ export function Tag({ tone, children }: { tone: "tech" | "danger" | "warn" | "mu
   return <span className={cx("inline-flex whitespace-nowrap rounded-md px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase tracking-wide", t)}>{children}</span>;
 }
 
+/**
+ * The notification badge: a dark pill with an accent count and a faint
+ * red glow, per the brand reference. Used once per surface, for the
+ * count of things requiring attention — never next to another count
+ * for the same thing.
+ */
+export function NotifyBadge({ count, overdue }: { count: number; overdue?: number }) {
+  return (
+    <span className="pf-badge">
+      {count} open{overdue ? ` · ${overdue} overdue` : ""}
+    </span>
+  );
+}
+
 export function fmtDate(s: string | null, withYear = false) {
   if (!s) return "—";
   const d = parseISO(s);
@@ -90,7 +106,10 @@ export function useToast() {
         msg.tone === "error" ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-surface text-ink",
       )}
     >
-      {msg.text}
+      <span className="flex items-center gap-2.5">
+        <PulseDot />
+        {msg.text}
+      </span>
     </div>
   ) : null;
   return { toast: (text: string, tone: "ok" | "error" = "ok") => setMsg({ text, tone }), toastNode: node };

@@ -458,7 +458,7 @@ export function Overview({
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
-                          {c.next_step || `Follow up with ${c.person_name}`}
+                          {c.next_step.trim() || `Follow up with ${c.person_name}`}
                         </p>
                         <p className="truncate text-xs text-muted">
                           {c.person_name}

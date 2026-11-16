@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
+import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
 export type DeckJob = {
   id: string;
@@ -87,8 +88,18 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
     <div className="mx-auto flex w-full max-w-[380px] flex-col items-center">
       <div className="relative h-[400px] w-full select-none overflow-hidden">
         {!top ? (
-          <div className="absolute inset-0 flex items-center justify-center rounded-3xl border border-dashed border-line p-6 text-center text-sm text-muted">
-            {loading ? "Loading openings…" : emptyText}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-line p-6 text-center text-sm text-muted">
+            {loading ? (
+              <>
+                <PulseHeartbeat label="Loading openings" />
+                <p>Loading openings…</p>
+              </>
+            ) : (
+              <>
+                <p>{emptyText}</p>
+                <WaitingSignal className="justify-center" />
+              </>
+            )}
           </div>
         ) : (
           queue.slice(0, 3).map((j, i) => {

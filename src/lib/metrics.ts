@@ -135,6 +135,35 @@ export function weekly(apps: Application[], today: ISODate, weeks = 12): WeekBuc
   return buckets;
 }
 
+export interface MonthBucket { start: ISODate; tech: number; other: number }
+
+/**
+ * The last `months` calendar months ending with the current one, oldest
+ * first. `start` is the first day of each month. Follows weekly() — the
+ * same { start, tech, other } shape, so the same WeeklyBars chart draws
+ * it with a monthly goal line.
+ */
+export function monthly(apps: Application[], today: ISODate, months = 12): MonthBucket[] {
+  const d = parseISO(today);
+  const starts: ISODate[] = Array.from({ length: months }, (_, i) => {
+    const m = new Date(d.getFullYear(), d.getMonth() - (months - 1 - i), 1);
+    return todayISO(m);
+  });
+  const buckets: MonthBucket[] = starts.map((start) => ({ start, tech: 0, other: 0 }));
+  const first = buckets[0].start;
+  const firstDate = parseISO(first);
+  for (const a of apps) {
+    if (!a.date_applied || a.date_applied < first || a.date_applied > today) continue;
+    const ad = parseISO(a.date_applied);
+    const idx = (ad.getFullYear() - firstDate.getFullYear()) * 12 + (ad.getMonth() - firstDate.getMonth());
+    const b = buckets[idx];
+    if (!b) continue;
+    if (isTechRole(a.role)) b.tech++;
+    else b.other++;
+  }
+  return buckets;
+}
+
 /** Applications that need the user, soonest deadline first, undated after dated. */
 export function actionQueue(apps: Application[]): Application[] {
   return apps

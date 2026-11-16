@@ -376,7 +376,7 @@ export function TaskChatPanel({ application, events, userId, onClose }: Props) {
               )}
               <p className="text-xs leading-relaxed text-muted">
                 Not connected yet? Set up your agent on the{" "}
-                <Link href="/app/connect" className="font-medium text-accent hover:underline">
+                <Link href={userId ? "/app/connect" : "/demo/connect"} className="font-medium text-accent hover:underline">
                   Connect page
                 </Link>
                 , then paste this there.

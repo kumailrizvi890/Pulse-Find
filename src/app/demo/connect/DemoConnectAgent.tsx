@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { buildAgentPrompt } from "@/lib/agent-prompt";
 import { btn, cx, Panel } from "@/components/dashboard/ui";
@@ -55,11 +55,12 @@ export function DemoConnectAgent() {
   const [tokenCopied, setTokenCopied] = useState(false);
   const [snippetCopied, setSnippetCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
-  const [origin, setOrigin] = useState("https://pulsefind-app.vercel.app");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  // The origin is only known on the client; the lazy initializer reads it
+  // on first render (in production it matches the fallback, so the server
+  // and client render the same). No effect, so no extra render pass.
+  const [origin] = useState(
+    () => (typeof window !== "undefined" ? window.location.origin : "https://pulsefind-app.vercel.app"),
+  );
 
   const url = `${origin}/api/mcp`;
   const prompt = buildAgentPrompt({ endpoint: url, token: PLACEHOLDER_TOKEN });

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react"; 
+import { IconUndo } from "@/components/icons";
 
 /**
  * The MCP section's terminal, typed live instead of sitting as a static
@@ -80,10 +81,10 @@ export function TerminalDemo() {
         <button
           type="button"
           onClick={() => setShown(0)}
-          className="text-xs font-semibold text-accent hover:brightness-110"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:brightness-110"
           aria-label="Replay the terminal demo"
         >
-          ↺ Replay
+          <IconUndo className="h-3 w-3" /> Replay
         </button>
       </p>
     </div>

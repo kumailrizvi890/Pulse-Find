@@ -126,7 +126,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       if (alive) setMeta({ companies: b.count ?? 0, refreshed: (r.data as { finished_at: string } | null)?.finished_at ?? null });
     });
     if (userId) {
-      supabase.from("saved_jobs").select(`job_id,state,jobs(${COLS})`).then(({ data }) => {
+      supabase.from("saved_jobs").select(`job_id,state,jobs(${COLS})`).eq("user_id", userId).then(({ data }) => {
         if (!alive || !data) return;
         const rows = data as unknown as { job_id: string; state: Mark; jobs: Job | null }[];
         setMarks(Object.fromEntries(rows.map((d) => [d.job_id, d.state])));

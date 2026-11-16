@@ -19,7 +19,7 @@ function read(rel: string): string {
 
 const brand = read("components/PulseBrand.tsx");
 const css = read("app/globals.css");
-const brandCss = css.slice(css.indexOf("PULSE brand touches"));
+const brandCss = css.slice(css.indexOf("PULSE brand touches"), css.indexOf("SITE-WIDE TEXTURED 3D BACKGROUND"));
 
 function extractPath(src: string): string {
   const constMatch = src.match(/MARK_PATH = "([^"]+)"/);
@@ -104,6 +104,9 @@ describe("pulse brand css", () => {
   });
 
   it("uses only the existing red in the brand section — no new palette", () => {
+    // Scoped to the brand section: the site-wide texture section below
+    // deliberately adds the preview's violet-tinted edge glows (approved
+    // Nov 16 2026) — that exception lives in the site section only.
     for (const banned of ["cyan", "teal", "sky", "emerald", "indigo", "violet", "purple", "blue"]) {
       expect(brandCss.toLowerCase()).not.toContain(banned);
     }

@@ -8,6 +8,7 @@ import { todayISO } from "@/lib/metrics";
 import { accountPipelineStore, leadKey } from "@/lib/pipeline";
 import { TRACKS, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
+import { PulseDot } from "@/components/PulseBrand";
 import { SwipeDeck } from "./SwipeDeck";
 
 type Job = {
@@ -321,7 +322,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       ) : view === "swipe" ? (
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div>
-            <p className="mb-3 text-center font-mono text-xs text-faint">
+            {/* The pulsing dot is the same live-status mark as the
+              "Waiting on you" panel header: it only shows while there
+              are jobs left to review. */}
+            <p className="mb-3 flex items-center justify-center gap-2 text-center font-mono text-xs text-faint">
+              {queue.length ? <PulseDot /> : null}
               {queue.length ? <><b className="text-accent">{moreAvailable ? (total ?? 0) - (jobs.length - queue.length) : queue.length}</b> left to review</> : " "}
             </p>
             <SwipeDeck
@@ -341,7 +346,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                   Swipe right to add roles here. {userId ? "Mark one applied and it goes straight into your tracker." : "Saved in this browser only."}
                 </p>
               </div>
-              {savedList.length > 0 && <Tag tone="muted">{savedList.length}</Tag>}
+              {/* The saved count wears the same glowing badge as the
+                notification counts elsewhere (pf-badge): a dark pill,
+                accent count, red glow. No bell here — the count alone
+                is the parallel. */}
+              {savedList.length > 0 && <span className="pf-badge">{savedList.length} saved</span>}
             </div>
             {!userId && (
               <Link href="/login?mode=signup&next=/jobs" className={cx(btn.secondary, "mb-3 w-full")}>Sign up to keep your picks and track applications</Link>

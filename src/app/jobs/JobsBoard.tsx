@@ -8,6 +8,7 @@ import { todayISO } from "@/lib/metrics";
 import { accountPipelineStore, leadKey } from "@/lib/pipeline";
 import { TRACKS, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
+import { IconX } from "@/components/icons";
 import { PulseDot } from "@/components/PulseBrand";
 import { SwipeDeck } from "./SwipeDeck";
 
@@ -369,7 +370,9 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                       <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
                       {userId && <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>}
                       {userId && <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>}
-                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>✕</button>
+                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>
+                      <IconX className="h-3.5 w-3.5" />
+                        </button>
                     </div>
                   </li>
                 ))}

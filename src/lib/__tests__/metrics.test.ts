@@ -71,6 +71,24 @@ describe("summaries", () => {
     expect(s.thisWeek).toBe(2); // Nov 3, plus the Data Analyst row defaulting to today
   });
 
+  it("counts interviews as applications at interview stage, not interviews_done", () => {
+    // Deliberate change: the old sum of interviews_done read 0 on the live
+    // tracker even with 3 interview-stage applications, because the tracker
+    // leaves interviews_done at 0 on almost every row. The count now matches
+    // the funnel's Interview step exactly.
+    const s = summarize(
+      [
+        app({ status: "Interviewing", interviews_done: 2 }),
+        app({ status: "Offer", interviews_done: 0 }),
+        app({ status: "Applied", interviews_done: 3 }),
+        app({ status: "Applied", interviews_done: 0 }),
+      ],
+      TODAY,
+      21,
+    );
+    expect(s.interviews).toBe(3); // interviews_done would have summed to 5
+  });
+
   it("counts each application at every stage it reached", () => {
     expect(funnel(apps).map((f) => f.value)).toEqual([4, 3, 2, 1]);
   });

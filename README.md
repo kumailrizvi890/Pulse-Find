@@ -32,9 +32,11 @@
 - **Ghost detection and pipeline stats** — days-since-contact follow-up flags, a stage funnel, and weekly pace against your goal
 - **Live job board** — ~14,000 openings across all roles and levels, pulled from company Greenhouse, Lever and Ashby boards, one click to start tracking
 
-**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (Postgres, Auth, RLS, Edge Functions) · Model Context Protocol · Vitest · GitHub Actions CI
+**Stack:** Next.js 16 · React 19 · TypeScript · Supabase (Postgres, Auth, RLS, Edge Functions) · Vitest · GitHub Actions CI
 
 **Try it:** [Live app](https://pulsefind-app.vercel.app) · [Demo, no sign-up](https://pulsefind-app.vercel.app/demo) · [Job board](https://pulsefind-app.vercel.app/jobs)
+
+If you run it yourself, issues and pull requests are welcome — see [Contributing](#contributing).
 
 ## Why
 
@@ -59,6 +61,7 @@ Then: *"Scan my email from the last week and update Pulse Find."*
 | `process_job_email` | Classifies one email (confirmation, assessment, interview, reminder, rejection, offer), matches it to the right application, sets what's waiting on you with the deadline, and checks it for job-scam signs. Idempotent by message id; `dry_run` to preview. |
 | `get_summary` | Totals, response rate, ghosted companies, and everything waiting on you, soonest first |
 | `list_applications` · `add_application` · `update_application` | Read and edit the tracker |
+| `list_events` | Recent activity on your applications: status changes, actions marked done, emails processed. Read-only. |
 | `check_job_scam` | Fake-offer signals: check deposits, equipment reimbursement, chat-app interviews, fees, personal email domains |
 | `search_jobs` | Live internship and new-grad postings from 50+ company career pages, refreshed every 6 hours |
 | `list_leads` · `add_lead` · `update_lead` | The leads pipeline: save roles the user is deciding on, move them New → Queued → Applied / Problem / Not eligible / Closed. Never applies. |
@@ -82,7 +85,7 @@ Want your own copy? [Self-hosting guide](docs/SELF_HOST.md): free Supabase + Ver
 - **Agent access.** Personal access tokens (only a SHA-256 fingerprint is stored, revocable any time) for the MCP server above.
 - **In-app sync.** Vercel Cron and Supabase pg_cron keep the tracker current every 2 hours.
 - **Public demo.** `/demo` runs the full dashboard on invented sample data, entirely in the browser.
-- **Private by default.** Postgres row-level security on every table. Light and dark themes, works on phones.
+- **Private by default.** Postgres row-level security on every table. Dark theme throughout, works on phones.
 
 ## Architecture
 
@@ -99,7 +102,7 @@ flowchart LR
 
 - **One UI, two stores.** The dashboard talks to a small `TrackerStore` interface (`src/lib/store.ts`). The demo uses an in-memory implementation; signed-in users get a Supabase one. Same components, same code paths.
 - **Logic is pure and tested.** Follow-up flags, the funnel, weekly buckets, tech-role detection, CSV parsing and export escaping live in `src/lib` as plain functions with unit tests (`npm test`).
-- **Security is enforced in the database.** Each table has `select / insert / update / delete` policies scoped to `auth.uid()`. The events policy also checks that the parent application belongs to the same user. Supabase's security advisor reports no issues. See [`supabase/migrations`](supabase/migrations).
+- **Security is enforced in the database.** Each table has `select / insert / update / delete` policies scoped to `auth.uid()`. The events policy also checks that the parent application belongs to the same user. Run Supabase's security advisor after applying the migrations; it should report no issues. See [`supabase/migrations`](supabase/migrations).
 - **One email engine, three runtimes.** The classifier, deadline parser, application matcher and scam check (`supabase/functions/_shared/email.ts`) are dependency-free TypeScript run by the Deno edge function and the Vitest suite alike. Updates never move an application backward (a late "thanks for applying" can't undo an interview invite), except rejections and offers.
 - **MCP done by the spec.** Streamable HTTP with plain JSON responses, batches and notifications, tested against the official `@modelcontextprotocol/sdk` client. The function uses the service role but every query is filtered by the token's user id.
 - **Dates are calendar dates.** Stored as `date`, handled as `YYYY-MM-DD` strings, so a deadline never shifts a day because of time zones.
@@ -118,22 +121,39 @@ cp .env.example .env.local   # add your Supabase URL and publishable key
 npm run dev
 ```
 
-The demo at `http://localhost:3000/demo` works without any Supabase setup.
+The demo at `http://localhost:3000/demo` works without any Supabase setup — it runs entirely in the browser on invented sample data, and needs no env vars at all.
 
 To use accounts, the job board and the MCP server, follow the [self-hosting guide](docs/SELF_HOST.md).
 
 | Script | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server |
 | `npm test` | Unit tests (Vitest) |
 | `npm run lint` / `npm run typecheck` | ESLint / TypeScript |
 | `npm run build` | Production build |
+
+## Contributing
+
+Issues and pull requests are welcome. This started as one person's internship tracker, so the bar is simple: keep it working for a stranger, not just for the author.
+
+- **File an issue** for a bug, or for a feature from the Roadmap below. Say what you expected, what happened, and the steps to see it. Do not paste real emails, real applications, or any personal data into an issue — use the demo's sample data instead.
+- **Send a pull request** from a fork. Keep it focused (one change per PR), add or update a test when you change behaviour, and run the checks before you push:
+
+  ```bash
+  npm run lint
+  npm run typecheck
+  npm test
+  npm run build
+  ```
+
+  CI runs the same four on every pull request and they must be green.
+- **What helps most:** the unchecked Roadmap items, the demo, and anything that makes setup smoother. Big changes (new auth providers, new data sources) are better as an issue first, so the shape can be agreed before the code.
+- **License:** everything you contribute is under the same MIT license.
 
 ## Deploying updates (checklist)
 
 1. **Reconcile + push.** Pull `main` first (the clone may be behind web-editor commits), then push. GitHub Actions CI (lint, typecheck, test, build) must be green; Vercel deploys production from `main` automatically. No new env vars are needed for the app shell, Sheet, Leads or Networking.
 2. **Apply migrations.** `supabase db push` (or paste the new file from `supabase/migrations/` into the SQL editor). The leads/networking migration (`20261111000000_leads_networking.sql`) is additive — two new tables with own-row RLS; nothing existing is altered.
-3. **Deploy the MCP edge function** (it does not ship with Vercel): `supabase functions deploy mcp`. Verify with an MCP client: `tools/list` shows 13 tools and `prompts/list` shows `scan_inbox`, `daily_digest`, `find_leads`.
+3. **Deploy the MCP edge function** (it does not ship with Vercel): `supabase functions deploy mcp`. Verify with an MCP client: `tools/list` shows 14 tools and `prompts/list` shows `scan_inbox`, `daily_digest`, `find_leads`.
 4. **Repackage the agent skill.** The Agensi package is a ZIP built from `skills/pulse-find/SKILL.md` (a copy at the ZIP root and one under `pulse-find/`). Rebuild it whenever the playbook changes and update the listing — installers do not get repo changes automatically.
 5. **Smoke test.** Sign in, open Tracker / Sheet / Leads / Networking / Connect, save a job as a lead from `/jobs`, and export + re-import an .xlsx (the re-import should report every row as already tracked).
 
@@ -143,9 +163,10 @@ To use accounts, the job board and the MCP server, follow the [self-hosting guid
 - [x] Live job board from company career pages
 - [x] Leads pipeline and networking next-steps, in the app and over MCP
 - [x] Sheet view with the Excel tracker's columns, plus .xlsx import/export round trip
+- [x] Password reset by email link
 - [ ] **Email forwarding.** A personal inbound address per user, run through the same classifier, for people without an agent
 - [ ] OAuth for MCP, so hosted clients can connect without pasting a token
-- [ ] Password reset and Google sign-in
+- [ ] Google sign-in
 - [ ] Reminders the day before an action is due
 - [ ] Optional Gmail connect for invited testers
 

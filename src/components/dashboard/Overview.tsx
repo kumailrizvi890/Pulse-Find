@@ -21,8 +21,8 @@ import {
 } from "@/lib/metrics";
 import type { Application, Contact } from "@/lib/types";
 import { Funnel, WeeklyPace, type PaceDay } from "./Charts";
-import { NotifyBadge, Panel, Tag, btn, cx, fmtDate } from "./ui";
-import { PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
+import { Panel, Tag, btn, cx, fmtDate } from "./ui";
+import { NotifyBell, PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
 const AVATAR_TONES = [
   "bg-accent-soft text-accent",
@@ -187,9 +187,9 @@ export function Overview({
           className={cx("lg:col-span-3", queue.length ? "border-danger/30 pf-glow" : undefined)}
           action={
             queue.length ? (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 <PulseDot />
-                <NotifyBadge count={queue.length} overdue={sum.overdue} />
+                <NotifyBell count={queue.length} overdue={sum.overdue} />
               </span>
             ) : undefined
           }

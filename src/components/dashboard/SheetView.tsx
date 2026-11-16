@@ -239,8 +239,14 @@ export function SheetView({ store }: { store: TrackerStore }) {
                           "max-w-[260px] px-3 py-2 align-top",
                           ci === 0 && "sticky left-0 z-[5] border-r border-line bg-surface font-semibold",
                           col.numeric && "tnum text-right font-mono text-xs",
+                          col.editable && "group",
                           col.editable && !isEditing && "cursor-text",
                         );
+                        // Empty editable cells stay quiet: a faint dash, and the
+                        // "Click to edit" hint only while the cell is hovered.
+                        // The old per-cell title tooltip put that hint on all
+                        // 264 editable cells at once, which was the noise.
+                        const isEmptyEditable = !!col.editable && r.values[col.key] === "";
                         if (isEditing) {
                           return (
                             <td key={col.key} className={base}>
@@ -291,9 +297,13 @@ export function SheetView({ store }: { store: TrackerStore }) {
                             key={col.key}
                             className={base}
                             onClick={col.editable ? () => startEdit(a, col.key) : undefined}
-                            title={col.editable ? "Click to edit" : undefined}
                           >
-                            {col.key === "status" ? (
+                            {isEmptyEditable ? (
+                              <span className="block truncate">
+                                <span aria-hidden="true" className="text-faint group-hover:hidden">—</span>
+                                <span className="hidden text-faint group-hover:inline">Click to edit</span>
+                              </span>
+                            ) : col.key === "status" ? (
                               <StatusPill status={a.status} />
                             ) : col.key === "flag" ? (
                               r.flag === "ghosted" ? <Tag tone="danger">{r.flagLabel}</Tag> : r.flag === "soon" ? <Tag tone="warn">{r.flagLabel}</Tag> : r.flag ? <span className="text-muted">{r.flagLabel}</span> : ""

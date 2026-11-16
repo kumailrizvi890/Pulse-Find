@@ -54,7 +54,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={``${GeistSans.variable} ${GeistMono.variable} ${bricolage.variable} antialiased min-h-dvh`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} ${bricolage.variable} antialiased min-h-dvh`}>
         <SiteBackdrop />
         {children}
       </body>

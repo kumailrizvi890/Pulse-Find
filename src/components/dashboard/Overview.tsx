@@ -477,8 +477,8 @@ export function Overview({
                   );
                 })}
               </ul>
-              {orderedContacts.length > 3 && userId && (
-                <Link href="/app/networking" className={cx(btn.ghost, "mt-3")}>
+              {orderedContacts.length > 3 && (
+                <Link href={userId ? "/app/networking" : "/demo/networking"} className={cx(btn.ghost, "mt-3")}>
                   See all {orderedContacts.length} contacts
                 </Link>
               )}

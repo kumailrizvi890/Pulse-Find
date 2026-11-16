@@ -10,6 +10,7 @@
 
 import { CLOSED, daysBetween, parseISO, weekStart } from "./metrics";
 import { buildAgentHandoffPrompt, getMcpEndpoint } from "./agent-prompt";
+import { dueBucket } from "./pipeline";
 import type { Application, Contact, ISODate, TrackerEvent } from "./types";
 
 export type ChatRole = "user" | "assistant";
@@ -423,8 +424,13 @@ function answerGeneralStatus(ctx: GeneralChatContext): ChatMessage {
 }
 
 function answerGeneralContacts(ctx: GeneralChatContext): ChatMessage {
+  // Same due rule as the dashboard and Networking section: a contact is
+  // due only when it has both a step and a date on or before today.
   const due = ctx.contacts
-    .filter((c) => c.next_step_on && c.next_step_on <= ctx.today)
+    .filter((c) => {
+      const bucket = dueBucket(c, ctx.today);
+      return bucket === "overdue" || bucket === "today";
+    })
     .sort((a, b) => (a.next_step_on as string).localeCompare(b.next_step_on as string));
   if (due.length === 0) {
     return {
@@ -437,7 +443,7 @@ function answerGeneralContacts(ctx: GeneralChatContext): ChatMessage {
   const lines = [`${due.length} follow-up${due.length === 1 ? "" : "s"} due:`];
   for (const c of due.slice(0, 5)) {
     lines.push(
-      `- ${c.person_name}${c.company ? ` (${c.company})` : ""}: ${c.next_step ?? "Follow up"} (${fmtDay(c.next_step_on)}).`,
+      `- ${c.person_name}${c.company ? ` (${c.company})` : ""}: ${c.next_step || "Follow up"} (${fmtDay(c.next_step_on)}).`,
     );
   }
   return { id: "contacts", role: "assistant", text: lines.join("\n"), links: [generalNetworkingLink(ctx)] };

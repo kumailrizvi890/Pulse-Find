@@ -151,43 +151,54 @@ h1, h2, h3 {
 }
 
 /*
-  PULSE brand touches (Nov 15 2026). Everything here reuses the existing
-  tokens only — var(--accent) at low alpha, never a new color. Every
-  animation is covered by the global prefers-reduced-motion rule above,
-  which collapses animation durations to 0.01ms.
+  PULSE brand touches (Nov 15 2026, v2). Everything here reuses the
+  existing tokens only — var(--accent) at low alpha, never a new color.
+  v1 was too subtle to notice, so v2 turns the neon up: a visible halo
+  on the waiting card, a bigger dot, a real notification bell, a
+  stronger breathe. Every animation is covered by the global
+  prefers-reduced-motion rule above, which collapses animation
+  durations to 0.01ms.
 */
 
-/* 1. Breathing for the logo mark: slow, gentle, barely there. */
+/* 1. Breathing for the logo mark: clearly visible now. */
 @keyframes pf-breathe {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.04); }
+  0%, 100% { opacity: 0.72; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 .pf-breathe {
-  animation: pf-breathe 3.2s ease-in-out infinite;
+  animation: pf-breathe 2.8s ease-in-out infinite;
   transform-origin: center;
 }
 
-/* 2. Animated status dot: glowing center, one expanding ring. */
+/* Neon drop-shadow for the unboxed mark and the waveform. */
+.pf-mark {
+  filter: drop-shadow(0 0 4px rgb(248 52 62 / 0.9)) drop-shadow(0 0 12px rgb(248 52 62 / 0.5));
+}
+.pf-wave-glow {
+  filter: drop-shadow(0 0 4px rgb(248 52 62 / 0.85)) drop-shadow(0 0 12px rgb(248 52 62 / 0.45));
+}
+
+/* 2. Animated status dot: bigger, stronger ring (ref 05). */
 @keyframes pf-dot-ring {
-  0% { transform: scale(1); opacity: 0.55; }
-  100% { transform: scale(2.4); opacity: 0; }
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(3); opacity: 0; }
 }
 .pf-dot {
   position: relative;
   display: inline-block;
   flex-shrink: 0;
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
   border-radius: 9999px;
   background: var(--accent);
-  box-shadow: 0 0 8px rgb(248 52 62 / 0.8);
+  box-shadow: 0 0 10px rgb(248 52 62 / 1), 0 0 20px rgb(248 52 62 / 0.6);
 }
 .pf-dot::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  border: 1px solid var(--accent);
+  border: 2px solid var(--accent);
   animation: pf-dot-ring 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
@@ -203,32 +214,64 @@ h1, h2, h3 {
   animation: pf-heartbeat-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 4. Very faint red ambient glow for one selected card at a time. */
+/* 4. Neon ambient glow for one selected card at a time — visible now,
+   like the rim light on the Nexora dashboard (ref 04). */
 .pf-glow {
   box-shadow:
-    0 0 0 1px rgb(253 88 93 / 0.08),
-    0 8px 32px -12px rgb(248 52 62 / 0.28),
+    0 0 0 1px rgb(253 88 93 / 0.45),
+    0 0 24px rgb(248 52 62 / 0.5),
+    0 16px 48px -12px rgb(248 52 62 / 0.55),
     var(--shadow);
 }
 
-/* 5. Notification badge: dark pill, accent count, faint red glow. */
+/* 5. Notification badge: dark pill, accent count, strong red glow. */
 .pf-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
   border-radius: 9999px;
-  border: 1px solid rgb(253 88 93 / 0.25);
+  border: 1px solid rgb(253 88 93 / 0.5);
   background: var(--surface-2);
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--accent);
-  box-shadow: 0 0 12px -4px rgb(248 52 62 / 0.45);
+  box-shadow: 0 0 16px -2px rgb(248 52 62 / 0.8), 0 0 28px -6px rgb(248 52 62 / 0.5);
 }
 
-/* 6. Faint glow hugging the active nav tab's accent underline. */
+/* 5b. Notification bell: red bell with a glowing red count badge
+   (ref 02). The bell itself glows; the count badge is solid accent
+   with white text and a halo, so it cannot be missed. */
+.pf-bell {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgb(248 52 62 / 0.7));
+}
+.pf-bell-count {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  border: 2px solid var(--surface);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 10px rgb(248 52 62 / 0.9), 0 0 22px rgb(248 52 62 / 0.5);
+}
+
+/* 6. Strong glow hugging the active nav tab's accent underline. */
 .pf-nav-glow {
-  box-shadow: 0 3px 12px -4px rgb(253 88 93 / 0.55);
+  box-shadow: 0 4px 20px -2px rgb(248 52 62 / 0.9), 0 0 12px rgb(248 52 62 / 0.5);
 }

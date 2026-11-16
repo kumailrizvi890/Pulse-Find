@@ -19,7 +19,7 @@ export default async function ConnectPage() {
       <div className="mb-4 flex justify-end">
         <Link href="/app/setup" className={btn.secondary}>Get set up in 3 steps →</Link>
       </div>
-      <ConnectAgent />
+      <ConnectAgent userId={data.user.id} />
     </AppShell>
   );
 }

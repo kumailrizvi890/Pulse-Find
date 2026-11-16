@@ -158,19 +158,45 @@ describe("pulse brand placements", () => {
   it("lists all 7 capabilities in the landing hero, each led by a pulse dot", () => {
     const home = read("app/page.tsx");
     for (const item of [
-      "Tracks applications, interviews, assessments, offers, and rejections.",
-      "Highlights actions that need attention.",
-      "Detects companies that have gone quiet.",
-      "Tracks weekly application goals and progress.",
-      "Finds live internships from company career pages.",
-      "Connects to Claude, Cursor, and Copilot through MCP.",
-      "Keeps personal application data private.",
+      "Reads your email to track every application and reply, so each stage shows up without you logging it.",
+      "Puts the replies, assessments and forms that need you at the top, with how long you have left.",
+      "Flags the companies that haven't replied in 21 days, so you know when to follow up.",
+      "Sets a weekly application goal and shows how far along you are.",
+      "Finds live internships straight from company career pages.",
+      "Connects to Claude, Cursor and Copilot through MCP, so your agent can read and update your tracker for you.",
+      "Keeps your real application data private, visible only to you.",
     ]) {
       expect(home).toContain(item);
+      expect(item).not.toContain("—");
     }
     expect(home).toContain("HERO_CAPABILITIES");
     expect(home).toContain("<PulseDot");
     expect(home).toContain("sm:grid-cols-2");
+  });
+
+  it("has no intro paragraph under the hero headline: the bullets carry the explanation", () => {
+    const home = read("app/page.tsx");
+    // The old paragraph's two distinctive fragments must be gone entirely.
+    expect(home).not.toContain("puts the assessments, replies and forms that need you at the top");
+    expect(home).not.toContain("went quiet so you know when to follow up");
+    // The headline, the three buttons and the no-sign-up line stay.
+    expect(home).toContain("Know what&apos;s waiting");
+    expect(home).toContain("Try the live demo");
+    expect(home).toContain("Create a free tracker");
+    expect(home).toContain("Find internships");
+    expect(home).toContain("No sign-up needed for the demo or the job board.");
+  });
+
+  it("scrolls Connect your agent to the MCP section instead of leaving the page", () => {
+    const home = read("app/page.tsx");
+    // The button used to link to /app/connect, which sends a signed-out
+    // visitor to the login page. It now scrolls to the MCP section at the
+    // bottom of this same page, so a visitor can read how the agent
+    // connects before signing up.
+    expect(home).toContain('<Link href="#mcp" className={primary}>Connect your agent</Link>');
+    expect(home).toContain('<section id="mcp" className="border-t border-line bg-surface">');
+    expect(home).toContain("Let your own AI agent keep it current");
+    expect(home).toContain("MCP server");
   });
 
   it("keeps red hovers on nav links and tabs", () => {

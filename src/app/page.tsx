@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GitHubLink, TopBar, navLink } from "@/components/TopBar";
 import { HeroPreview } from "@/components/HeroPreview";
 import { PulseMark } from "@/components/Logo";
+import { PulseDot } from "@/components/PulseBrand";
 import { PulseTrace } from "@/components/PulseTrace";
 import { env } from "@/lib/env";
 
@@ -13,6 +14,17 @@ const secondary =
 export const revalidate = 3600; // keep the sample dates in the hero current
 
 type Opening = { company: string; title: string; location: string; url: string };
+
+/** What the tracker does, in the hero's own words — one line per capability. */
+const HERO_CAPABILITIES = [
+  "Tracks applications, interviews, assessments, offers, and rejections.",
+  "Highlights actions that need attention.",
+  "Detects companies that have gone quiet.",
+  "Tracks weekly application goals and progress.",
+  "Finds live internships from company career pages.",
+  "Connects to Claude, Cursor, and Copilot through MCP.",
+  "Keeps personal application data private.",
+];
 
 /** Live count and a few of the newest tech internships, cached with the page (hourly). */
 async function latestInternships(): Promise<{ total: number | null; jobs: Opening[] }> {
@@ -63,6 +75,14 @@ export default async function Home() {
               <Link href="/jobs" className={secondary}>Find internships</Link>
             </div>
             <p className="mt-4 text-sm text-faint">No sign-up needed for the demo or the job board. Your real tracker is private to you.</p>
+            <ul className="mt-8 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+              {HERO_CAPABILITIES.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-muted">
+                  <PulseDot className="mt-1.5 shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
           <HeroPreview />
         </section>
@@ -123,7 +143,7 @@ export default async function Home() {
           )}
         </section>
 
-        <section className="gutter mx-auto grid w-full max-w-[1180px] border-t border-line py-16">
+        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">One account, the whole search</p>
           <h2 className="mt-2 max-w-[22ch] font-display text-3xl font-extrabold tracking-tight">Everything in one place, private to you</h2>
           <p className="mt-3 max-w-[62ch] text-muted">

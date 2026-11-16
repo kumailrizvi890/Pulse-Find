@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TopBar, navLink } from "@/components/TopBar";
+import { AppShell, shellNavLink } from "@/components/AppShell";
 import { createClient } from "@/lib/supabase/server";
 import { isConfigured } from "@/lib/env";
 import { JobsBoard } from "./JobsBoard";
@@ -12,21 +13,38 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function JobsPage() {
-  let userId: string | null = null;
+  let user: { id: string; email?: string } | null = null;
   if (isConfigured()) {
     const supabase = await createClient();
-    userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+    user = (await supabase.auth.getUser()).data.user ?? null;
   }
-  const board = (
+  // Signed-in users get the tracker shell with its tab bar, so the navbar
+  // stays put when they open Find jobs; signed-out visitors keep the
+  // public TopBar with its Sign in link.
+  if (user) {
+    return (
+      <AppShell
+        active="jobs"
+        right={
+          <>
+            <span className="hidden max-w-[220px] truncate px-2 text-xs text-faint sm:inline">{user.email}</span>
+            <form action="/auth/signout" method="post">
+              <button className={shellNavLink}>Sign out</button>
+            </form>
+          </>
+        }
+      >
+        <JobsBoard userId={user.id} />
+      </AppShell>
+    );
+  }
+  return (
     <>
       <TopBar
-        home={userId ? "/app" : "/"}
-        right={userId ? <Link href="/app" className={navLink}>My tracker</Link> : <Link href="/login" className={navLink}>Sign in</Link>}
+        home="/"
+        right={<Link href="/login" className={navLink}>Sign in</Link>}
       />
-      <JobsBoard userId={userId} />
+      <JobsBoard userId={null} />
     </>
   );
-  // Signed-in users stay in the dark redesign shell so the board reads as the
-  // same product as the tracker; signed-out visitors get the public palette.
-  return userId ? <div className="pf-shell min-h-dvh">{board}</div> : board;
 }

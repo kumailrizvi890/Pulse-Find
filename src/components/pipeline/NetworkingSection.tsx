@@ -56,7 +56,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   );
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? sorted.filter((c) => `${c.person_name} ${c.company} ${c.status}`.toLowerCase().includes(q)) : sorted;
+    return q ? sorted.filter((c) => `${c.person_name} ${c.company} ${c.status} ${c.next_step} ${c.notes}`.toLowerCase().includes(q)) : sorted;
   }, [sorted, query]);
 
   async function markDone(c: Contact) {

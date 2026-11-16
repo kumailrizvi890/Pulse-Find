@@ -33,6 +33,9 @@ export function DemoNav() {
           <Link href="/demo/networking" className={navLink}>
             Networking
           </Link>
+          <Link href="/demo/connect" className={navLink}>
+            Connect
+          </Link>
           <span className="ml-auto hidden shrink-0 rounded-full border border-line bg-bg px-2.5 py-1 text-xs text-muted sm:inline">
             Fictional sample data
           </span>

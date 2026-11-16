@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
+import { IconCheck, IconUndo, IconX } from "@/components/icons"; 
 import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
 export type DeckJob = {
@@ -190,27 +191,27 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
           aria-label="Pass"
           disabled={!top}
           onClick={() => decide("hidden")}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-applied text-xl text-applied-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-applied text-applied-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
         >
-          ✕
+          <IconX className="h-5 w-5" />
         </button>
         <button
           type="button"
           aria-label="Undo"
           disabled={!canUndo}
           onClick={onUndo}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-lg text-ink transition hover:scale-105 disabled:opacity-35"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:scale-105 disabled:opacity-35"
         >
-          ↺
+          <IconUndo className="h-[18px] w-[18px]" />
         </button>
         <button
           type="button"
           aria-label="Save"
           disabled={!top}
           onClick={() => decide("saved")}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-interview text-xl text-interview-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-interview text-interview-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
         >
-          ✓
+          <IconCheck className="h-5 w-5" />
         </button>
       </div>
       <p className="mt-3 font-mono text-[11px] text-faint">Drag the card, tap the buttons, or use ← →</p>

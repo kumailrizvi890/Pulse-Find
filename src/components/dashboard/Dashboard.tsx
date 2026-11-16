@@ -47,6 +47,9 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast, toastNode } = useToast();
+  // The "All applications" list the Overview's "View all waiting items"
+  // button scrolls to (see showWaiting below).
+  const allAppsRef = useRef<HTMLDivElement>(null);
   const today = todayISO();
 
   const [attempt, setAttempt] = useState(0);
@@ -117,6 +120,20 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
     if (state === "ready") setGeneralChatOpen(true);
     else setGeneralChatPending(true);
   }, [state]);
+
+  // "View all waiting items" used to only flip the filter, so the filtered
+  // list sat below the fold and the click looked like it did nothing.
+  // Scroll the list into view (clear of the sticky header) and move focus
+  // to it, so keyboard and screen-reader users land on the results too.
+  const showWaiting = useCallback(() => {
+    setFilter("action");
+    const el = allAppsRef.current;
+    if (!el) return;
+    const reduceMotion =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    el.focus({ preventScroll: true });
+  }, []);
 
   // A general chat requested while the tracker is still loading waits for
   // the load (see above). This is the React "adjusting state during
@@ -260,10 +277,11 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
         </>
       ) : (
         <>
-                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={openTask} onShowWaiting={() => setFilter("action")} />
+                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={openTask} onShowWaiting={showWaiting} />
 
           {extras}
 
+          <div ref={allAppsRef} tabIndex={-1} className="scroll-mt-32 outline-none">
           <Panel
             title="All applications"
             hint="Red tag marks a tech role. Red company names have something waiting on you."
@@ -304,6 +322,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
               <AppList rows={rows} today={today} ghostDays={settings.ghost_days} onOpen={openTask} />
             )}
           </Panel>
+          </div>
 
           <Panel title="Recent activity">
             {loading ? (

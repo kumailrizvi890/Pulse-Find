@@ -28,9 +28,9 @@ export function leadKey(l: Pick<Lead, "company" | "role">): string {
 
 export type DueBucket = "overdue" | "today" | "upcoming" | "later" | "none";
 
-/** Where a contact's next step falls relative to today. Contacts with no step or no date are "none". */
+/** Where a contact's next step falls relative to today. A date alone is enough to be due; contacts with no date are "none". */
 export function dueBucket(c: Pick<Contact, "next_step" | "next_step_on">, today: ISODate): DueBucket {
-  if (!c.next_step.trim() || !c.next_step_on) return "none";
+  if (!c.next_step_on) return "none";
   const d = daysBetween(today, c.next_step_on);
   if (d < 0) return "overdue";
   if (d === 0) return "today";

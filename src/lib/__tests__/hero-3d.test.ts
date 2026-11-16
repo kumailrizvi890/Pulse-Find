@@ -20,7 +20,7 @@ const home = read("app/page.tsx");
 const css = read("app/globals.css");
 const trace = read("components/PulseTrace.tsx");
 const backdrop = read("components/HeroBackdrop.tsx");
-const newCss = css.slice(css.indexOf("HERO 3D + HEARTBEAT"));
+const newCss = css.slice(css.indexOf("HERO 3D + HEARTBEAT"), css.indexOf("SITE-WIDE TEXTURED 3D BACKGROUND"));
 
 describe("hero pulse line fits the viewport on load", () => {
   it("the hero section is viewport height minus the sticky header", () => {
@@ -79,6 +79,9 @@ describe("hero 3D backdrop", () => {
     expect(backdrop).toContain("prefers-reduced-motion: reduce");
   });
 
+  // Scoped to the hero section: the site-wide texture section below
+  // deliberately adds the preview's violet-tinted edge glows (approved
+  // Nov 16 2026) — that exception lives in the site section only.
   it("the backdrop CSS uses the existing red only, no new colors", () => {
     expect(newCss).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     const rgbs = [...newCss.matchAll(/rgb\((\d+ \d+ \d+)/g)].map((m) => m[1]);

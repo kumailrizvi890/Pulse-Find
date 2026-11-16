@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { dueBucket } from "../pipeline";
 import {
   answerGeneralQuestion,
   buildGeneralAgentHandoff,
@@ -188,6 +189,93 @@ describe("answerGeneralQuestion", () => {
     expect(a.text).toContain("Thank her for the referral");
     expect(a.links?.some((l) => l.label === "Open Networking")).toBe(true);
     expect(a.links?.[0].href).toContain("/demo/networking");
+  });
+
+  it("does not list a contact with a date today but no step as due", () => {
+    const blank: Contact = {
+      id: "c-blank",
+      person_name: "No Step Nora",
+      company: "Globex",
+      status: "Connected",
+      next_step: "",
+      next_step_on: TODAY,
+      notes: "",
+    };
+    const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [blank] }));
+    expect(a.text).toContain("no follow-ups due right now");
+    expect(a.text).not.toContain("No Step Nora");
+    expect(dueBucket(blank, TODAY)).toBe("none");
+  });
+
+  it("lists a contact with a date today and a step as due", () => {
+    const due: Contact = {
+      id: "c-due",
+      person_name: "Due Dan",
+      company: "Globex",
+      status: "Connected",
+      next_step: "Send the intro",
+      next_step_on: TODAY,
+      notes: "",
+    };
+    const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [due] }));
+    expect(a.text).toContain("1 follow-up due");
+    expect(a.text).toContain("Due Dan");
+    expect(a.text).toContain("Send the intro");
+  });
+
+  it("lists an overdue contact with a step as due", () => {
+    const overdue: Contact = {
+      id: "c-overdue",
+      person_name: "Late Lena",
+      company: "Globex",
+      status: "Connected",
+      next_step: "Chase the referral",
+      next_step_on: "2026-11-14",
+      notes: "",
+    };
+    const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [overdue] }));
+    expect(a.text).toContain("1 follow-up due");
+    expect(a.text).toContain("Late Lena");
+    expect(a.text).toContain("Chase the referral");
+  });
+
+  it("never renders an empty step in a due line", () => {
+    // A blank step is excluded by the shared due rule before rendering,
+    // so the "Follow up" fallback is defensive — but no due line may ever
+    // show an empty step, whatever the contact data holds.
+    const contacts: Contact[] = [
+      { id: "c-blank", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "" },
+      { id: "c-space", person_name: "Spacey Sue", company: "Globex", status: "Connected", next_step: "   ", next_step_on: "2026-11-14", notes: "" },
+      { id: "c-due", person_name: "Due Dan", company: "Globex", status: "Connected", next_step: "Send the intro", next_step_on: TODAY, notes: "" },
+    ];
+    const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts }));
+    expect(a.text).toContain("1 follow-up due");
+    expect(a.text).not.toContain("Blank Ben");
+    expect(a.text).not.toContain("Spacey Sue");
+    expect(a.text).not.toContain(":  (");
+    expect(a.text).not.toContain(": (");
+  });
+
+  it("counts due follow-ups the same way dueBucket does", () => {
+    const contacts: Contact[] = [
+      { id: "c-1", person_name: "Overdue Olive", company: "Globex", status: "Connected", next_step: "Ping her", next_step_on: "2026-11-13", notes: "" },
+      { id: "c-2", person_name: "Today Tom", company: "Globex", status: "Connected", next_step: "Call him", next_step_on: TODAY, notes: "" },
+      { id: "c-3", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "" },
+      { id: "c-4", person_name: "Future Fay", company: "Globex", status: "Connected", next_step: "Meet up", next_step_on: "2026-11-20", notes: "" },
+      { id: "c-5", person_name: "No Date Ned", company: "Globex", status: "Connected", next_step: "Email him", next_step_on: null, notes: "" },
+    ];
+    const expected = contacts.filter((c) => {
+      const b = dueBucket(c, TODAY);
+      return b === "overdue" || b === "today";
+    }).length;
+    expect(expected).toBe(2);
+    const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts }));
+    expect(a.text).toContain("2 follow-ups due");
+    expect(a.text).toContain("Overdue Olive");
+    expect(a.text).toContain("Today Tom");
+    expect(a.text).not.toContain("Blank Ben");
+    expect(a.text).not.toContain("Future Fay");
+    expect(a.text).not.toContain("No Date Ned");
   });
 
   it("falls back honestly instead of inventing an answer", () => {

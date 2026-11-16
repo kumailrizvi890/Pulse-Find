@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { Logo } from "@/components/Logo";
 import { PulseTrace } from "@/components/PulseTrace";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
@@ -8,7 +9,8 @@ export const metadata: Metadata = { title: "Reset password" };
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="pf-shell min-h-dvh">
+    <div className="pf-shell relative min-h-dvh overflow-hidden">
+      <HeroBackdrop />
       <header className="gutter mx-auto flex h-14 w-full max-w-[1180px] items-center">
         <Logo href="/" />
       </header>

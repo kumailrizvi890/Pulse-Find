@@ -278,6 +278,62 @@ describe("answerGeneralQuestion", () => {
     expect(a.text).not.toContain("No Date Ned");
   });
 
+  it("routes networking follow-up questions to the contacts, not the waiting tasks", () => {
+    // Same contacts as the demo seed on Nov 16: Priya due today, Marcus
+    // overdue, Sam with no step and no date. The two failing phrasings
+    // from production ("due" used to win and return the waiting
+    // applications; "networking follow-ups" fell through to "I do not
+    // know") must both name the two due contacts.
+    const demoContacts: Contact[] = [
+      { id: "d1", person_name: "Priya Nair", company: "Copperline", status: "Connected", next_step: "Week 2 value touch", next_step_on: "2026-11-16", notes: "" },
+      { id: "d2", person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged", next_step: "Follow up if no reply", next_step_on: "2026-11-14", notes: "" },
+      { id: "d3", person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", next_step_on: null, notes: "" },
+    ];
+    const demoCtx = ctx({ contacts: demoContacts, today: "2026-11-16" });
+    for (const q of [
+      "What networking follow-ups are due?",
+      "Show me my networking follow-ups.",
+      "any networking follow-ups due",
+      "who do I need to follow up with",
+    ]) {
+      const a = answerGeneralQuestion(q, demoCtx);
+      expect(a.text).toContain("2 follow-ups due");
+      expect(a.text).toContain("Priya Nair");
+      expect(a.text).toContain("Marcus Webb");
+      expect(a.text).not.toContain("Sam Ortiz");
+      expect(a.text).not.toContain("Northwind Labs");
+    }
+  });
+
+  it("says no networking follow-ups are due when contacts exist but none are due", () => {
+    const a = answerGeneralQuestion("What networking follow-ups are due?", ctx({ contacts: [CONTACTS[0]] }));
+    expect(a.text).toContain("no follow-ups due right now");
+    expect(a.text).not.toContain("waiting on you");
+    expect(a.text).not.toContain("I do not know");
+  });
+
+  it("says no networking follow-ups are due when no contacts are saved at all", () => {
+    const a = answerGeneralQuestion("Show me my networking follow-ups.", ctx({ contacts: [] }));
+    expect(a.text).toContain("no follow-ups due right now");
+    expect(a.text).not.toContain("waiting on you");
+    expect(a.text).not.toContain("I do not know");
+  });
+
+  it("answers a bare contacts question with the follow-ups, not the waiting tasks", () => {
+    const a = answerGeneralQuestion("show me my contacts", ctx());
+    expect(a.text).toContain("1 follow-up due");
+    expect(a.text).toContain("Sam Ortiz");
+  });
+
+  it("still answers 'What is due next?' with the waiting tasks", () => {
+    // Ambiguous on purpose: "due next" with no networking word keeps the
+    // existing behaviour (waiting applications), it does not guess contacts.
+    const a = answerGeneralQuestion("What is due next?", ctx());
+    expect(a.text).toContain("Northwind Labs");
+    expect(a.text).toContain("Finish the HackerRank");
+    expect(a.text).not.toContain("follow-up");
+  });
+
   it("falls back honestly instead of inventing an answer", () => {
     const a = answerGeneralQuestion("What is the salary?", ctx());
     expect(a.text).toContain("I do not know that one from your tracker data");

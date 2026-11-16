@@ -277,7 +277,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
         </>
       ) : (
         <>
-                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} onDone={markDone} onOpen={openTask} onShowWaiting={showWaiting} />
+                <Overview apps={apps} sum={sum} queue={queue} steps={steps} loading={loading} userId={userId} weeklyGoal={settings.weekly_goal} ghostDays={settings.ghost_days} onDone={markDone} onOpen={openTask} onShowWaiting={showWaiting} />
 
           {extras}
 

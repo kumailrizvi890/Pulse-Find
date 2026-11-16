@@ -13,15 +13,19 @@ import {
 import {
   addDays,
   daysBetween,
+  followUp,
+  hasOA,
   parseISO,
+  reachedInterview,
   todayISO,
+  weekly,
   weekStart,
   type FunnelStep,
   type Summary,
 } from "@/lib/metrics";
 import type { Application, Contact } from "@/lib/types";
-import { Funnel, WeeklyPace, type PaceDay } from "./Charts";
-import { Panel, Tag, btn, cx, fmtDate } from "./ui";
+import { Funnel, WeeklyBars, WeeklyPace, type PaceDay } from "./Charts";
+import { Panel, StatusPill, Tag, btn, cx, fmtDate } from "./ui";
 import { NotifyBell, PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
 const AVATAR_TONES = [
@@ -79,6 +83,8 @@ export function Overview({
   steps,
   loading,
   userId,
+  weeklyGoal,
+  ghostDays,
   onDone,
   onOpen,
   onShowWaiting,
@@ -89,6 +95,8 @@ export function Overview({
   steps: FunnelStep[];
   loading: boolean;
   userId?: string;
+  weeklyGoal: number;
+  ghostDays: number;
   onDone: (a: Application) => Promise<void>;
   onOpen: (a: Application) => void;
   onShowWaiting: () => void;
@@ -110,13 +118,39 @@ export function Overview({
     const prevStart = addDays(monday, -7);
     const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
     const change = prevTotal === 0 ? null : Math.round(((total - prevTotal) / prevTotal) * 100);
-    return { days, total, change };
+    return { days, total, prevTotal, change };
   }, [apps, monday]);
+
+  // The last 12 weeks for the chart under the pace, drawn by WeeklyBars
+  // with the weekly goal as its dashed rule. WeeklyBars and weekly() have
+  // existed unused until now.
+  const weeks = useMemo(() => weekly(apps, today), [apps, today]);
+
+  // OAs in the tracker's sense — oa_received or an OA status — not the
+  // funnel's cumulative "reached an assessment" count, which also folds
+  // interview-stage applications in.
+  const oaList = useMemo(
+    () => apps.filter(hasOA).sort((a, b) => (b.last_contact ?? "").localeCompare(a.last_contact ?? "")),
+    [apps],
+  );
+  // Interview-stage applications, active first so the ones still moving
+  // sit above the ones that went quiet.
+  const interviewList = useMemo(
+    () =>
+      apps
+        .filter(reachedInterview)
+        .sort(
+          (a, b) =>
+            Number(followUp(a, today, ghostDays) === "ghosted") - Number(followUp(b, today, ghostDays) === "ghosted") ||
+            (b.last_contact ?? "").localeCompare(a.last_contact ?? ""),
+        ),
+    [apps, today, ghostDays],
+  );
 
   const hired = useMemo(() => apps.filter((a) => a.status === "Accepted").length, [apps]);
   const funnelSteps: (FunnelStep & { color?: string })[] = [
     { label: "Applied", value: steps[0]?.value ?? sum.total, color: "#f66367" },
-    { label: "Screening", value: steps[1]?.value ?? 0, color: "#c87b27" },
+    { label: "OA", value: steps[1]?.value ?? 0, color: "#c87b27" },
     { label: "Interview", value: steps[2]?.value ?? 0, color: "#4e874f" },
     { label: "Offer", value: steps[3]?.value ?? 0, color: "#4e874f" },
     { label: "Hired", value: hired, color: "#4e874f" },
@@ -241,8 +275,51 @@ export function Overview({
           <div className="mt-5 border-t border-line pt-4">
             <h3 className="text-sm font-semibold">Weekly Pace</h3>
             <p className="mt-0.5 text-xs text-muted">Applications per day</p>
+            {/*
+              A zero week used to render as seven flat bars and "Total this
+              week: 0" with no other explanation, which read as a broken
+              section. Say so plainly instead, with last week's total for
+              context — and always show the goal, which used to live only
+              in Settings and never appeared on the dashboard at all.
+            */}
+            {pace.total === 0 ? (
+              <p className="mt-3 text-sm text-muted">
+                No applications yet this week
+                {pace.prevTotal > 0 ? ` — ${pace.prevTotal} last week.` : " — none last week either."}
+              </p>
+            ) : (
+              <div className="mt-3">
+                <WeeklyPace days={pace.days} total={pace.total} change={pace.change} />
+              </div>
+            )}
             <div className="mt-3">
-              <WeeklyPace days={pace.days} total={pace.total} change={pace.change} />
+              <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
+                <span className="font-medium">
+                  {pace.total} / {weeklyGoal} this week
+                </span>
+                <span className="text-muted">
+                  {pace.total >= weeklyGoal ? "Goal reached" : `${weeklyGoal - pace.total} to go`}
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-track"
+                role="progressbar"
+                aria-valuenow={pace.total}
+                aria-valuemax={weeklyGoal}
+                aria-label={`Weekly goal: ${pace.total} of ${weeklyGoal} applications`}
+              >
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${Math.min(100, Math.round((pace.total / Math.max(weeklyGoal, 1)) * 100))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-line pt-4">
+            <h3 className="text-sm font-semibold">Last 12 weeks</h3>
+            <p className="mt-0.5 text-xs text-muted">Applications per week — the dashed line is your weekly goal</p>
+            <div className="mt-3">
+              <WeeklyBars weeks={weeks} goal={Math.max(weeklyGoal, 1)} />
             </div>
           </div>
         </Panel>
@@ -328,6 +405,73 @@ export function Overview({
           )}
         </Panel>
       </div>
+      {/*
+        Dedicated OA and Interview sections. Until now those counts only
+        appeared in the funnel bars and one stats tile — and the tile read
+        0, because it summed interviews_done, which the tracker leaves at
+        0 on almost every row. Each company opens its application.
+      */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Panel title="OAs" hint={`${oaList.length} with an assessment`}>
+          {oaList.length === 0 ? (
+            <p className="text-sm text-muted">No assessments yet. When a company sends one, it shows up here.</p>
+          ) : (
+            <>
+              <ul className="divide-y divide-line">
+                {oaList.slice(0, 5).map((a) => (
+                  <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+                    <button onClick={() => onOpen(a)} className="block w-full text-left">
+                      <span className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-semibold">{a.company}</span>
+                        <StatusPill status={a.status} />
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm text-muted">{a.role || "Role not set"}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {oaList.length > 5 && (
+                <p className="mt-3 text-xs text-muted">And {oaList.length - 5} more in the list below.</p>
+              )}
+            </>
+          )}
+        </Panel>
+        <Panel title="Interviews" hint={`${interviewList.length} at interview stage`}>
+          {interviewList.length === 0 ? (
+            <p className="text-sm text-muted">No interviews yet. When a company moves you forward, it shows up here.</p>
+          ) : (
+            <>
+              <ul className="divide-y divide-line">
+                {interviewList.slice(0, 6).map((a) => {
+                  const ghosted = followUp(a, today, ghostDays) === "ghosted";
+                  // An offer still needs a decision, so it stays Active;
+                  // only a rejection, a withdrawal or an acceptance is done.
+                  const finished = a.status === "Rejected" || a.status === "Withdrawn" || a.status === "Accepted";
+                  return (
+                    <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+                      <button onClick={() => onOpen(a)} className="block w-full text-left">
+                        <span className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-semibold">{a.company}</span>
+                          <StatusPill status={a.status} />
+                          {ghosted ? (
+                            <Tag tone="danger">Ghosted</Tag>
+                          ) : !finished ? (
+                            <span className="text-xs font-medium text-good">Active</span>
+                          ) : undefined}
+                        </span>
+                        <span className="mt-0.5 block truncate text-sm text-muted">{a.role || "Role not set"}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {interviewList.length > 6 && (
+                <p className="mt-3 text-xs text-muted">And {interviewList.length - 6} more in the list below.</p>
+              )}
+            </>
+          )}
+        </Panel>
+      </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <OverviewStat
           label="Total Applications"
@@ -335,7 +479,7 @@ export function Overview({
           sub={sum.thisWeek > 0 ? `+${sum.thisWeek} this week` : undefined}
           good={sum.thisWeek > 0}
         />
-        <OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${sum.oas} assessments`} />
+        <OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${oaList.length} OAs`} />
         <OverviewStat
           label="Avg Response"
           value={response ? `${response.average.toFixed(1)}d` : "—"}

@@ -62,7 +62,7 @@ export async function buildWorkbook(apps: Application[], settings: Settings, tod
     ["Tech roles", sum.tech],
     ["Response rate", `${Math.round(sum.responseRate * 100)}%`],
     ["Reached an assessment", sum.oas],
-    ["Interviews completed", sum.interviews],
+    ["At interview stage", sum.interviews],
     ["Offers", sum.offers],
     ["Rejections", sum.rejected],
     [`Ghosted (quiet ${settings.ghost_days}+ days)`, sum.ghosted],

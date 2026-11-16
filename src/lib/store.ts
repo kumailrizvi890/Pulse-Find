@@ -67,14 +67,16 @@ function fail(error: { message: string } | null, what: string): never {
   throw new Error(`Couldn't ${what}. ${error?.message ?? "Check your connection and try again."}`);
 }
 
-/** Supabase-backed store. Row-level security limits every query to the signed-in user's rows. */
+/** Supabase-backed store. Every query is scoped to the signed-in user's
+ * rows twice: an explicit `.eq("user_id", userId)` here, and row-level
+ * security in the database as the backstop. */
 export function accountStore(supabase: SupabaseClient, userId: string): TrackerStore {
   return {
     kind: "account",
     async load() {
       const [a, e, p] = await Promise.all([
-        supabase.from("applications").select(APP_COLS).order("last_contact", { ascending: false }),
-        supabase.from("events").select("id,application_id,event_date,kind,details").order("event_date", { ascending: false }).limit(200),
+        supabase.from("applications").select(APP_COLS).eq("user_id", userId).order("last_contact", { ascending: false }),
+        supabase.from("events").select("id,application_id,event_date,kind,details").eq("user_id", userId).order("event_date", { ascending: false }).limit(200),
         supabase.from("profiles").select("display_name,ghost_days,weekly_goal").eq("user_id", userId).maybeSingle(),
       ]);
       if (a.error) fail(a.error, "load your applications");
@@ -102,12 +104,12 @@ export function accountStore(supabase: SupabaseClient, userId: string): TrackerS
       return out;
     },
     async update(id, patch) {
-      const { data, error } = await supabase.from("applications").update(patch).eq("id", id).select(APP_COLS).single();
+      const { data, error } = await supabase.from("applications").update(patch).eq("id", id).eq("user_id", userId).select(APP_COLS).single();
       if (error) fail(error, "save your changes");
       return data as Application;
     },
     async remove(id) {
-      const { error } = await supabase.from("applications").delete().eq("id", id);
+      const { error } = await supabase.from("applications").delete().eq("id", id).eq("user_id", userId);
       if (error) fail(error, "delete that application");
     },
     async addEvent(e) {

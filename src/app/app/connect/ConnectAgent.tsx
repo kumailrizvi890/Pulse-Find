@@ -32,7 +32,7 @@ function snippet(client: ClientName, url: string, token: string) {
   const auth = `Bearer ${token}`;
   switch (client) {
     case "Claude Code":
-      return `claude mcp add --transport http pulse-find ${url} \\\  n--header "Authorization: ${auth}"`;
+      return `claude mcp add --transport http pulse-find ${url} \\\n  --header "Authorization: ${auth}"`;
     case "Cursor":
       return JSON.stringify({ mcpServers: { "pulse-find": { url, headers: { Authorization: auth } } } }, null, 2);
     case "VS Code":

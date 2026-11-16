@@ -9,6 +9,7 @@ import {
   summarize, todayISO, CLOSED, type Filter,
 } from "@/lib/metrics";
 import type { TrackerStore } from "@/lib/store";
+import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import { dedupeImport } from "@/lib/sheet";
 import { buildWorkbook, download, toCsv } from "@/lib/export";
 import { Overview } from "./Overview";
@@ -53,10 +54,13 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   const today = todayISO();
 
   const [attempt, setAttempt] = useState(0);
+  // A hung load used to sit on the skeleton forever (seen live Nov 16:
+  // ~a minute of grey pulsing blocks on first load). After 15s the
+  // timeout rejects and the existing error panel offers "Try again".
+  // Retrying bumps `attempt`, so a fresh load gets a fresh timer.
   useEffect(() => {
     let alive = true;
-    store
-      .load()
+    withLoadTimeout(store.load(), LOAD_TIMEOUT_MS)
       .then((d) => {
         if (!alive) return;
         setApps(d.apps);

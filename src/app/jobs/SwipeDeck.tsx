@@ -86,6 +86,17 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
 
   return (
     <div className="mx-auto flex w-full max-w-[380px] flex-col items-center">
+      {/* The active card's halo lives on this wrapper, not on the card
+      itself: the deck container below is overflow-hidden (the swipe
+      fly-off needs the clipping), and overflow-hidden clips a
+      box-shadow, so a pf-glow on the card would be invisible. The
+      wrapper is exactly the card's size, so the halo hugs the active
+      card the way it hugs the "Waiting on you" panel. The border is
+      always present (transparent when empty) so the deck never shifts
+      size between the glowing and the empty state. The glow only
+      shows while there is a top card, like the panel only glows while
+      something is waiting. */}
+    <div className={cx("w-full rounded-3xl border border-transparent", top ? "border-danger/30 pf-glow" : undefined)}>
       <div className="relative h-[400px] w-full select-none overflow-hidden">
         {!top ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-line p-6 text-center text-sm text-muted">
@@ -171,7 +182,9 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
         )}
       </div>
 
-      <div className="mt-6 flex items-center gap-5">
+      </div>
+
+    <div className="mt-6 flex items-center gap-5">
         <button
           type="button"
           aria-label="Pass"

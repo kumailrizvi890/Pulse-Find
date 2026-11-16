@@ -48,8 +48,11 @@ describe("demo connect page", () => {
   it("sends demo visitors from Settings to /demo/connect, signed-in users to /app/connect", () => {
     const dashboard = read("components/dashboard/Dashboard.tsx");
     expect(dashboard).toContain(DEMO_CONNECT_LINK);
-    // The signed-in setup link is untouched: it still goes to /app/setup.
-    expect(dashboard).toContain('href="/app/setup"');
+    // The setup link splits the same way: demo visitors go to
+    // /demo/connect (the wizard's agent steps, demo-safe) instead of
+    // /app/setup, which redirects signed-out visitors to /login.
+    expect(dashboard).toContain('userId ? "/app/setup" : "/demo/connect"');
+    expect(dashboard).not.toContain('href="/app/setup"');
   });
 
   it("sends demo visitors from the task chat handoff to /demo/connect, signed-in users to /app/connect", () => {

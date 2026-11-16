@@ -117,7 +117,7 @@ export function demoPipelineStore(today: ISODate = todayISO()): PipelineStore {
   };
 }
 
-// ---------- account store (Supabase, RLS-scoped) ----------
+// ---------- account store (Supabase, explicitly user-scoped + RLS) ----------
 
 const LEAD_COLS = "id,company,role,track,location,pay,url,source,status,fit_note,date_found,created_at,updated_at";
 const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes,created_at,updated_at";
@@ -130,7 +130,7 @@ export function accountPipelineStore(supabase: SupabaseClient, userId: string): 
   return {
     kind: "account",
     async loadLeads() {
-      const { data, error } = await supabase.from("job_leads").select(LEAD_COLS).order("date_found", { ascending: false });
+      const { data, error } = await supabase.from("job_leads").select(LEAD_COLS).eq("user_id", userId).order("date_found", { ascending: false });
       if (error) fail(error, "load your leads");
       return (data ?? []) as Lead[];
     },
@@ -140,16 +140,16 @@ export function accountPipelineStore(supabase: SupabaseClient, userId: string): 
       return data as Lead;
     },
     async updateLead(id, patch) {
-      const { data, error } = await supabase.from("job_leads").update(patch).eq("id", id).select(LEAD_COLS).single();
+      const { data, error } = await supabase.from("job_leads").update(patch).eq("id", id).eq("user_id", userId).select(LEAD_COLS).single();
       if (error) fail(error, "save your changes");
       return data as Lead;
     },
     async removeLead(id) {
-      const { error } = await supabase.from("job_leads").delete().eq("id", id);
+      const { error } = await supabase.from("job_leads").delete().eq("id", id).eq("user_id", userId);
       if (error) fail(error, "delete that lead");
     },
     async loadContacts() {
-      const { data, error } = await supabase.from("networking_contacts").select(CONTACT_COLS).order("next_step_on", { ascending: true, nullsFirst: false });
+      const { data, error } = await supabase.from("networking_contacts").select(CONTACT_COLS).eq("user_id", userId).order("next_step_on", { ascending: true, nullsFirst: false });
       if (error) fail(error, "load your contacts");
       return (data ?? []) as Contact[];
     },
@@ -159,12 +159,12 @@ export function accountPipelineStore(supabase: SupabaseClient, userId: string): 
       return data as Contact;
     },
     async updateContact(id, patch) {
-      const { data, error } = await supabase.from("networking_contacts").update(patch).eq("id", id).select(CONTACT_COLS).single();
+      const { data, error } = await supabase.from("networking_contacts").update(patch).eq("id", id).eq("user_id", userId).select(CONTACT_COLS).single();
       if (error) fail(error, "save your changes");
       return data as Contact;
     },
     async removeContact(id) {
-      const { error } = await supabase.from("networking_contacts").delete().eq("id", id);
+      const { error } = await supabase.from("networking_contacts").delete().eq("id", id).eq("user_id", userId);
       if (error) fail(error, "delete that contact");
     },
   };

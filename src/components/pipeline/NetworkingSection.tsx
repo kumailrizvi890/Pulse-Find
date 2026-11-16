@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Contact, ContactInput } from "@/lib/types";
 import { emptyContact } from "@/lib/types";
-import { todayISO } from "@/lib/metrics";
+import { addDays, todayISO } from "@/lib/metrics";
 import type { PipelineStore } from "@/lib/pipeline";
 import { dueBucket, sortContacts, type DueBucket } from "@/lib/pipeline";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
@@ -232,7 +232,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Status
-            <input className={field} maxLength={200} value={v.status} onChange={(e) => set("status", e.target.value)} placeholder="Connected — thanked Nov 4" />
+            <input className={field} maxLength={200} value={v.status} onChange={(e) => set("status", e.target.value)} placeholder={`Connected — thanked ${fmtDate(addDays(todayISO(), -12))}`} />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Next step

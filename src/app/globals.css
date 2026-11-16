@@ -149,3 +149,86 @@ h1, h2, h3 {
   color: var(--ink);
   color-scheme: dark;
 }
+
+/*
+  PULSE brand touches (Nov 15 2026). Everything here reuses the existing
+  tokens only — var(--accent) at low alpha, never a new color. Every
+  animation is covered by the global prefers-reduced-motion rule above,
+  which collapses animation durations to 0.01ms.
+*/
+
+/* 1. Breathing for the logo mark: slow, gentle, barely there. */
+@keyframes pf-breathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.pf-breathe {
+  animation: pf-breathe 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* 2. Animated status dot: glowing center, one expanding ring. */
+@keyframes pf-dot-ring {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.pf-dot {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 8px;
+  width: 8px;
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgb(248 52 62 / 0.8);
+}
+.pf-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--accent);
+  animation: pf-dot-ring 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* 3. Heartbeat loader: the waveform draws itself, then loops. */
+@keyframes pf-heartbeat-draw {
+  0% { stroke-dashoffset: 120; opacity: 0.35; }
+  45% { stroke-dashoffset: 0; opacity: 1; }
+  75% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: -120; opacity: 0.35; }
+}
+.pf-heartbeat-line {
+  stroke-dasharray: 120;
+  animation: pf-heartbeat-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 4. Very faint red ambient glow for one selected card at a time. */
+.pf-glow {
+  box-shadow:
+    0 0 0 1px rgb(253 88 93 / 0.08),
+    0 8px 32px -12px rgb(248 52 62 / 0.28),
+    var(--shadow);
+}
+
+/* 5. Notification badge: dark pill, accent count, faint red glow. */
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  border-radius: 9999px;
+  border: 1px solid rgb(253 88 93 / 0.25);
+  background: var(--surface-2);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  box-shadow: 0 0 12px -4px rgb(248 52 62 / 0.45);
+}
+
+/* 6. Faint glow hugging the active nav tab's accent underline. */
+.pf-nav-glow {
+  box-shadow: 0 3px 12px -4px rgb(253 88 93 / 0.55);
+}

@@ -2,13 +2,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// The PULSE branding pass (Nov 15 2026): one shared heartbeat waveform,
-// a breathing logo mark, an animated status dot, a heartbeat loader, a
-// faint red glow, a notification badge, a login watermark, branded empty
-// states, red hovers, and a footer signature. Everything reuses the
-// existing red tokens only — no new colors, no layout changes. Pin the
-// pieces so a later edit cannot silently drop the branding or sneak in
-// a new palette.
+// The PULSE branding pass (Nov 15 2026), v2: the v1 touches were too
+// subtle to notice, so v2 turns the neon up — the logo mark is unboxed
+// (bare glowing waveform, no red tile), the glow is a real halo, and
+// the waiting panel carries a bell with a glowing count badge. One
+// shared heartbeat waveform, a breathing logo mark, a bigger animated
+// status dot, a brighter heartbeat loader, a visible red glow, a
+// notification bell, a stronger login watermark, branded empty states,
+// red hovers, and a footer signature. Everything reuses the existing
+// red tokens only — no new colors, no layout changes. Pin the pieces
+// so a later edit cannot silently drop the branding, re-box the logo,
+// or sneak in a new palette.
 function read(rel: string): string {
   return readFileSync(join(__dirname, "..", "..", ...rel.split("/")), "utf8");
 }
@@ -18,16 +22,21 @@ const css = read("app/globals.css");
 const brandCss = css.slice(css.indexOf("PULSE brand touches"));
 
 function extractPath(src: string): string {
-  const m = src.match(/d="([^"]+)"/);
+  const constMatch = src.match(/MARK_PATH = "([^"]+)"/);
+  if (constMatch) return constMatch[1];
+  // Match a <path d="...">, not id="..." (the icon's filter id="neon"
+  // contains d="neon").
+  const m = src.match(/<path d="([^"]+)"/);
   if (!m) throw new Error("no SVG path found");
   return m[1];
 }
 
 describe("pulse brand marks", () => {
-  it("exports one shared waveform, status dot, heartbeat loader and empty-state line", () => {
+  it("exports one shared waveform, status dot, heartbeat loader, bell and empty-state line", () => {
     expect(brand).toContain("export function PulseWaveform");
     expect(brand).toContain("export function PulseDot");
     expect(brand).toContain("export function PulseHeartbeat");
+    expect(brand).toContain("export function NotifyBell");
     expect(brand).toContain("export function WaitingSignal");
   });
 
@@ -42,29 +51,56 @@ describe("pulse brand marks", () => {
     expect(brand).toContain('role="status"');
   });
 
-  it("keeps the favicon and the logo mark on the same tall-spike path", () => {
+  it("keeps the logo mark unboxed: no tile, neon layers, bright core", () => {
+    const logo = read("components/Logo.tsx");
+    expect(logo).not.toContain("<rect");
+    expect(logo).not.toContain('fill="var(--accent)"');
+    expect(logo).toContain("pf-mark");
+    expect(logo).toContain('strokeOpacity="0.3"');
+    expect(logo).toContain('stroke="var(--accent-ink)"');
+  });
+
+  it("keeps the favicon and the logo mark on the same tall-spike path, both unboxed", () => {
     const logo = read("components/Logo.tsx");
     const icon = read("app/icon.svg");
     const logoPath = extractPath(logo);
     expect(logoPath).toContain("L17 5");
     expect(extractPath(icon)).toBe(logoPath);
-    expect(icon).toContain('fill="#fd585d"');
+    expect(icon).not.toContain("<rect");
+    expect(icon).toContain("<filter");
+    expect(icon).toContain('stroke="#fd585d"');
   });
 
-  it("breathes the logo mark gently", () => {
+  it("breathes the logo mark visibly", () => {
     const logo = read("components/Logo.tsx");
     expect(logo).toContain("pf-breathe");
     expect(css).toContain("@keyframes pf-breathe");
+    expect(css).toContain("scale(1.08)");
   });
 });
 
 describe("pulse brand css", () => {
-  it("defines the dot ring, heartbeat draw, glow, badge and nav glow", () => {
+  it("defines the dot ring, heartbeat draw, glow, badge, bell and nav glow", () => {
     expect(css).toContain("@keyframes pf-dot-ring");
     expect(css).toContain("@keyframes pf-heartbeat-draw");
     expect(css).toContain(".pf-glow");
     expect(css).toContain(".pf-badge");
+    expect(css).toContain(".pf-bell");
+    expect(css).toContain(".pf-bell-count");
     expect(css).toContain(".pf-nav-glow");
+    expect(css).toContain(".pf-mark");
+    expect(css).toContain(".pf-wave-glow");
+  });
+
+  it("makes the glow a real halo, not a whisper", () => {
+    expect(css).toContain("0 0 24px rgb(248 52 62 / 0.5)");
+    expect(css).toContain("0 0 10px rgb(248 52 62 / 0.9)");
+  });
+
+  it("makes the status dot bigger with a stronger ring", () => {
+    expect(css).toContain("height: 10px");
+    expect(css).toContain("scale(3)");
+    expect(css).toContain("0 0 10px rgb(248 52 62 / 1)");
   });
 
   it("uses only the existing red in the brand section — no new palette", () => {
@@ -80,10 +116,10 @@ describe("pulse brand css", () => {
 });
 
 describe("pulse brand placements", () => {
-  it("puts the dot and badge on the waiting panel, with a faint glow when items wait", () => {
+  it("puts the dot and the bell on the waiting panel, with a visible glow when items wait", () => {
     const overview = read("components/dashboard/Overview.tsx");
     expect(overview).toContain("<PulseDot />");
-    expect(overview).toContain("<NotifyBadge");
+    expect(overview).toContain("<NotifyBell");
     expect(overview).toContain("pf-glow");
     expect(overview).toContain("<PulseHeartbeat");
   });
@@ -106,9 +142,9 @@ describe("pulse brand placements", () => {
     expect(deck).toContain("Loading openings…");
   });
 
-  it("watermarks the login screen faintly, behind the form", () => {
+  it("watermarks the login screen visibly, behind the form", () => {
     const login = read("app/login/page.tsx");
-    expect(login).toContain("opacity-[0.06]");
+    expect(login).toContain("opacity-[0.13]");
     expect(login).toContain("pointer-events-none");
     expect(login).toContain("relative z-10");
   });
@@ -117,6 +153,24 @@ describe("pulse brand placements", () => {
     const home = read("app/page.tsx");
     expect(home).toContain("<PulseMark className=\"h-4 w-4\" />");
     expect(home).toContain("Pulse Find</span>");
+  });
+
+  it("lists all 7 capabilities in the landing hero, each led by a pulse dot", () => {
+    const home = read("app/page.tsx");
+    for (const item of [
+      "Tracks applications, interviews, assessments, offers, and rejections.",
+      "Highlights actions that need attention.",
+      "Detects companies that have gone quiet.",
+      "Tracks weekly application goals and progress.",
+      "Finds live internships from company career pages.",
+      "Connects to Claude, Cursor, and Copilot through MCP.",
+      "Keeps personal application data private.",
+    ]) {
+      expect(home).toContain(item);
+    }
+    expect(home).toContain("HERO_CAPABILITIES");
+    expect(home).toContain("<PulseDot");
+    expect(home).toContain("sm:grid-cols-2");
   });
 
   it("keeps red hovers on nav links and tabs", () => {

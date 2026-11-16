@@ -1,0 +1,178 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { buildAgentPrompt } from "@/lib/agent-prompt";
+import { btn, cx, Panel } from "@/components/dashboard/ui";
+
+/**
+ * The Connect-agent page for signed-out demo visitors. It mirrors the
+ * signed-in Connect page's four steps, but it is demo-safe: the token is
+ * the placeholder pf_YOUR_TOKEN everywhere, no token is created, and
+ * nothing here touches Supabase or the token table. A visitor who
+ * wants a real token signs up from here instead.
+ *
+ * The per-client snippets mirror src/app/app/connect/ConnectAgent.tsx
+ * on purpose (duplicated, not shared): the signed-in page stays
+ * byte-for-byte untouched, so a change here can never break it.
+ */
+
+const PLACEHOLDER_TOKEN = "pf_YOUR_TOKEN";
+
+const CLIENTS = ["Claude Code", "Cursor", "VS Code", "Claude Desktop", "Other"] as const;
+type ClientName = (typeof CLIENTS)[number];
+
+function snippet(client: ClientName, url: string, token: string) {
+  const auth = `Bearer ${token}`;
+  switch (client) {
+    case "Claude Code":
+      return `claude mcp add --transport http pulse-find ${url} \\\n  --header "Authorization: ${auth}"`;
+    case "Cursor":
+      return JSON.stringify({ mcpServers: { "pulse-find": { url, headers: { Authorization: auth } } } }, null, 2);
+    case "VS Code":
+      return JSON.stringify({ servers: { "pulse-find": { type: "http", url, headers: { Authorization: auth } } } }, null, 2);
+    case "Claude Desktop":
+      return JSON.stringify(
+        { mcpServers: { "pulse-find": { command: "npx", args: ["-y", "mcp-remote", url, "--header", "Authorization:${PF_AUTH}"], env: { PF_AUTH: auth } } } },
+        null,
+        2,
+      );
+    default:
+      return `URL:        ${url}\nTransport:  Streamable HTTP\nHeader:     Authorization: ${auth}`;
+  }
+}
+
+const WHERE: Record<ClientName, string> = {
+  "Claude Code": "Run this in your terminal.",
+  Cursor: "Add to ~/.cursor/mcp.json (or .cursor/mcp.json in a project).",
+  "VS Code": "Add to .vscode/mcp.json, then start the server from the MCP view.",
+  "Claude Desktop": "Add to claude_desktop_config.json (Settings → Developer → Edit config). Needs Node.js.",
+  Other: "Any MCP client that supports Streamable HTTP and custom headers.",
+};
+
+export function DemoConnectAgent() {
+  const [client, setClient] = useState<ClientName>("Claude Code");
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [snippetCopied, setSnippetCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [origin, setOrigin] = useState("https://pulsefind-app.vercel.app");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const url = `${origin}/api/mcp`;
+  const prompt = buildAgentPrompt({ endpoint: url, token: PLACEHOLDER_TOKEN });
+
+  async function copy(text: string, done: (v: boolean) => void) {
+    try {
+      await navigator.clipboard.writeText(text);
+      done(true);
+      setTimeout(() => done(false), 2600);
+    } catch {
+      // Clipboard blocked: the text stays visible in the code block, so
+      // the visitor can still select it by hand.
+    }
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-10">
+      <header>
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Connect your AI agent</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          Pulse Find is an MCP server. Give any agent you already use (Claude, Cursor, Copilot and others) an access token and it can
+          read your tracker, log new applications, turn job emails into updates and search open roles. Your agent does the reading with
+          its own email tools; Pulse Find never sees your inbox.
+        </p>
+        <div className="mt-4 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+          <b>Demo mode.</b> The token below is a placeholder — this page creates nothing and touches no account.{" "}
+          <Link href="/signup" className="font-semibold text-accent underline-offset-2 hover:underline">
+            Sign up to get a real token →
+          </Link>
+        </div>
+      </header>
+
+      <Panel title="1. Create an access token" hint="In the demo, this is a placeholder. A real token is created after you sign up.">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="min-w-0 flex-1 break-all rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 font-mono text-[13px]">{PLACEHOLDER_TOKEN}</code>
+            <button className={btn.secondary} onClick={() => void copy(PLACEHOLDER_TOKEN, setTokenCopied)}>
+              {tokenCopied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <p className="text-xs text-muted">
+            After you sign up, your Connect page creates a real token for you. It is shown once, and Pulse Find stores only a
+            fingerprint of it.
+          </p>
+          <Link href="/signup" className={btn.primary}>
+            Sign up to get a real token
+          </Link>
+        </div>
+      </Panel>
+
+      <Panel title="2. Add Pulse Find to your agent" hint={WHERE[client]}>
+        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist">
+          {CLIENTS.map((c) => (
+            <button key={c} role="tab" aria-selected={c === client} onClick={() => setClient(c)}
+              className={cx("rounded-full border px-3 py-1 text-xs font-medium transition", c === client ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="relative">
+          <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
+          <button className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")} onClick={() => void copy(snippet(client, url, PLACEHOLDER_TOKEN), setSnippetCopied)}>
+            {snippetCopied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
+      </Panel>
+
+      <Panel title="3. Ask your agent" hint="Try one of these.">
+        <ul className="space-y-2 text-sm">
+          {[
+            "Scan my email from the last 7 days and update Pulse Find. (Uses the scan_inbox prompt.)",
+            "What's waiting on me in my job search, soonest first?",
+            "Find remote software engineering internships posted this week.",
+            "Is this recruiter email a scam? [paste it]",
+          ].map((q) => (
+            <li key={q} className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-ink">&ldquo;{q}&rdquo;</li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-muted">
+          Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs.
+          Agents are told to stay read-only in your inbox and never send email or apply for you.
+        </p>
+      </Panel>
+
+      <Panel title="4. Copy the full agent prompt" hint="Everything your agent needs, in one paste.">
+        <p className="text-sm leading-relaxed text-muted">
+          This is the full operator prompt: every capability, the automatic setup (your spreadsheet, Gmail, the inbox
+          scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
+          dashboard and start using it with nothing else to do.
+        </p>
+        <div className="relative mt-3">
+          <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
+            {prompt}
+          </pre>
+          <button
+            className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")}
+            onClick={() => void copy(prompt, setPromptCopied)}
+          >
+            {promptCopied ? "Copied" : "Copy full prompt"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
+      </Panel>
+
+      <div className="flex flex-wrap gap-2 pb-2">
+        <Link href="/demo" className={btn.secondary}>
+          ← Back to the demo
+        </Link>
+        <Link href="/signup" className={btn.primary}>
+          Sign up to get a real token
+        </Link>
+      </div>
+    </main>
+  );
+}

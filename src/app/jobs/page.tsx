@@ -42,7 +42,16 @@ export default async function JobsPage() {
     <>
       <TopBar
         home="/"
-        right={<Link href="/login" className={navLink}>Sign in</Link>}
+        right={
+          <>
+            <Link href="/demo" className={navLink}>
+              Demo
+            </Link>
+            <Link href="/login" className={navLink}>
+              Sign in
+            </Link>
+          </>
+        }
       />
       <JobsBoard userId={null} />
     </>

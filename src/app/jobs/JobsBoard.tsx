@@ -212,13 +212,23 @@ export function JobsBoard({ userId }: { userId: string | null }) {
 
   async function swipe(job: Job, choice: "saved" | "hidden") {
     const prev = marks[job.id];
-    if (await setMark(job, choice)) setHistory((h) => [...h.slice(-30), { job, prev }]);
+    if (await setMark(job, choice)) {
+      setHistory((h) => [...h.slice(-30), { job, prev }]);
+      toast(choice === "saved" ? "Saved" : "Hidden");
+    }
   }
 
   async function undo() {
     const last = history[history.length - 1];
     if (!last) return;
-    if (await setMark(last.job, last.prev ?? null)) setHistory((h) => h.slice(0, -1));
+    if (await setMark(last.job, last.prev ?? null)) {
+      setHistory((h) => h.slice(0, -1));
+      toast("Undone");
+    }
+  }
+
+  async function removeSaved(job: Job) {
+    if (await setMark(job, null)) toast("Removed");
   }
 
   function changeView(v: "swipe" | "list") {
@@ -350,7 +360,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                       <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
                       {userId && <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>}
                       {userId && <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>}
-                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => setMark(j, null)}>✕</button>
+                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>✕</button>
                     </div>
                   </li>
                 ))}

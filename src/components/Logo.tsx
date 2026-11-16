@@ -2,10 +2,10 @@ import Link from "next/link";
 
 export function PulseMark({ className = "h-6 w-6", animate = false }: { className?: string; animate?: boolean }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+    <svg viewBox="0 0 32 32" className={`pf-breathe ${className}`} aria-hidden="true">
       <rect width="32" height="32" rx="9" fill="var(--accent)" />
       <path
-        d="M5 17h6l2.5-6 4 11 3-8 1.5 3H27"
+        d="M4 17 H9 L11 12 L14.5 22 L17 5 L19.5 27 L21 14 L22.5 17 H28"
         fill="none"
         stroke="var(--accent-ink)"
         strokeWidth="2.4"

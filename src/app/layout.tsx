@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { SiteBackdrop } from "@/components/SiteBackdrop";
 import "./globals.css";
 
 // Fonts are self-hosted so builds never depend on reaching a font CDN.
@@ -53,7 +54,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} ${bricolage.variable} antialiased min-h-dvh`}>{children}</body>
+      <body className={``${GeistSans.variable} ${GeistMono.variable} ${bricolage.variable} antialiased min-h-dvh`}>
+        <SiteBackdrop />
+        {children}
+      </body>
     </html>
   );
 }

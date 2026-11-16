@@ -153,21 +153,21 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                       {c.company && <span className="text-muted">· {c.company}</span>}
                       {bucket !== "none" && (
                         <Tag tone={bucket === "overdue" || bucket === "today" ? "danger" : bucket === "upcoming" ? "warn" : "muted"}>
-                          {bucket === "overdue" || bucket === "today" ? BUCKET_LABEL[bucket] : `${BUCKET_LABEL[bucket]} · ${fmtDate(c.next_step_on)}`}
+                          {`${BUCKET_LABEL[bucket]} · ${fmtDate(c.next_step_on)}`}
                         </Tag>
                       )}
                     </p>
                     {c.status && <p className="mt-0.5 text-sm text-muted">{c.status}</p>}
-                    {c.next_step && (
+                    {(c.next_step || bucket !== "none") && (
                       <p className="mt-0.5 text-sm">
-                        Next: {c.next_step}
+                        Next: {c.next_step.trim() || "Follow up"}
                         {c.next_step_on && bucket === "later" && <span className="text-faint"> · {fmtDate(c.next_step_on)}</span>}
                       </p>
                     )}
                     {c.notes && <p className="mt-0.5 truncate text-xs text-faint">{c.notes}</p>}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {c.next_step && <button className={btn.secondary} onClick={() => markDone(c)}>Step done</button>}
+                    {(c.next_step || c.next_step_on) && <button className={btn.secondary} onClick={() => markDone(c)}>Step done</button>}
                     <button className={btn.ghost} onClick={() => setForm({ open: true, editing: c })}>Edit</button>
                     {confirmDelete === c.id ? (
                       <>

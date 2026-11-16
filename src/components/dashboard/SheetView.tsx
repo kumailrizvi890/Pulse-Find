@@ -258,6 +258,8 @@ export function SheetView({ store }: { store: TrackerStore }) {
                         );
                         // Empty editable cells stay quiet: a faint dash, and the
                         // "Click to edit" hint only while the cell is hovered.
+                      // Touch screens have no hover, so on coarse pointers
+                      // the hint shows instead of the dash (see globals.css).
                         // The old per-cell title tooltip put that hint on all
                         // 264 editable cells at once, which was the noise.
                         const isEmptyEditable = !!col.editable && r.values[col.key] === "";
@@ -314,8 +316,8 @@ export function SheetView({ store }: { store: TrackerStore }) {
                           >
                             {isEmptyEditable ? (
                               <span className="block truncate">
-                                <span aria-hidden="true" className="text-faint group-hover:hidden">—</span>
-                                <span className="hidden text-faint group-hover:inline">Click to edit</span>
+                                <span aria-hidden="true" className="text-faint group-hover:hidden touch-edit-dash">—</span>
+                                <span className="hidden text-faint group-hover:inline touch-edit-hint">Click to edit</span>
                               </span>
                             ) : col.key === "status" ? (
                               <StatusPill status={a.status} />

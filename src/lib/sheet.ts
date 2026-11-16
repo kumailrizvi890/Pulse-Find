@@ -1,4 +1,4 @@
-import type { Application, ApplicationInput, ISODate } from "./types";
+import type { Application, ApplicationInput, ISODate, Status } from "./types";
 import { daysBetween, followUp, hasAction, isTechRole, type FollowUp } from "./metrics";
 
 /**
@@ -173,8 +173,13 @@ function rowSearchText(r: SheetRow): string {
  * matches somewhere in the row, so "tech jobs" finds tech roles and
  * "interview seattle" finds interview-stage rows mentioning Seattle.
  * The onlyActions flag mirrors the tracker's waiting-on-you filter.
+ * The status filter narrows to one stored status ("All" keeps every row)
+ * and composes with both: search narrows within the selected status.
+ * "Ghosted" is not a stored status — it is a derived quiet-days flag —
+ * so it is not a status option here; the sheet's ghosted count and
+ * Follow-Up Flag column already surface it.
  */
-export function filterSheet(rows: SheetRow[], query: string, onlyActions = false): SheetRow[] {
+export function filterSheet(rows: SheetRow[], query: string, onlyActions = false, status: Status | "All" = "All"): SheetRow[] {
   const words = query
     .trim()
     .toLowerCase()
@@ -182,6 +187,7 @@ export function filterSheet(rows: SheetRow[], query: string, onlyActions = false
     .filter((w) => w && !QUERY_STOPWORDS.has(w));
   return rows.filter((r) => {
     if (onlyActions && !hasAction(r.app)) return false;
+    if (status !== "All" && r.app.status !== status) return false;
     if (words.length === 0) return true;
     const hay = rowSearchText(r);
     return words.every((w) => hay.includes(w));

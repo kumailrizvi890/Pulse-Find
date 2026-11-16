@@ -5,6 +5,15 @@ import { PulseMark } from "@/components/Logo";
 import { PulseDot } from "@/components/PulseBrand";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { PulseTrace } from "@/components/PulseTrace";
+import { Marquee } from "@/components/landing/Marquee";
+import { Showcase } from "@/components/landing/Showcase";
+import { Bento } from "@/components/landing/Bento";
+import { TerminalDemo } from "@/components/landing/TerminalDemo";
+import { StatsBand } from "@/components/landing/StatsBand";
+import { Reveal } from "@/components/landing/Reveal";
+import type { PaceDay } from "@/components/dashboard/Charts";
+import { demoApplications } from "@/lib/demo-data";
+import { actionQueue, addDays, daysBetween, followUp, funnel, parseISO, summarize, todayISO, weekStart } from "@/lib/metrics";
 import { env } from "@/lib/env";
 
 const primary =
@@ -45,6 +54,49 @@ async function latestInternships(): Promise<{ total: number | null; jobs: Openin
 
 export default async function Home() {
   const openings = await latestInternships();
+  const today = todayISO();
+  const demoApps = demoApplications(today);
+  const demoSum = summarize(demoApps, today, 21);
+  const demoQueue = actionQueue(demoApps);
+  const demoGhosted = demoApps
+    .filter((a) => followUp(a, today, 21) === "ghosted")
+    .sort((a, b) => (b.last_contact ?? "").localeCompare(a.last_contact ?? ""));
+  const demoSteps = funnel(demoApps);
+  const monday = weekStart(today);
+  const paceDays: PaceDay[] = Array.from({ length: 7 }, (_, i) => {
+    const iso = addDays(monday, i);
+    const date = parseISO(iso);
+    return {
+      label: date.toLocaleDateString(undefined, { weekday: "short" }),
+      sub: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      value: demoApps.filter((a) => a.date_applied === iso).length,
+    };
+  });
+  const paceTotal = paceDays.reduce((s, d) => s + d.value, 0);
+  const prevStart = addDays(monday, -7);
+  const prevTotal = demoApps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
+  const paceChange = prevTotal === 0 ? null : Math.round(((paceTotal - prevTotal) / prevTotal) * 100);
+  const showcaseQueue = demoQueue.slice(0, 3).map((a) => {
+    const d = a.action_due ? daysBetween(today, a.action_due) : null;
+    return {
+      company: a.company,
+      action: a.action_needed,
+      dueLabel: d === null ? "No date" : d <= 0 ? "Today" : `${d}d left`,
+      urgent: d !== null && d <= 2,
+    };
+  });
+  const showcaseGhosted = demoGhosted.slice(0, 3).map((a) => ({
+    company: a.company,
+    quietDays: a.last_contact ? daysBetween(a.last_contact, today) : 0,
+  }));
+  const marqueeItems = [
+    `${demoSum.total} applications tracked`,
+    `${demoSum.oas} OAs`,
+    `${demoSum.interviews} interviews`,
+    `${demoSum.actions} waiting on you`,
+    `${demoSum.ghosted} gone quiet, flagged`,
+    `${demoSum.offers} offer on the table`,
+  ];
   return (
     <>
       <TopBar
@@ -88,137 +140,93 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="border-y border-line bg-surface">
-          <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-8 py-14 md:grid-cols-3">
-            <Feature
-              kicker="Action queue"
-              title="The next move is always visible"
-              body="Online assessments with expiry dates, interviews to schedule, portals left half-finished. Each one sits in a single list, soonest deadline first, until you mark it done."
-              detail="OA expires Fri → Due in 2d"
+        <Marquee items={marqueeItems} />
+
+        <Showcase
+          queue={showcaseQueue}
+          actionsOpen={demoSum.actions}
+          ghosted={showcaseGhosted}
+          ghostedTotal={demoSum.ghosted}
+          paceDays={paceDays}
+          paceTotal={paceTotal}
+          paceChange={paceChange}
+          goal={8}
+        />
+
+        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
+          <Reveal>
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">See it move</p>
+            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Watch it work</h2>
+            <p className="mt-3 max-w-[56ch] text-muted">One scroll through the demo tracker. That&apos;s the whole product.</p>
+          </Reveal>
+          <Reveal delay={90}>
+            <video
+              className="mt-8 w-full overflow-hidden rounded-[22px] border border-line shadow-panel"
+              src="/landing/demo-tour.mp4"
+              poster="/landing/demo-tour-poster.jpg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="A short screen recording of the Pulse Find demo tracker"
             />
-            <Feature
-              kicker="Ghost detection"
-              title="Know who went quiet"
-              body="Every application counts the days since you last heard back. Past your threshold it's flagged, so you follow up while it still matters instead of guessing."
-              detail="quiet 21+ days → Ghosted"
-            />
-            <Feature
-              kicker="Pace"
-              title="See your week at a glance"
-              body="Set a weekly goal and watch it against the last 12 weeks. Tech roles are tagged automatically so you can see where your effort is going."
-              detail="14 / 25 this week"
-            />
-          </div>
+            <p className="mt-3 text-center text-xs text-faint">Recorded from the live demo with sample data.</p>
+          </Reveal>
         </section>
 
-        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="min-w-0">
+        <Bento steps={demoSteps} />
+
+        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 border-t border-line py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <Reveal className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">Job finder</p>
             <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">
               {openings.total ? `${openings.total} tech internships open right now` : "Find internships and new-grad roles"}
             </h2>
             <p className="mt-3 max-w-[56ch] text-muted">
-              Pulled straight from the career pages of 50+ companies every 6 hours, so there are no reposts or stale listings. Filter by internship,
-              new grad, remote or tech only, and mark a role as applied to drop it straight into your tracker.
+              Fresh from 50+ company career pages, every 6 hours. No reposts, no stale listings.
             </p>
             <div className="mt-6">
               <Link href="/jobs" className={primary}>Browse open roles</Link>
             </div>
-          </div>
+          </Reveal>
           {openings.jobs.length > 0 && (
-          <ul className="min-w-0 divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-panel">
-            {openings.jobs.map((j) => (
-              <li key={j.url + j.title} className="flex items-center justify-between gap-3 py-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{j.title}</p>
-                  <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
-                </div>
-                <Link href="/jobs" className="shrink-0 text-xs font-semibold text-accent">View</Link>
-              </li>
-            ))}
-          </ul>
+          <Reveal delay={90} className="min-w-0">
+            <ul className="min-w-0 divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-panel">
+              {openings.jobs.map((j) => (
+                <li key={j.url + j.title} className="flex items-center justify-between gap-3 py-3.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{j.title}</p>
+                    <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
+                  </div>
+                  <Link href="/jobs" className="shrink-0 text-xs font-semibold text-accent">View</Link>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
           )}
-        </section>
-
-        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">One account, the whole search</p>
-          <h2 className="mt-2 max-w-[22ch] font-display text-3xl font-extrabold tracking-tight">Everything in one place, private to you</h2>
-          <p className="mt-3 max-w-[62ch] text-muted">
-            Sign up once and the tracker, the job finder and your AI agent all work on the same private data — yours, enforced in the
-            database, never anyone else&apos;s. Pulse Find never sends email and never applies for you; it keeps the search organized so
-            you can do the parts only you can do.
-          </p>
-          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <Feature
-              kicker="Dashboard"
-              title="Stats and a waiting-on-you queue"
-              body="Pipeline, pace, response rate and every next step that's yours, soonest deadline first."
-              detail="/app · your tracker"
-            />
-            <Feature
-              kicker="Job finder"
-              title="Browse or swipe the openings"
-              body="Live roles from company career pages. Swipe through them Tinder-style, save the good ones, mark applied and they land in your tracker."
-              detail="/jobs · board + swipe deck"
-            />
-            <Feature
-              kicker="Sheets"
-              title="Import and export spreadsheets"
-              body="Bring the CSV you've been keeping; export back to Excel with the colors baked in."
-              detail="CSV in · Excel out"
-            />
-            <Feature
-              kicker="AI agent"
-              title="Your agent keeps it current"
-              body="Connect Claude, Cursor or Copilot with a token. It syncs your tracker from job email and searches roles for you."
-              detail="/app/connect · MCP"
-            />
-          </div>
-        </section>
-
-        <section className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-10 border-t border-line py-16 md:grid-cols-2">
-          <div className="min-w-0">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight">Bring the spreadsheet you already have</h2>
-            <p className="mt-3 max-w-[56ch] text-muted">
-              Import a CSV from Excel, Google Sheets or Notion. Pulse Find recognizes common column names and messy dates like “Oct 28” or
-              “10/28/26”. Export back to an Excel file with the colors baked in, so it looks right on your phone too.
-            </p>
-          </div>
-          <div className="min-w-0">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight">Private by default</h2>
-            <p className="mt-3 max-w-[56ch] text-muted">
-              Your applications are tied to your account and the database enforces it: no one else&apos;s request can read your rows. No ads, no
-              trackers. <Link href="/privacy" className="text-accent underline underline-offset-2">Read the privacy page</Link>.
-            </p>
-          </div>
         </section>
 
         <section id="mcp" className="border-t border-line bg-surface">
           <div className="gutter mx-auto grid w-full max-w-[1180px] grid-cols-1 items-center gap-10 py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <div className="min-w-0">
+            <Reveal className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">MCP server</p>
               <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Let your own AI agent keep it current</h2>
               <p className="mt-3 max-w-[56ch] text-muted">
-                Connect Claude, Cursor, Copilot or any MCP client with an access token. Your agent reads job email with its own tools and Pulse Find
-                turns each one into the right update: assessment deadlines, interview invites, rejections, offers, plus a check for fake job
-                offers. Pulse Find never sees your inbox and never sends anything.
+                Your agent reads your email and updates the tracker. Pulse Find never sees your inbox.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="#mcp" className={primary}>Connect your agent</Link>
                 <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it</Link>
               </div>
-            </div>
-            <pre className="min-w-0 overflow-x-auto rounded-2xl border border-line bg-bg p-4 font-mono text-[12.5px] leading-relaxed text-muted">
-              <span className="text-faint">$ </span>claude mcp add --transport http pulse-find {"\n"}
-              {"    "}https://pulsefind-app.vercel.app/api/mcp {"\n"}
-              {"    "}--header &quot;Authorization: Bearer pf_…&quot;{"\n\n"}
-              <span className="text-ink">&gt; Scan my email from the last week and update Pulse Find.</span>{"\n\n"}
-              <span className="text-good">✓</span> Roblox · OA received · due Nov 11{"\n"}
-              <span className="text-good">✓</span> Ramp · new application{"\n"}
-              <span className="text-danger">!</span> &quot;Global Corp&quot; · likely a fake job offer, nothing added
-            </pre>
+            </Reveal>
+            <Reveal delay={90} className="min-w-0">
+              <TerminalDemo />
+            </Reveal>
           </div>
         </section>
+
+        <StatsBand total={demoSum.total} oas={demoSum.oas} interviews={demoSum.interviews} actions={demoSum.actions} />
       </main>
       <footer className="border-t border-line">
         <div className="gutter mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3 py-8 text-sm text-faint">
@@ -241,16 +249,5 @@ export default async function Home() {
         </div>
       </footer>
     </>
-  );
-}
-
-function Feature({ kicker, title, body, detail }: { kicker: string; title: string; body: string; detail: string }) {
-  return (
-    <div className="min-w-0">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">{kicker}</p>
-      <h3 className="mt-2 font-display text-xl font-bold tracking-tight">{title}</h3>
-      <p className="mt-2 text-[15px] leading-relaxed text-muted">{body}</p>
-      <p className="mt-3 inline-block rounded-md bg-surface-2 px-2 py-1 font-mono text-xs text-ink">{detail}</p>
-    </div>
   );
 }

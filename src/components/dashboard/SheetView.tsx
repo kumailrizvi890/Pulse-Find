@@ -201,9 +201,23 @@ export function SheetView({ store }: { store: TrackerStore }) {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">
-            {apps.length === 0 ? "Nothing here yet. Import your Excel sheet or add applications on the Tracker tab." : "No rows match this filter."}
-          </p>
+          <div className="px-4 py-10 text-center">
+            <p className="text-sm text-muted">
+              {apps.length === 0 ? "Nothing here yet. Import your Excel sheet or add applications on the Tracker tab." : "No rows match this filter."}
+            </p>
+            {apps.length > 0 && (
+              <button
+                className={cx(btn.secondary, "mt-3")}
+                onClick={() => {
+                  setQuery("");
+                  setStatus("All");
+                  setOnlyActions(false);
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         ) : (
           <div className="max-h-[70dvh] overflow-auto">
             <table className="w-full min-w-[1240px] border-collapse text-[13px]">

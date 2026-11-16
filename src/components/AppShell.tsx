@@ -44,12 +44,14 @@ export function AppShell({
         </div>
       </header>
       {active && (
-        <div className="gutter mx-auto flex w-full max-w-[1180px] gap-1.5 overflow-x-auto border-b border-line pt-3" role="navigation" aria-label="Tracker sections">
-          {TABS.map((t) => (
-            <Link key={t.key} href={t.href} className={t.key === active ? shellTabActive : shellTab} aria-current={t.key === active ? "page" : undefined}>
-              {t.label}
-            </Link>
-          ))}
+        <div className="sticky top-[calc(env(safe-area-inset-top,0px)+71px)] z-20 border-b border-line bg-bg/85 backdrop-blur">
+          <div className="gutter mx-auto flex w-full max-w-[1180px] gap-1.5 overflow-x-auto pt-3" role="navigation" aria-label="Tracker sections">
+            {TABS.map((t) => (
+              <Link key={t.key} href={t.href} className={t.key === active ? shellTabActive : shellTab} aria-current={t.key === active ? "page" : undefined}>
+                {t.label}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
       {children}

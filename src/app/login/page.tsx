@@ -11,7 +11,7 @@ export default function LoginPage() {
     <div className="pf-shell relative min-h-dvh overflow-hidden">
       {/* Oversized waveform watermark: faint, behind the form, never competing with it. */}
       <div className="pointer-events-none absolute inset-x-0 top-[30%] flex justify-center" aria-hidden="true">
-        <PulseTrace className="h-[180px] w-[min(1400px,220vw)] opacity-[0.06]" />
+        <PulseTrace className="h-[180px] w-[min(1400px,220vw)] opacity-[0.13]" />
       </div>
       <header className="gutter relative z-10 mx-auto flex h-14 w-full max-w-[1180px] items-center">
         <Logo href="/" />

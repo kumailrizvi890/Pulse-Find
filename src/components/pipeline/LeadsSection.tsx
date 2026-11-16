@@ -160,27 +160,37 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
         <button className={btn.primary} onClick={() => setForm({ open: true, editing: null })}>+ Add lead</button>
       </div>
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        <button
-          onClick={() => setFilter("all")}
-          aria-pressed={filter === "all"}
-          className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === "all" ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
-        >
-          All <span className="tnum opacity-70">{leads.length}</span>
-        </button>
-        {LEAD_STATUSES.map((s) => (
+      {/*
+        The status pills scroll on their own row; the search sits outside
+        that scroll row. It used to live inside it, where `field`'s w-full
+        stretched it to the full row width and pushed it off-screen right —
+        invisible on phones and desktop alike until the row was scrolled.
+        On phones the search takes its own full-width line; from sm up it
+        is a fixed 208px at the row's right end.
+      */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 pb-1">
           <button
-            key={s}
-            onClick={() => setFilter(s)}
-            aria-pressed={filter === s}
-            className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === s ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            onClick={() => setFilter("all")}
+            aria-pressed={filter === "all"}
+            className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === "all" ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
           >
-            {s} <span className="tnum opacity-70">{counts[s]}</span>
+            All <span className="tnum opacity-70">{leads.length}</span>
           </button>
-        ))}
+          {LEAD_STATUSES.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              aria-pressed={filter === s}
+              className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", filter === s ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            >
+              {s} <span className="tnum opacity-70">{counts[s]}</span>
+            </button>
+          ))}
+        </div>
         <input
           type="search"
-          className={cx(field, "ml-auto w-52 shrink-0")}
+          className={cx(field, "w-full sm:w-52")}
           placeholder="Search leads"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

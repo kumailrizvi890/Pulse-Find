@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Contact, ContactInput, ISODate, Lead, LeadInput } from "./types";
-import { addDays, daysBetween, todayISO } from "./metrics";
+import { addDays, daysBetween, parseISO, todayISO } from "./metrics";
 
 /**
  * Leads + networking data access. Same split as the tracker store:
@@ -52,6 +52,13 @@ export function sortContacts(contacts: Contact[], today: ISODate): Contact[] {
 
 // ---------- demo data (invented, relative dates so it always looks current) ----------
 
+/** "Nov 4" for an ISO date, with the year when it is not this year — the same shape as fmtDate in the dashboard UI, kept here so the demo seed stays a pure lib module. Free-text seed strings use it so no demo date ever goes stale. */
+function shortDate(s: ISODate): string {
+  const d = parseISO(s);
+  const showYear = d.getFullYear() !== new Date().getFullYear();
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", ...(showYear ? { year: "numeric" } : {}) });
+}
+
 function demoLeads(today: ISODate): Lead[] {
   const mk = (i: number, l: Omit<Lead, "id" | "date_found"> & { found: number }): Lead => {
     const { found, ...rest } = l;
@@ -63,7 +70,7 @@ function demoLeads(today: ISODate): Lead[] {
     mk(2, { company: "Brightwater Health", role: "Frontend Engineer, New Grad", track: "New Grad", location: "Austin, TX", pay: "$95k", url: "", source: "Job board", status: "New", fit_note: "React role; healthcare data product", found: 2 }),
     mk(3, { company: "Atlas Robotics", role: "Software Intern, Perception", track: "Internship", location: "Pittsburgh, PA", pay: "", url: "", source: "Referral", status: "Problem", fit_note: "Posting closed early — watch for the spring repost", found: 6 }),
     mk(4, { company: "Fernhill Capital", role: "Quant Developer Intern", track: "Internship", location: "New York, NY", pay: "$60/hr", url: "", source: "Job board", status: "Not eligible", fit_note: "Requires a master's degree", found: 9 }),
-    mk(5, { company: "Tidewater Cloud", role: "SRE Intern", track: "Internship", location: "Remote", pay: "$44/hr", url: "", source: "Agent scan", status: "Applied", fit_note: "Applied from this lead on Nov 8", found: 12 }),
+    mk(5, { company: "Tidewater Cloud", role: "SRE Intern", track: "Internship", location: "Remote", pay: "$44/hr", url: "", source: "Agent scan", status: "Applied", fit_note: `Applied from this lead on ${shortDate(addDays(today, -8))}`, found: 12 }),
   ];
 }
 
@@ -73,9 +80,9 @@ function demoContacts(today: ISODate): Contact[] {
     return { ...rest, id: `demo-contact-${i + 1}`, next_step_on: on === null ? null : addDays(today, on) };
   };
   return [
-    mk(0, { person_name: "Priya Nair", company: "Copperline", status: "Connected — thanked Nov 4", next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs" }),
+    mk(0, { person_name: "Priya Nair", company: "Copperline", status: `Connected — thanked ${shortDate(addDays(today, -12))}`, next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs" }),
     mk(1, { person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged — awaiting reply", next_step: "Follow up if no reply", on: -2, notes: "Hiring manager, perception team" }),
-    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: "Connected — replied Nov 9", next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum" }),
+    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: `Connected — replied ${shortDate(addDays(today, -7))}`, next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum" }),
     mk(3, { person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", on: null, notes: "Fellow student — connect only, no follow-up sequence" }),
   ];
 }

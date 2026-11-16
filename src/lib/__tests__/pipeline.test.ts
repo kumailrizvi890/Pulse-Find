@@ -43,7 +43,19 @@ describe("networking due buckets", () => {
     expect(dueBucket(contact({ next_step_on: "2026-11-15" }), TODAY)).toBe("upcoming");
     expect(dueBucket(contact({ next_step_on: "2026-12-25" }), TODAY)).toBe("later");
     expect(dueBucket(contact({ next_step_on: null }), TODAY)).toBe("none");
-    expect(dueBucket(contact({ next_step: "  ", next_step_on: "2026-11-01" }), TODAY)).toBe("none");
+    expect(dueBucket(contact({ next_step: "  ", next_step_on: null }), TODAY)).toBe("none");
+  });
+
+  it("counts a date alone as due, with or without a step written", () => {
+    // Gap fix: a contact with a due date but an empty next step used to
+    // vanish entirely (dueBucket returned "none"). The date alone decides.
+    expect(dueBucket(contact({ next_step: "", next_step_on: "2026-11-10" }), TODAY)).toBe("overdue");
+    expect(dueBucket(contact({ next_step: "   ", next_step_on: "2026-11-11" }), TODAY)).toBe("today");
+    expect(dueBucket(contact({ next_step: "", next_step_on: "2026-11-15" }), TODAY)).toBe("upcoming");
+    expect(dueBucket(contact({ next_step: "", next_step_on: "2026-12-25" }), TODAY)).toBe("later");
+    // Dated-with-step behaviour is unchanged.
+    expect(dueBucket(contact({ next_step: "Follow up", next_step_on: "2026-11-10" }), TODAY)).toBe("overdue");
+    expect(dueBucket(contact({ next_step: "Follow up", next_step_on: "2026-11-11" }), TODAY)).toBe("today");
   });
 
   it("sorts overdue first, undated last, then by name", () => {
@@ -53,10 +65,12 @@ describe("networking due buckets", () => {
         contact({ id: "2", person_name: "Amy", next_step_on: "2026-11-20" }),
         contact({ id: "3", person_name: "Bob", next_step_on: "2026-11-01" }),
         contact({ id: "4", person_name: "Cid", next_step_on: "2026-11-11" }),
+        // A date alone sorts by its date too, not last with the undated.
+        contact({ id: "5", person_name: "Ann", next_step: "", next_step_on: "2026-11-05" }),
       ],
       TODAY,
     );
-    expect(rows.map((r) => r.person_name)).toEqual(["Bob", "Cid", "Amy", "Zed"]);
+    expect(rows.map((r) => r.person_name)).toEqual(["Bob", "Ann", "Cid", "Amy", "Zed"]);
   });
 
   it("round-trips contacts through the demo store", async () => {

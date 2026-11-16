@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import type { Application, ApplicationInput, Settings, TrackerEvent } from "@/lib/types";
 import { DEFAULT_SETTINGS, emptyApplication } from "@/lib/types";
@@ -16,7 +16,7 @@ import { ApplicationDrawer } from "./ApplicationDrawer";
 import { TaskChatPanel } from "./TaskChatPanel";
 import { ImportDialog } from "./ImportDialog";
 import { Panel, StatusPill, Tag, btn, cx, field, fmtDate, useToast } from "./ui";
-import { WaitingSignal } from "@/components/PulseBrand";
+import { PulseDot, WaitingSignal } from "@/components/PulseBrand";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
@@ -33,7 +33,7 @@ function greeting(name: string | null) {
   return name ? `${part}, ${name}` : part;
 }
 
-export function Dashboard({ store, banner, headerActions, extras, userId }: { store: TrackerStore; banner?: ReactNode; headerActions?: ReactNode; extras?: ReactNode; userId?: string; }) {
+export function Dashboard({ store, banner, headerActions, extras, userId, openGeneralChat }: { store: TrackerStore; banner?: ReactNode; headerActions?: ReactNode; extras?: ReactNode; userId?: string; openGeneralChat?: boolean; }) {
   const [apps, setApps] = useState<Application[]>([]);
   const [events, setEvents] = useState<TrackerEvent[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -43,6 +43,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
   const [query, setQuery] = useState("");
   const [drawer, setDrawer] = useState<{ open: boolean; editing: Application | null }>({ open: false, editing: null });
   const [chatOpen, setChatOpen] = useState(false);
+  const [generalChatOpen, setGeneralChatOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { toast, toastNode } = useToast();
@@ -97,9 +98,45 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
   // for the chat next to the drawer. On phones the chat stays one tap away
   // in the drawer header so it never covers the form uninvited.
   const openTask = useCallback((a: Application) => {
+    setGeneralChatOpen(false);
     setDrawer({ open: true, editing: a });
     if (typeof window !== "undefined" && window.innerWidth >= 1024) setChatOpen(true);
   }, []);
+
+  const [generalChatPending, setGeneralChatPending] = useState(false);
+
+  // The general chat answers from the whole tracker, with no task attached.
+  // It closes the drawer and the task chat first: the two panels share the
+  // same dock, so only one can be open at a time. If the tracker is still
+  // loading, the open waits for the load: opening it with an empty app
+  // list would greet with "nothing is waiting" while the real items are
+  // still arriving.
+  const openGeneralChatPanel = useCallback(() => {
+    setDrawer({ open: false, editing: null });
+    setChatOpen(false);
+    if (state === "ready") setGeneralChatOpen(true);
+    else setGeneralChatPending(true);
+  }, [state]);
+
+  // A general chat requested while the tracker is still loading waits for
+  // the load (see above). This is the React "adjusting state during
+  // render" pattern: when a pending request and the ready state meet
+  // during a render, the chat opens and React re-renders once
+  // immediately. (An effect would work too, but calling setState
+  // synchronously in an effect is a lint error here.)
+  if (generalChatPending && state === "ready") {
+    setGeneralChatPending(false);
+    setGeneralChatOpen(true);
+  }
+
+  // The demo navbar links here with ?chat=1 (see DemoNav / DemoDashboard):
+  // a fresh false-to-true edge opens the general chat once. The ref keeps a
+  // re-render with the prop still true from opening it again.
+  const prevOpenGeneralRef = useRef(false);
+  useEffect(() => {
+    if (openGeneralChat && !prevOpenGeneralRef.current) openGeneralChatPanel();
+    prevOpenGeneralRef.current = !!openGeneralChat;
+  }, [openGeneralChat, openGeneralChatPanel]);
 
   const logEvent = async (application_id: string, kind: string, details: string) => {
     try {
@@ -196,6 +233,10 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
         </div>
         <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
+          <button className={btn.secondary} onClick={openGeneralChatPanel} aria-label="Ask Pulse about your tracker">
+            <PulseDot />
+            Ask Pulse
+          </button>
           {headerActions}
           <button className={btn.secondary} onClick={() => setImportOpen(true)}>Import sheet</button>
           <ExportMenu onXlsx={exportXlsx} onCsv={() => download(`pulse-find-${today}.csv`, toCsv(sortForTable(apps)), "text/csv")} disabled={!apps.length} />
@@ -309,6 +350,15 @@ export function Dashboard({ store, banner, headerActions, extras, userId }: { st
           events={events}
           userId={userId}
           onClose={() => setChatOpen(false)}
+        />
+      )}
+      {generalChatOpen && (
+        <TaskChatPanel
+          key="chat-general"
+          general={{ apps, ghostDays: settings.ghost_days, weeklyGoal: settings.weekly_goal }}
+          events={events}
+          userId={userId}
+          onClose={() => setGeneralChatOpen(false)}
         />
       )}
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} onImport={importRows} />

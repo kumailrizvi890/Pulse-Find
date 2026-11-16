@@ -12,17 +12,25 @@
 // error instead of the timeout one. The timer is cleared the moment the
 // load settles, and the load's own settle is always observed, so a late
 // rejection after the timeout fired can never surface as an unhandled
-// rejection.
+// rejection. The timeout message defaults to the tracker's; callers pass
+// their own when the load is something else (leads, contacts, openings).
+// The load only needs to be a thenable: the jobs query builder has a
+// `then` but no `catch` or `finally`, so it is a PromiseLike, not a
+// Promise.
 
 export const LOAD_TIMEOUT_MS = 15_000;
 
 export const LOAD_TIMEOUT_MESSAGE =
   "Your tracker is taking longer than usual to load. Check your connection and try again.";
 
-export function withLoadTimeout<T>(promise: Promise<T>, ms: number = LOAD_TIMEOUT_MS): Promise<T> {
+export function withLoadTimeout<T>(
+  promise: PromiseLike<T>,
+  ms: number = LOAD_TIMEOUT_MS,
+  message: string = LOAD_TIMEOUT_MESSAGE,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<T>((_resolve, reject) => {
-    timer = setTimeout(() => reject(new Error(LOAD_TIMEOUT_MESSAGE)), ms);
+    timer = setTimeout(() => reject(new Error(message)), ms);
   });
   const clear = () => {
     if (timer !== undefined) {

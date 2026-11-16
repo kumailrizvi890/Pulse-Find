@@ -4,10 +4,10 @@ import { Logo } from "./Logo";
 import { PulseTrace } from "./PulseTrace";
 
 export const shellNavLink =
-  "rounded-lg px-2.5 py-1.5 font-medium text-muted transition hover:bg-surface hover:text-ink";
+  "rounded-lg px-2.5 py-1.5 font-medium text-muted transition hover:bg-surface hover:text-accent";
 export const shellTab =
-  "border-b-2 border-transparent px-2.5 py-1.5 font-mono text-xs text-muted transition hover:text-ink";
-export const shellTabActive = "border-b-2 border-accent px-2.5 py-1.5 font-mono text-xs text-accent";
+  "border-b-2 border-transparent px-2.5 py-1.5 font-mono text-xs text-muted transition hover:text-accent";
+export const shellTabActive = "pf-nav-glow border-b-2 border-accent px-2.5 py-1.5 font-mono text-xs text-accent";
 
 export type ShellTab = "tracker" | "sheet" | "leads" | "networking" | "jobs" | "connect";
 

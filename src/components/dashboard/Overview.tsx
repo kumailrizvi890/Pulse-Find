@@ -266,7 +266,7 @@ export function Overview({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="dashboard">
       <div style={{ "--accent": "#f8343e" } as CSSProperties} aria-hidden="true">
         <PulseTrace className="h-6 w-full" />
       </div>

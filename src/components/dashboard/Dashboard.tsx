@@ -168,6 +168,49 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
     prevOpenGeneralRef.current = !!openGeneralChat;
   }, [openGeneralChat, openGeneralChatPanel]);
 
+  // The floating Pulse button (see FloatingPulseButton) opens this same
+  // general chat from anywhere on the page. It dispatches
+  // "pulsefind:assistant-open" / "pulsefind:assistant-close" on window;
+  // the state below answers with "pulsefind:assistant-state" so the
+  // button knows when the chat is open, when a drawer owns the corner,
+  // and how many things are waiting (the badge reuses the same queue
+  // count the "Waiting on you" panel shows). The open request also
+  // answers while the tracker is still loading (pending), so the button
+  // does not mistake a slow load for "no chat on this page" and
+  // navigate away.
+  useEffect(() => {
+    const onOpen = () => openGeneralChatPanel();
+    const onClose = () => setGeneralChatOpen(false);
+    window.addEventListener("pulsefind:assistant-open", onOpen);
+    window.addEventListener("pulsefind:assistant-close", onClose);
+    return () => {
+      window.removeEventListener("pulsefind:assistant-open", onOpen);
+      window.removeEventListener("pulsefind:assistant-close", onClose);
+    };
+  }, [openGeneralChatPanel]);
+
+  useEffect(() => {
+    const dispatchState = () => {
+      window.dispatchEvent(
+        new CustomEvent("pulsefind:assistant-state", {
+          detail: {
+            open: generalChatOpen,
+            pending: generalChatPending,
+            overlayOpen: drawer.open || chatOpen,
+            waiting: queue.length,
+          },
+        }),
+      );
+    };
+    // The button asks for the current state when it mounts (its
+    // listener attaches after this Dashboard already mounted, so it
+    // would otherwise miss the first dispatch and show no badge).
+    window.addEventListener("pulsefind:assistant-ping", dispatchState);
+    dispatchState();
+    return () => window.removeEventListener("pulsefind:assistant-ping", dispatchState);
+  }, [generalChatOpen, generalChatPending, drawer.open, chatOpen, queue.length]);
+
+
   const logEvent = async (application_id: string, kind: string, details: string) => {
     try {
       const ev = await store.addEvent({ application_id, event_date: today, kind, details });

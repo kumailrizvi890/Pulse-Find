@@ -1,4 +1,5 @@
-// Guided tour: the Pulse-narrated walkthrough of the demo tracker.
+// Guided tour, quest edition: a character-led walkthrough of the demo
+// tracker where Pulse talks and the visitor acts.
 //
 // One step per feature, in the order a new user should meet them:
 // dashboard, sheet, find jobs, swipe board, leads, networking, the Ask
@@ -8,11 +9,20 @@
 // tests can pin the order, the routes and the copy. No em dashes in any
 // user-facing string.
 //
-// Each step teaches, not just describes: the body says what the feature
-// is for, the one action to try, and where it lives in navigation. The
-// first step orients the visitor on the nav tabs and the tour order, and
-// the last step closes with where to start and the replay link. Every
-// step also carries a Try-it label for the hands-on button in the card.
+// The coach has no buttons: each step carries one line from Pulse (what
+// the feature is for, the one action to try, where it lives), a done
+// line for the moment the action lands, and a `completion` kind that
+// says which real action in the real UI advances the tour. The tour
+// never performs the action itself; it only watches for it. The first
+// step orients the visitor on the nav tabs and the tour order, and the
+// last step closes with where to start and the replay link.
+//
+// Safety: every completion action is non-destructive. On the demo the
+// same actions may write sample data only (save a demo job, edit a demo
+// cell); on signed-in pages the tour only ever asks for focus, open,
+// preview or copy. The jobs step is the one place the mode matters:
+// a signed-out visitor saves a demo card, a signed-in visitor only
+// opens a posting to peek at it, never saves a real job.
 
 export type TourStepId =
   | "dashboard"
@@ -24,20 +34,45 @@ export type TourStepId =
   | "chat"
   | "connect";
 
+/**
+ * The one real action that completes a step. The host watches for
+ * exactly this in the live UI and advances only when it happens.
+ */
+export type TourCompletion =
+  | "waiting-open"
+  | "sheet-filter"
+  | "jobs-search"
+  | "jobs-save"
+  | "lead-edit"
+  | "contact-edit"
+  | "chat-ask"
+  | "connect-copy";
+
 export interface TourStep {
   id: TourStepId;
-  /** Short heading shown in the tour card. */
+  /** Short name, used only for the progress dots' labels. */
   title: string;
-  /** What Pulse says on this step: what the feature is for, the one action
-      to try, and where it lives in navigation. */
-  body: string;
-  /** Label for the Try-it button, which focuses the feature without
-      advancing the step. */
-  tryIt: string;
+  /** What Pulse says on this step: where the feature lives, how to use
+      it, and the one thing to try. One short line, plain lowercase
+      friend voice. */
+  line: string;
+  /** What Pulse says once the action lands: the real result, not a
+      trophy. */
+  done: string;
+  /** Signed-in variant of the line (jobs step only: preview, never
+      save a real job). */
+  lineAlt?: string;
+  /** Signed-in variant of the done line (jobs step only). */
+  doneAlt?: string;
+  /** Which real action completes this step. */
+  completion: TourCompletion;
   /** The demo route this step lives on. */
   route: string;
   /** The data-tour anchor the spotlight ring targets on that route. */
   anchor: string;
+  /** Signed-in variant of the anchor (jobs step only: the posting link
+      instead of the save button). */
+  anchorAlt?: string;
 }
 
 export const TOUR_PARAM = "tour";
@@ -47,72 +82,97 @@ export const TOUR_PARAM = "tour";
     session. Any arrival with a ?tour= param clears it (force-start). */
 export const TOUR_DISMISSED_KEY = "pulsefind-tour-dismissed";
 
+/** Delay after a completed action before the tour moves on, so the
+    visitor sees the real result (the row landing, the reply arriving)
+    and Pulse's done line. */
+export const TOUR_ADVANCE_MS = 1400;
+/** Same delay when the visitor prefers reduced motion: short, no burst. */
+export const TOUR_ADVANCE_MS_REDUCED = 700;
+
 export const TOUR_STEPS: TourStep[] = [
   {
     id: "dashboard",
-    title: "Your dashboard, at a glance",
-    body: "This is home, and the tour follows the tabs up top in order: Dashboard, Sheet, Leads, Networking, then Connect, with Jobs in the top nav. Waiting on you is the list that matters: assessments to finish, interviews to schedule, forms half done, soonest deadline first. The pace chart tracks your week against your goal and the funnel shows where every application sits. Add application, Import sheet, Export and Settings sit at the top of this page.",
-    tryIt: "Try it: focus a waiting task",
+    title: "Dashboard",
+    line: "this is home and the tour follows the tabs up top. tap open on a waiting task and see what it needs",
+    done: "nice, that's the list that matters most",
+    completion: "waiting-open",
     route: "/demo",
-    anchor: "dashboard",
+    anchor: "waiting-first",
   },
   {
     id: "sheet",
-    title: "Your tracker as a sheet",
-    body: "Find it under Sheet in the demo nav. The same tracker, spreadsheet view. Click any editable cell to change it and it saves right away. Use the status dropdown to filter by stage, the search box to find any row, and the Waiting on you toggle to see only what needs you. Export to Excel or CSV from the buttons up top.",
-    tryIt: "Try it: focus the sheet tools",
+    title: "Sheet",
+    line: "this is your tracker as a sheet. pick a stage in the status dropdown and watch the rows narrow",
+    done: "see how fast that narrows it down",
+    completion: "sheet-filter",
     route: "/demo/sheet",
-    anchor: "sheet",
+    anchor: "sheet-tools",
   },
   {
     id: "find-jobs",
-    title: "Fresh jobs, straight from career pages",
-    body: "Find it under Jobs in the top nav. New roles pulled from 50+ company career pages every 6 hours, no reposts. Filter by Internship or New Grad, Tech only, Remote, or search a company. When one fits, save it, and when you apply, mark it Applied and it lands straight in your tracker.",
-    tryIt: "Try it: focus the job search",
+    title: "Find jobs",
+    line: "fresh roles land here every few hours. type a company or a role in the search and see what shows up",
+    done: "there they are, all fresh from the career pages",
+    completion: "jobs-search",
     route: "/jobs",
     anchor: "find-jobs",
   },
   {
     id: "jobs",
-    title: "Swipe the openings",
-    body: "Same Jobs page, the board below the search. Work the queue one card at a time. Swipe right to save a role, left to hide it. Saved roles gather on the right, ready to apply. Open the posting from there, or mark one Applied and it goes straight into your tracker.",
-    tryIt: "Try it: focus the card actions",
+    title: "Jobs board",
+    line: "this is the board. tap save on a card you like and it lands in your leads",
+    done: "saved, it's waiting in your leads whenever you want it",
+    lineAlt: "this is the board. tap a posting to peek at the role",
+    doneAlt: "that's the one, the posting opens right from the card",
+    completion: "jobs-save",
     route: "/jobs",
-    anchor: "jobs",
+    anchor: "job-save",
+    anchorAlt: "job-posting",
   },
   {
     id: "leads",
-    title: "Leads worth chasing",
-    body: "Find it under Leads in the demo nav. Roles you found but have not applied to yet, with a fit note on each. Search by company, role or place, or filter by status. When you apply to one, it moves into your tracker and off this list. Mark the ones that do not fit so they stop taking up space.",
-    tryIt: "Try it: focus the lead filters",
+    title: "Leads",
+    line: "these are roles you found but haven't applied to yet. tap edit on one to see everything you know about it",
+    done: "that's the whole lead, fit note and all",
+    completion: "lead-edit",
     route: "/demo/leads",
-    anchor: "leads",
+    anchor: "lead-edit",
   },
   {
     id: "networking",
-    title: "Never drop a follow-up",
-    body: "Find it under Networking in the demo nav. Everyone you know at a company, with what to do next and when. Overdue and due-today follow-ups sit at the top. Search matches names, companies, next steps and notes. Long notes tuck behind Show more, tap it to read the full note.",
-    tryIt: "Try it: focus the people search",
+    title: "Networking",
+    line: "everyone you know at a company lives here. tap edit on someone due to see what you owe them",
+    done: "that's their whole story, next step and all",
+    completion: "contact-edit",
     route: "/demo/networking",
-    anchor: "networking",
+    anchor: "contact-edit",
   },
   {
     id: "chat",
-    title: "Ask Pulse anything",
-    body: "Find it under Ask Pulse in the top nav, or the Ask Pulse button on the dashboard. Pulse answers from your tracker and never guesses. Ask what is waiting, who went quiet, or what is due next. Open a task first and Ask Pulse answers about that task. Anything bigger goes to Talk to Agent, which hands the whole thing to your connected agent.",
-    tryIt: "Try it: focus Ask Pulse",
+    title: "Ask Pulse",
+    line: "i can answer from your tracker and i never guess. tap ask pulse up top and ask me what's due next",
+    done: "see, that's straight from your tracker",
+    completion: "chat-ask",
     route: "/demo",
     anchor: "ask-pulse",
   },
   {
     id: "connect",
-    title: "Connect your agent",
-    body: "Find it under Connect in the demo nav. Give Claude, Cursor or Copilot an access token and your agent reads your email, logs applications and updates the tracker for you. Pulse Find never sees your inbox. This is the same MCP server the demo runs on. Where to start: add one application, save one job from Jobs, then ask Pulse what is due next. Replay this tour anytime from Take the tour in the demo nav.",
-    tryIt: "Try it: focus the setup steps",
+    title: "Connect",
+    line: "this is how claude, cursor or copilot plug in. tap copy on the setup steps and the prompt is ready to paste",
+    done: "and that's the whole tour. start with one application and one saved job then ask me what's due next. replay anytime from take the tour in the demo nav",
+    completion: "connect-copy",
     route: "/demo/connect",
-    anchor: "connect",
+    anchor: "connect-copy",
   },
 ];
+
+/** True for the demo routes, where sample data may be written by a
+    tour action (save a demo job, edit a demo cell). Everywhere else the
+    tour only ever asks for focus, open, preview or copy. */
+export function isDemoPath(pathname: string): boolean {
+  return pathname === "/demo" || pathname.startsWith("/demo/");
+}
 
 /** The step for a `tour` param value, or null when the tour is not running. */
 export function parseTourStep(value: string | null): TourStep | null {

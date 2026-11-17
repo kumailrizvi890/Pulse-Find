@@ -51,6 +51,11 @@ export function dueBucket(c: Pick<Contact, "next_step" | "next_step_on">, today:
 
 const BUCKET_ORDER: Record<DueBucket, number> = { overdue: 0, today: 1, upcoming: 2, later: 3, none: 4 };
 
+/** True when a string is a safe link to open in a new tab: http(s) only, so a stray "not a url" value never becomes a link. */
+export function isExternalUrl(value: string): boolean {
+  return /^https?:\/\/\S+$/.test(value.trim());
+}
+
 /** Contacts ordered so the most urgent next steps come first; undated last, then by name. */
 export function sortContacts(contacts: Contact[], today: ISODate): Contact[] {
   return [...contacts].sort(
@@ -94,10 +99,10 @@ export function demoContacts(today: ISODate): Contact[] {
     return { ...rest, id: `demo-contact-${i + 1}`, next_step_on: on === null ? null : addDays(today, on) };
   };
   return [
-    mk(0, { person_name: "Priya Nair", company: "Copperline", status: `Connected — thanked ${shortDate(addDays(today, -12))}`, next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs" }),
-    mk(1, { person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged — awaiting reply", next_step: "Follow up if no reply", on: -2, notes: "Hiring manager, perception team" }),
-    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: `Connected — replied ${shortDate(addDays(today, -7))}`, next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum" }),
-    mk(3, { person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", on: null, notes: "Fellow student — connect only, no follow-up sequence" }),
+    mk(0, { person_name: "Priya Nair", company: "Copperline", status: `Connected — thanked ${shortDate(addDays(today, -12))}`, next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs", linkedin_url: "https://www.linkedin.com/in/priya-nair", last_contacted: addDays(today, -12) }),
+    mk(1, { person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged — awaiting reply", next_step: "Follow up if no reply", on: -2, notes: "Hiring manager, perception team", linkedin_url: "https://www.linkedin.com/in/marcus-webb", last_contacted: addDays(today, -9) }),
+    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: `Connected — replied ${shortDate(addDays(today, -7))}`, next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum", linkedin_url: "https://www.linkedin.com/in/elena-brooks", last_contacted: addDays(today, -7) }),
+    mk(3, { person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", on: null, notes: "Fellow student — connect only, no follow-up sequence", linkedin_url: "", last_contacted: null }),
   ];
 }
 
@@ -141,7 +146,7 @@ export function demoPipelineStore(today: ISODate = todayISO()): PipelineStore {
 // ---------- account store (Supabase, explicitly user-scoped + RLS) ----------
 
 const LEAD_COLS = "id,company,role,track,location,pay,url,source,status,fit_note,date_found,created_at,updated_at";
-const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes,created_at,updated_at";
+const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes,linkedin_url,last_contacted,created_at,updated_at";
 
 function fail(error: { message: string } | null, what: string): never {
   throw new Error(`Couldn't ${what}. ${error?.message ?? "Check your connection and try again."}`);

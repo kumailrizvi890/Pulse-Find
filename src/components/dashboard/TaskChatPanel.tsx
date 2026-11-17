@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { accountPipelineStore, demoPipelineStore } from "@/lib/pipeline";
@@ -21,7 +21,7 @@ import {
   type TaskChatContext,
 } from "@/lib/task-chat";
 import { btn, cx, fmtDate } from "./ui";
-import { PulseDot } from "@/components/PulseBrand";
+import { PulseCrystal, PulseDot } from "@/components/PulseBrand";
 
 /**
  * The task chatbot. It opens next to the task drawer when a "Waiting on
@@ -61,32 +61,75 @@ const PANEL_CSS = `
   to { opacity: 1; transform: translateY(0); }
 }
 .pf-msg-in { animation: pf-msg-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+/* 3D depth for the panel itself: a top-edge highlight, a faint red rim,
+   and layered drop shadows so the dock floats above the tracker instead
+   of sitting flat on it. The gradient keeps the glass feel without
+   washing out the text. */
+.pf-chat-panel-3d {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface) 34%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 0 1px rgba(253, 88, 93, 0.22),
+    0 24px 64px -16px rgba(0, 0, 0, 0.85),
+    0 0 48px -12px rgba(248, 52, 62, 0.45);
+}
+/* The crystal avatar reads as 3D with a soft red halo behind it and a
+   hard drop shadow under it, so it lifts off the panel. */
+.pf-crystal-halo { position: relative; display: inline-flex; flex-shrink: 0; }
+.pf-crystal-halo::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(248, 52, 62, 0.38), transparent 70%);
+  filter: blur(2px);
+}
+.pf-crystal-halo > svg {
+  position: relative;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 6px rgba(248, 52, 62, 0.55));
+}
+/* Message bubbles carry their own depth: the user bubble is a red
+   gradient with a top highlight and a red cast shadow; the assistant
+   bubble is layered glass with a top highlight and a deep drop shadow. */
+.pf-chat-bubble-user-3d {
+  background: linear-gradient(160deg, #fb7185, #f43f5e 55%, #e11d48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 6px 16px -6px rgba(244, 63, 94, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.pf-chat-bubble-ai-3d {
+  background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 88%, black));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 8px 20px -10px rgba(0, 0, 0, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+/* The composer sits like a floating bar: a deep shadow under it, and on
+   focus it lifts a pixel and gains a red glow, so it reads as the front
+   layer of the panel. */
+.pf-chat-composer-3d {
+  box-shadow:
+    0 10px 28px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(253, 88, 93, 0.12);
+  transition:
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pf-chat-composer-3d:focus-within {
+  border-color: rgba(253, 88, 93, 0.6);
+  box-shadow:
+    0 12px 32px -12px rgba(0, 0, 0, 0.8),
+    0 0 24px -6px rgba(248, 52, 62, 0.55);
+  transform: translateY(-1px);
+}
 @media (prefers-reduced-motion: reduce) {
   .pf-pulse-crystal, .pf-chat-in, .pf-msg-in { animation: none; }
+  .pf-chat-composer-3d { transition: none; }
+  .pf-chat-composer-3d:focus-within { transform: none; }
 }
 `;
-
-/** Pulse's mark: a small red crystal, gently glowing. */
-export function PulseCrystal({ className }: { className?: string }) {
-  const rawId = useId();
-  const gradId = `pf-crystal-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
-  return (
-    <svg viewBox="0 0 48 48" className={cx("pf-pulse-crystal shrink-0", className)} aria-hidden="true">
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fb7185" />
-          <stop offset="55%" stopColor="#f43f5e" />
-          <stop offset="100%" stopColor="#be123c" />
-        </linearGradient>
-      </defs>
-      <polygon points="24,3 39,13 39,29 24,45 9,29 9,13" fill={`url(#${gradId})`} />
-      <polyline points="9,13 24,19 39,13" fill="none" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" />
-      <polyline points="24,3 24,19 24,45" fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
-      <polyline points="9,29 24,19 39,29" fill="none" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="1" />
-      <polygon points="24,3 39,13 24,19 9,13" fill="#ffffff" fillOpacity="0.18" />
-    </svg>
-  );
-}
 
 type Props = {
   /** Task mode: the application this chat is about. */
@@ -110,7 +153,7 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [handoffOpen, setHandoffOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopyFailed] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [contactsState, setContactsState] = useState<"loading" | "ready" | "error">("loading");
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -252,7 +295,7 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
       />
       <div
         className={cx(
-          "pf-chat-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface/95 shadow-panel backdrop-blur-md lg:inset-x-auto lg:bottom-4 lg:w-[400px] lg:rounded-2xl lg:border lg:max-h-[calc(100dvh-32px)]",
+          "pf-chat-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-2xl border-t border-line bg-surface/95 shadow-panel backdrop-blur-md lg:inset-x-auto lg:bottom-4 lg:w-[400px] lg:rounded-2xl lg:border lg:max-h-[calc(100dvh-32px)] pf-chat-panel-3d",
           // Task mode docks left of the 476px drawer; general mode has no
           // drawer, so it docks at the right edge instead.
           isGeneral ? "lg:right-4" : "lg:right-[476px]",
@@ -267,7 +310,9 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
         <div aria-hidden="true" className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line lg:hidden" />
 
         <header className="flex items-center gap-3 border-b border-line px-4 py-3.5">
-          <PulseCrystal className="h-9 w-9" />
+          <span className="pf-crystal-halo">
+            <PulseCrystal className="h-9 w-9" />
+          </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-base font-bold tracking-tight">Ask Pulse</h2>
             <p className="truncate text-xs text-muted">
@@ -288,14 +333,16 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
           {messages.map((m) =>
             m.role === "user" ? (
               <div key={m.id} className="pf-msg-in flex justify-end">
-                <div className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-sm text-accent-ink shadow-sm">
+                <div className="pf-chat-bubble-user-3d max-w-[85%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-sm text-accent-ink shadow-sm">
                   {m.text}
                 </div>
               </div>
             ) : (
               <div key={m.id} className="pf-msg-in flex items-start gap-2.5">
-                <PulseCrystal className="mt-0.5 h-6 w-6" />
-                <div className="min-w-0 max-w-[85%] rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-2.5 shadow-sm">
+                <span className="pf-crystal-halo mt-0.5">
+                  <PulseCrystal className="h-6 w-6" />
+                </span>
+                <div className="pf-chat-bubble-ai-3d min-w-0 max-w-[85%] rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-2.5 shadow-sm">
                   <p className="whitespace-pre-line text-sm leading-relaxed">{m.text}</p>
                   {m.links && m.links.length > 0 && (
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -318,8 +365,10 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
           )}
           {thinking && (
             <div className="pf-msg-in flex items-start gap-2.5">
-              <PulseCrystal className="mt-0.5 h-6 w-6" />
-              <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-3 shadow-sm" aria-label="Pulse is thinking">
+              <span className="pf-crystal-halo mt-0.5">
+                <PulseCrystal className="h-6 w-6" />
+              </span>
+              <div className="pf-chat-bubble-ai-3d flex items-center gap-2 rounded-2xl rounded-tl-md border border-line bg-surface-2 px-3.5 py-3 shadow-sm" aria-label="Pulse is thinking">
                 <PulseDot />
                 <span className="ml-1 text-xs text-muted">Thinking it over…</span>
               </div>
@@ -357,7 +406,7 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
             Hands this task, your chat, and the full setup prompt to your connected agent.
           </p>
           <form
-            className="mt-2.5 flex items-center gap-2 rounded-full border border-line bg-surface-2 py-1.5 pl-4 pr-1.5 shadow-sm transition focus-within:border-accent/60"
+            className="pf-chat-composer-3d mt-2.5 flex items-center gap-2 rounded-full border border-line bg-surface-2 py-1.5 pl-4 pr-1.5 shadow-sm transition focus-within:border-accent/60"
             onSubmit={(e) => {
               e.preventDefault();
               ask(input);
@@ -392,7 +441,9 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
         {handoffOpen && (
           <div className="absolute inset-0 z-10 flex flex-col bg-surface" role="dialog" aria-modal="true" aria-label="Talk to Agent">
             <header className="flex items-center gap-3 border-b border-line px-4 py-3.5">
-              <PulseCrystal className="h-8 w-8" />
+              <span className="pf-crystal-halo">
+                <PulseCrystal className="h-8 w-8" />
+              </span>
               <div className="min-w-0 flex-1">
                 <h2 className="font-display text-base font-bold tracking-tight">Talk to Agent</h2>
                 <p className="truncate text-xs text-muted">Your agent picks up right where we left off.</p>

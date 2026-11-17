@@ -7,26 +7,65 @@ import { answerGeneralQuestion, DEFAULT_APP_ORIGIN, type GeneralChatContext } fr
 import { demoApplications, demoEvents } from "@/lib/demo-data";
 import { demoContacts } from "@/lib/pipeline";
 import { todayISO } from "@/lib/metrics";
-import { nextTourStep, parseTourStep, prevTourStep, tourHref, tourStepIndex, TOUR_STEPS } from "@/lib/guided-tour";
+import {
+  nextTourStep,
+  parseTourStep,
+  placeTourCard,
+  prevTourStep,
+  tourHref,
+  tourStartHref,
+  TOUR_DISMISSED_KEY,
+  TOUR_STEPS,
+  tourStepIndex,
+  type CardPlacement,
+} from "@/lib/guided-tour";
 import { PulseDot } from "@/components/PulseBrand";
 import { IconX } from "@/components/icons";
 
 // The tour runs on the public demo routes only, driven by ?tour=<step>.
 // It renders nothing anywhere else, and nothing when the param is absent.
 // Each step navigates to its route, spotlights the step's data-tour
-// anchor with a ring, and narrates in the card below. The visitor can
-// go back a step, skip the whole tour, or exit at any time (Escape too).
-// The ring is positioned from the anchor's live bounding box and re-measured
-// on scroll and resize, so it stays glued to the feature. If an anchor
-// never appears (a slow load, the list view on /jobs), the card still
-// shows and the tour still works, just without the ring.
+// anchor with a ring, and narrates in the card. The visitor can go back
+// a step, skip the whole tour, or exit at any time (Escape too).
+//
+// The card is never a modal: the wrapper passes pointer events through,
+// the dim and the ring never take them, and only the card itself takes
+// clicks. That is what lets a visitor try the feature a step is about
+// while the tour stays open. The ring is positioned from the anchor's
+// live bounding box and re-measured on scroll and resize, so it stays
+// glued to the feature. If an anchor never appears (a slow load, the
+// list view on /jobs), the card still shows and the tour still works,
+// just without the ring.
+//
+// The card moves instead of parking bottom-right: it is placed right of
+// the anchor, then left, then below, then above, and only falls back to
+// the bottom dock when the anchor is huge or full-viewport (the
+// dashboard step). Phones keep the bottom sheet. The card sits above the
+// dim on its own z-index with a solid background, so the dim can never
+// wash it out.
+//
+// Auto-start: landing on plain /demo with no tour param opens step 1 on
+// its own, unless the visitor already skipped, exited or finished the
+// tour in this session (a sessionStorage flag). Any arrival with a
+// ?tour= param clears that flag, so the hero demo button and the demo
+// nav "Take the tour" link always force-start the tour.
 
 const TOUR_ROUTES = ["/demo", "/demo/sheet", "/demo/leads", "/demo/networking", "/demo/connect", "/jobs"];
 
 const CHAT_QUESTION = "What networking follow-ups are due?";
 
+const FOCUSABLE = "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])";
+
 function reducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function dismissed(): boolean {
+  try {
+    return sessionStorage.getItem(TOUR_DISMISSED_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 export function GuidedTour() {
@@ -36,11 +75,39 @@ export function GuidedTour() {
   const step = parseTourStep(searchParams.get("tour"));
   const active = step !== null && TOUR_ROUTES.includes(pathname);
   const [rect, setRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [placement, setPlacement] = useState<CardPlacement | null>(null);
+  const [pulsing, setPulsing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const pulseTimer = useRef<number | null>(null);
 
   const exit = useCallback(() => {
+    try {
+      sessionStorage.setItem(TOUR_DISMISSED_KEY, "1");
+    } catch {
+      // A browser that blocks session storage still exits the tour.
+    }
     router.replace(pathname);
   }, [router, pathname]);
+
+  // A tour arrival always clears the dismissed flag, so the hero demo
+  // button and the "Take the tour" replay link force-start even after
+  // a visitor skipped once.
+  useEffect(() => {
+    if (!active) return;
+    try {
+      sessionStorage.removeItem(TOUR_DISMISSED_KEY);
+    } catch {
+      // Nothing to clear when session storage is blocked.
+    }
+  }, [active]);
+
+  // Auto-start on plain /demo only: no tour param, no dismissal this
+  // session, and not a demo sub-page or the signed-in app. Replace, so
+  // no extra history entry is left behind for Back to restart into.
+  useEffect(() => {
+    if (pathname !== "/demo" || step !== null || dismissed()) return;
+    router.replace(tourStartHref());
+  }, [pathname, step, router]);
 
   // A step opened on the wrong route (a pasted link, a stale tab) moves
   // to the step's own route instead of showing the wrong page.
@@ -69,7 +136,12 @@ export function GuidedTour() {
       }
       tries += 1;
       if (tries < 40) window.setTimeout(() => measure(false), 100);
-      else setRect(null);
+      else {
+        // No anchor: no ring, and the card docks instead of keeping a
+        // stale spot next to a feature that never showed up.
+        setRect(null);
+        setPlacement(null);
+      }
     };
     measure(true);
     const onScroll = () => {
@@ -86,6 +158,33 @@ export function GuidedTour() {
     };
   }, [active, step, pathname]);
 
+  // Move the card next to the anchor instead of over it. The height is
+  // measured from the live card, never hard-coded. Phones keep the
+  // bottom sheet, and a huge anchor falls back to the bottom dock.
+  useEffect(() => {
+    if (!active || !rect) return;
+    const place = () => {
+      if (window.innerWidth < 640) {
+        setPlacement(null);
+        return;
+      }
+      const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
+      if (!cardHeight) return;
+      setPlacement(
+        placeTourCard(rect, { width: window.innerWidth, height: window.innerHeight }, cardHeight),
+      );
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [active, rect, step]);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
+    };
+  }, []);
+
   // The card takes keyboard focus on each step so the tour works without
   // a mouse, and Escape exits from anywhere in the tour.
   useEffect(() => {
@@ -100,6 +199,21 @@ export function GuidedTour() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [active, exit]);
+
+  // Try it: scroll the feature into view, focus the first thing inside
+  // it a visitor can use, and pulse the ring once. The step does not
+  // advance, so the visitor can click around and keep the tour open.
+  const tryIt = useCallback(() => {
+    if (!step) return;
+    const el = document.querySelector(`[data-tour="${step.anchor}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "center" });
+    const target = (el.querySelector(FOCUSABLE) as HTMLElement | null) ?? (el as HTMLElement);
+    target.focus({ preventScroll: true });
+    setPulsing(true);
+    if (pulseTimer.current !== null) window.clearTimeout(pulseTimer.current);
+    pulseTimer.current = window.setTimeout(() => setPulsing(false), 1200);
+  }, [step]);
 
   // The chat step shows the real answer, computed from the same demo data
   // the page runs on, through the same deterministic function the chat
@@ -127,10 +241,10 @@ export function GuidedTour() {
   const prev = prevTourStep(step);
 
   return (
-    <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div className="pointer-events-none fixed inset-0 z-[80]" role="dialog" aria-labelledby="tour-title">
       {rect && (
         <div
-          className="tour-ring"
+          className={`tour-ring${pulsing ? " tour-ring-pulse" : ""}`}
           aria-hidden="true"
           style={{ left: rect.x - 8, top: rect.y - 8, width: rect.width + 16, height: rect.height + 16 }}
         />
@@ -138,7 +252,10 @@ export function GuidedTour() {
       <div
         ref={cardRef}
         tabIndex={-1}
-        className="fixed inset-x-3 bottom-3 rounded-2xl border border-line bg-surface p-5 shadow-panel outline-none sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[380px]"
+        style={placement ? { left: placement.left, top: placement.top } : undefined}
+        className={`tour-card pointer-events-auto fixed inset-x-3 bottom-3 rounded-2xl border border-line p-5 shadow-panel outline-none sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[380px] ${
+          placement ? "sm:bottom-auto sm:right-auto" : ""
+        }`}
       >
         <div className="flex items-center justify-between gap-2">
           <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
@@ -166,12 +283,21 @@ export function GuidedTour() {
               {chatAnswer.text}
             </p>
             <p>
-              <Link href="/demo?chat=1" className="text-sm font-semibold text-accent">
+              <Link href="/demo?tour=chat&chat=1" className="text-sm font-semibold text-accent">
                 Try Ask Pulse yourself →
               </Link>
             </p>
           </div>
         )}
+        <div className="mt-4">
+          <button
+            onClick={tryIt}
+            className="rounded-xl border border-accent/40 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent hover:text-accent-ink"
+          >
+            {step.tryIt}
+          </button>
+          <p className="mt-2 text-xs text-muted">Go ahead, try it, the tour stays open.</p>
+        </div>
         <div className="mt-5 flex items-center gap-2">
           <button
             onClick={() => prev && router.push(tourHref(prev))}

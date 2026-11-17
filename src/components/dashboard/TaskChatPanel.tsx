@@ -153,7 +153,7 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [handoffOpen, setHandoffOpen] = useState(false);
-  const [copied, setCopyFailed] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [contactsState, setContactsState] = useState<"loading" | "ready" | "error">("loading");
   const [contacts, setContacts] = useState<Contact[]>([]);

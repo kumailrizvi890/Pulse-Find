@@ -107,6 +107,10 @@ export interface Contact {
   next_step: string;
   next_step_on: ISODate | null;
   notes: string;
+  /** LinkedIn profile URL, from the Networking Tracker's Profile URL column. Empty when unknown. */
+  linkedin_url: string;
+  /** Last date the user was in touch, from the Networking Tracker's Last Touch column. Null when unknown. */
+  last_contacted: ISODate | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -114,7 +118,7 @@ export interface Contact {
 export type ContactInput = Omit<Contact, "id" | "created_at" | "updated_at">;
 
 export function emptyContact(): ContactInput {
-  return { person_name: "", company: "", status: "", next_step: "", next_step_on: null, notes: "" };
+  return { person_name: "", company: "", status: "", next_step: "", next_step_on: null, notes: "", linkedin_url: "", last_contacted: null };
 }
 
 export function emptyApplication(today: ISODate): ApplicationInput {

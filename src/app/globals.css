@@ -436,11 +436,33 @@ in empty editable cells instead of the faint dash. */
   animation: landing-caret-blink 1s step-end infinite;
 }
 
+/* Guided tour spotlight ring: the red outline around the feature the
+   current step is about, with a dimmed backdrop painted by a huge
+   box-shadow so the page behind stays visible but out of focus. The ring
+   follows the anchor with a short transition; under reduced motion it
+   snaps instead. */
+.tour-ring {
+  position: fixed;
+  z-index: 70;
+  pointer-events: none;
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 9999px rgb(13 12 16 / 0.72),
+    0 0 24px rgb(253 88 93 / 0.35);
+  transition:
+    left 0.25s ease,
+    top 0.25s ease,
+    width 0.25s ease,
+    height 0.25s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-marquee-track { animation: none; }
   .landing-swipe-nudge { animation: none; }
   .landing-sheet-pulse { animation: none; }
   .landing-caret { animation: none; opacity: 1; }
+  .tour-ring { transition: none; }
 }
 
 /*

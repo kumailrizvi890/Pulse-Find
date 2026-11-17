@@ -15,6 +15,11 @@ import { btn, cx, Panel } from "@/components/dashboard/ui";
  * The per-client snippets mirror src/app/app/connect/ConnectAgent.tsx
  * on purpose (duplicated, not shared): the signed-in page stays
  * byte-for-byte untouched, so a change here can never break it.
+ *
+ * The copy buttons sit in flow above their code blocks, not overlaid
+ * on them: the overlaid version covered the end of the snippet on
+ * narrow screens and covered prompt text in step 4 (and more once
+ * the prompt block was scrolled).
  */
 
 const PLACEHOLDER_TOKEN = "pf_YOUR_TOKEN";
@@ -120,12 +125,12 @@ export function DemoConnectAgent() {
             </button>
           ))}
         </div>
-        <div className="relative">
-          <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
-          <button className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")} onClick={() => void copy(snippet(client, url, PLACEHOLDER_TOKEN), setSnippetCopied)}>
+        <div className="mb-2 flex justify-end">
+          <button className={btn.ghost} onClick={() => void copy(snippet(client, url, PLACEHOLDER_TOKEN), setSnippetCopied)}>
             {snippetCopied ? "Copied" : "Copy"}
           </button>
         </div>
+        <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
         <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
       </Panel>
 
@@ -152,17 +157,14 @@ export function DemoConnectAgent() {
           scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
           dashboard and start using it with nothing else to do.
         </p>
-        <div className="relative mt-3">
-          <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
-            {prompt}
-          </pre>
-          <button
-            className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")}
-            onClick={() => void copy(prompt, setPromptCopied)}
-          >
+        <div className="mb-2 mt-3 flex justify-end">
+          <button className={btn.ghost} onClick={() => void copy(prompt, setPromptCopied)}>
             {promptCopied ? "Copied" : "Copy full prompt"}
           </button>
         </div>
+        <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
+          {prompt}
+        </pre>
         <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
       </Panel>
 

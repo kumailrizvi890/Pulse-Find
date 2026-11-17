@@ -511,7 +511,7 @@ export function Overview({
             </>
           )}
         </Panel>
-        <Panel title="Interviews" hint={`${interviewList.length} at interview stage`}>
+        <Panel title="Interviews" hint={`${interviewList.length} reached interview stage`}>
           {interviewList.length === 0 ? (
             <p className="text-sm text-muted">No interviews yet. When a company moves you forward, it shows up here.</p>
           ) : (

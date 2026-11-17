@@ -5,6 +5,7 @@ import type { Application, ApplicationInput, Settings, Status } from "@/lib/type
 import { DEFAULT_SETTINGS, STATUSES } from "@/lib/types";
 import { dedupeImport, filterSheet, sheetRows, sortSheet, SHEET_COLUMNS, type SheetKey, type SortDir } from "@/lib/sheet";
 import { hasAction, summarize, todayISO } from "@/lib/metrics";
+import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { TrackerStore } from "@/lib/store";
 import { buildWorkbook, download, toCsv } from "@/lib/export";
 import { ImportDialog } from "./ImportDialog";
@@ -38,6 +39,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [onlyActions, setOnlyActions] = useState(false);
   const [status, setStatus] = useState<Status | "All">("All");
@@ -50,8 +52,10 @@ export function SheetView({ store }: { store: TrackerStore }) {
 
   useEffect(() => {
     let alive = true;
-    store
-      .load()
+    // A hung load used to sit on the skeleton forever; after 15s the
+    // timeout rejects and the error panel offers "Try again". Retrying
+    // bumps `attempt`, so a fresh load gets a fresh timer.
+    withLoadTimeout(store.load(), LOAD_TIMEOUT_MS)
       .then((d) => {
         if (!alive) return;
         setApps(d.apps);
@@ -66,7 +70,12 @@ export function SheetView({ store }: { store: TrackerStore }) {
     return () => {
       alive = false;
     };
-  }, [store]);
+  }, [store, attempt]);
+
+  const retry = () => {
+    setState("loading");
+    setAttempt((n) => n + 1);
+  };
 
   const sum = useMemo(() => summarize(apps, today, settings.ghost_days), [apps, today, settings.ghost_days]);
   const rows = useMemo(
@@ -136,6 +145,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
       <main className="gutter mx-auto w-full max-w-[1180px] pb-16 pt-6">
         <Panel title="Your sheet didn't load">
           <p className="text-sm text-muted">{loadError}</p>
+          <button className={cx(btn.primary, "mt-4")} onClick={retry}>Try again</button>
         </Panel>
       </main>
     );

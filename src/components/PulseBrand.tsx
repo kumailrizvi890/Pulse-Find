@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 /** Local class joiner — deliberately NOT imported from dashboard/ui, which
  * is a "use client" module: PulseBrand is also rendered from server
  * components (the landing hero), and calling a client-module function
@@ -148,5 +150,32 @@ export function WaitingSignal({ className }: { className?: string }) {
       <PulseWaveform className="h-3.5 w-12 shrink-0" glow />
       Waiting for your next signal.
     </p>
+  );
+}
+
+/**
+ * Pulse's mark: a small red crystal, gently glowing. One shared mark for
+ * the chat header, the message avatars, and the floating assistant
+ * button, so the crystal reads the same everywhere. The glow pulse is
+ * the pf-pulse-crystal animation, defined beside the chat panel styles.
+ */
+export function PulseCrystal({ className }: { className?: string }) {
+  const rawId = useId();
+  const gradId = `pf-crystal-${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
+  return (
+    <svg viewBox="0 0 48 48" className={cx("pf-pulse-crystal shrink-0", className)} aria-hidden="true">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fb7185" />
+          <stop offset="55%" stopColor="#f43f5e" />
+          <stop offset="100%" stopColor="#be123c" />
+        </linearGradient>
+      </defs>
+      <polygon points="24,3 39,13 39,29 24,45 9,29 9,13" fill={`url(#${gradId})`} />
+      <polyline points="9,13 24,19 39,13" fill="none" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1" />
+      <polyline points="24,3 24,19 24,45" fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+      <polyline points="9,29 24,19 39,29" fill="none" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="1" />
+      <polygon points="24,3 39,13 24,19 9,13" fill="#ffffff" fillOpacity="0.18" />
+    </svg>
   );
 }

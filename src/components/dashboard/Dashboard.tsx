@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import type { Application, ApplicationInput, Settings, TrackerEvent } from "@/lib/types";
-import { DEFAULT_SETTINGS, emptyApplication } from "@/lib/types";
+import type { Application, ApplicationInput, Settings, Status, TrackerEvent } from "@/lib/types";
+import { DEFAULT_SETTINGS, emptyApplication, STATUSES } from "@/lib/types";
 import {
   actionQueue, applyFilter, daysBetween, followUp, funnel, hasAction, isTechRole, sortForTable,
   summarize, todayISO, CLOSED, type Filter,
@@ -42,6 +42,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   const [loadError, setLoadError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<Status | "All">("All");
   const [drawer, setDrawer] = useState<{ open: boolean; editing: Application | null }>({ open: false, editing: null });
   const [chatOpen, setChatOpen] = useState(false);
   const [generalChatOpen, setGeneralChatOpen] = useState(false);
@@ -85,10 +86,15 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   const sum = useMemo(() => summarize(apps, today, settings.ghost_days), [apps, today, settings.ghost_days]);
   const queue = useMemo(() => actionQueue(apps), [apps]);
   const steps = useMemo(() => funnel(apps), [apps]);
-  const rows = useMemo(() => sortForTable(applyFilter(apps, filter, today, settings.ghost_days, query)), [apps, filter, today, settings.ghost_days, query]);
+  const rows = useMemo(() => sortForTable(applyFilter(apps, filter, today, settings.ghost_days, query, status)), [apps, filter, today, settings.ghost_days, query, status]);
   const counts = useMemo(
     () => Object.fromEntries(FILTERS.map((f) => [f.id, applyFilter(apps, f.id, today, settings.ghost_days).length])) as Record<Filter, number>,
     [apps, today, settings.ghost_days],
+  );
+  // Per-status counts for the status dropdown options ("OA Received (10)").
+  const statusCounts = useMemo(
+    () => Object.fromEntries(STATUSES.map((s) => [s, apps.filter((a) => a.status === s).length])) as Record<Status, number>,
+    [apps],
   );
   const initial = useMemo<ApplicationInput>(() => {
     if (!drawer.editing) return emptyApplication(today);
@@ -131,6 +137,9 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   // to it, so keyboard and screen-reader users land on the results too.
   const showWaiting = useCallback(() => {
     setFilter("action");
+    // A status filter would hide waiting items at other stages, so the
+    // waiting list always starts unfiltered by status.
+    setStatus("All");
     const el = allAppsRef.current;
     if (!el) return;
     const reduceMotion =
@@ -290,14 +299,27 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
             title="All applications"
             hint="Red tag marks a tech role. Red company names have something waiting on you."
             action={
-              <input
-                id="search"
-                type="search"
-                className={cx(field, "w-full sm:w-56")}
-                placeholder="Search company or role"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <select
+                  className={cx(field, "w-full sm:w-44")}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as Status | "All")}
+                  aria-label="Filter by status"
+                >
+                  <option value="All">All statuses</option>
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>{s} ({statusCounts[s] ?? 0})</option>
+                  ))}
+                </select>
+                <input
+                  id="search"
+                  type="search"
+                  className={cx(field, "w-full sm:w-56")}
+                  placeholder="Search anything"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
             }
           >
             <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1">
@@ -315,11 +337,33 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
                 </button>
               ))}
             </div>
+            {status !== "All" && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setStatus("All")}
+                  aria-label={`Clear status filter ${status}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger-soft px-2.5 py-1 text-xs font-semibold text-danger transition hover:brightness-110"
+                >
+                  Status: {status} · {statusCounts[status] ?? 0}
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+            )}
             {loading ? (
               <Skeleton lines={6} />
             ) : rows.length === 0 ? (
               <div className="py-6 text-center">
                 <p className="text-sm text-muted">No applications match this filter.</p>
+                <button
+                  className={cx(btn.secondary, "mt-3")}
+                  onClick={() => {
+                    setQuery("");
+                    setStatus("All");
+                    setFilter("all");
+                  }}
+                >
+                  Clear filters
+                </button>
                 <WaitingSignal className="mt-2 justify-center" />
               </div>
             ) : (

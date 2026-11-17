@@ -13,8 +13,8 @@ import { btn, cx, Panel } from "@/components/dashboard/ui";
  * wants a real token signs up from here instead.
  *
  * The per-client snippets mirror src/app/app/connect/ConnectAgent.tsx
- * on purpose (duplicated, not shared): the signed-in page stays
- * byte-for-byte untouched, so a change here can never break it.
+ * on purpose (duplicated, not shared): the signed-in page keeps its
+ * own copy, so a change here can never break it.
  *
  * The copy buttons sit in flow above their code blocks, not overlaid
  * on them: the overlaid version covered the end of the snippet on

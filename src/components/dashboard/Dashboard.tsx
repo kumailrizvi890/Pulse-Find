@@ -254,7 +254,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
         </div>
         <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
-          <button className={btn.secondary} onClick={openGeneralChatPanel} aria-label="Ask Pulse about your tracker">
+          <button className={btn.secondary} onClick={openGeneralChatPanel} aria-label="Ask Pulse about your tracker" data-tour="ask-pulse">
             <PulseDot />
             Ask Pulse
           </button>

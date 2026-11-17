@@ -41,14 +41,18 @@ describe("demo ?chat=1 plumbing", () => {
   it("the demo page reads the chat query and hands it to the dashboard", () => {
     expect(demoPage).toContain("searchParams");
     expect(demoPage).toContain('sp.chat === "1"');
-    expect(demoPage).toContain("<DemoDashboard openChat={sp.chat === \"1\"} />");
+    expect(demoPage).toContain('openChat={sp.chat === "1"}');
+    expect(demoPage).toContain('tour={typeof sp.tour === "string" ? sp.tour : undefined}');
   });
 
   it("DemoDashboard passes the trigger to the Dashboard and clears it", () => {
     expect(demoDashboard).toContain("openGeneralChat={openChat}");
     // Clearing the trigger keeps the next click a fresh navigation to
-    // ?chat=1 instead of a no-op link to the current URL.
-    expect(demoDashboard).toContain('router.replace("/demo"');
+    // ?chat=1 instead of a no-op link to the current URL. The tour
+    // param survives the clear, so the tour's own chat link does not
+    // close the tour the moment the visitor tries the chat.
+    expect(demoDashboard).toContain("`/demo?tour=${tour}`");
+    expect(demoDashboard).toContain('router.replace(tour ?');
   });
 });
 

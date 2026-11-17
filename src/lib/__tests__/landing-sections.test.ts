@@ -76,7 +76,13 @@ describe("demo numbers the sections render (fictional seed data)", () => {
   });
 
   it("pins the pace week the showcase chart shows", () => {
-    const today = todayISO();
+    // The seed dates are relative to today, so the week's shape depends on
+    // the weekday: the two most recent applications (0 and 1 days ago) both
+    // land in the current week once today is past Monday, and the pinned
+    // [1, 0, 0, 0, 0, 0, 0] only holds on a Monday (CI went red on exactly
+    // this test the morning UTC rolled to Tuesday Nov 17). Pin a Monday so
+    // the expectation holds on every run, whatever day CI runs on.
+    const today = "2026-11-16"; // a Monday
     const apps = demoApplications(today);
     const monday = weekStart(today);
     const days = Array.from({ length: 7 }, (_, i) => apps.filter((a) => a.date_applied === addDays(monday, i)).length);
@@ -84,6 +90,20 @@ describe("demo numbers the sections render (fictional seed data)", () => {
     const prevStart = addDays(monday, -7);
     const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
     expect(prevTotal).toBe(5);
+  });
+
+  it("pins the same week one day later, when the second recent application joins it", () => {
+    // Tuesday Nov 17: the application from 1 day ago now lands on Monday
+    // and today's lands on Tuesday, so the week reads [1, 1, 0, 0, 0, 0, 0]
+    // and the previous week drops to 4. This is the shape CI saw fail.
+    const today = "2026-11-17"; // a Tuesday
+    const apps = demoApplications(today);
+    const monday = weekStart(today);
+    const days = Array.from({ length: 7 }, (_, i) => apps.filter((a) => a.date_applied === addDays(monday, i)).length);
+    expect(days).toEqual([1, 1, 0, 0, 0, 0, 0]);
+    const prevStart = addDays(monday, -7);
+    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
+    expect(prevTotal).toBe(4);
   });
 });
 

@@ -8,11 +8,10 @@ import { AccountDashboard } from "./AccountDashboard";
 export const metadata: Metadata = { title: "Your tracker" };
 export const dynamic = "force-dynamic";
 
-export default async function AppPage() {
+export default async function AppPage({ searchParams }: { searchParams: Promise<{ chat?: string | string[] }> }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login?next=/app");
-
   if ((await cookies()).get("pulse-find-setup-done")?.value !== "1") {
     const { count } = await supabase
       .from("applications")
@@ -20,6 +19,7 @@ export default async function AppPage() {
       .eq("user_id", data.user.id);
     if (count === 0) redirect("/app/setup");
   }
+  const sp = await searchParams;
 
   return (
     <AppShell
@@ -33,7 +33,7 @@ export default async function AppPage() {
         </>
       }
     >
-      <AccountDashboard userId={data.user.id} />
+      <AccountDashboard userId={data.user.id} openChat={sp.chat === "1"} />
     </AppShell>
   );
 }

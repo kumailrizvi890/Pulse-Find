@@ -115,3 +115,53 @@ describe("summaries", () => {
     expect(applyFilter(apps, "all", TODAY, 21, "barista")).toHaveLength(1);
   });
 });
+
+describe("tracker status filter and search", () => {
+  const filterApps = [
+    app({ company: "Nebius", role: "AI/ML Specialist", status: "OA Received", oa_received: true, track: "Internship", notes: "HackerRank submitted, waiting on the GDPR consent click", latest_update: "Assessment submitted", last_contact: "2026-11-10", action_needed: "Complete the GDPR consent click", action_due: "2026-12-09" }),
+    app({ company: "Kestrel Fintech", role: "Full Stack Developer (New Grad)", status: "Rejected", interviews_done: 1, track: "New Grad", latest_update: "Rejected after recruiter screen", last_contact: "2026-11-01" }),
+    app({ company: "Atlas Robotics", role: "Embedded Software Intern", status: "Interviewing", interviews_done: 2, track: "Internship", notes: "Interviewer: robotics perception team", last_contact: "2026-11-02" }),
+    app({ company: "Acme", role: "Barista", status: "Applied", track: "Part-Time", last_contact: "2026-11-05" }),
+  ];
+
+  it("filters by one stored status and restores everything on All", () => {
+    expect(applyFilter(filterApps, "all", TODAY, 21, "", "OA Received").map((a) => a.company)).toEqual(["Nebius"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "", "Rejected").map((a) => a.company)).toEqual(["Kestrel Fintech"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "", "All")).toHaveLength(4);
+    expect(applyFilter(filterApps, "all", TODAY, 21)).toHaveLength(4); // status defaults to All
+  });
+
+  it("returns nothing for a status with no rows", () => {
+    expect(applyFilter(filterApps, "all", TODAY, 21, "", "Offer")).toHaveLength(0);
+  });
+
+  it("composes the status with the chip filter and the search box", () => {
+    expect(applyFilter(filterApps, "closed", TODAY, 21, "", "Rejected")).toHaveLength(1);
+    expect(applyFilter(filterApps, "closed", TODAY, 21, "", "OA Received")).toHaveLength(0);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "kestrel", "Rejected")).toHaveLength(1);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "atlas", "Rejected")).toHaveLength(0);
+    expect(applyFilter(filterApps, "tech", TODAY, 21, "", "OA Received")).toHaveLength(1);
+  });
+
+  it("matches a status word typed in the search box", () => {
+    expect(applyFilter(filterApps, "all", TODAY, 21, "rejected").map((a) => a.company)).toEqual(["Kestrel Fintech"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "oa received").map((a) => a.company)).toEqual(["Nebius"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "interviewing").map((a) => a.company)).toEqual(["Atlas Robotics"]);
+  });
+
+  it("matches notes, track, latest update, and action text", () => {
+    expect(applyFilter(filterApps, "all", TODAY, 21, "perception").map((a) => a.company)).toEqual(["Atlas Robotics"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "gdpr").map((a) => a.company)).toEqual(["Nebius"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "internship").map((a) => a.company)).toEqual(["Nebius", "Atlas Robotics"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "new grad").map((a) => a.company)).toEqual(["Kestrel Fintech"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "recruiter screen").map((a) => a.company)).toEqual(["Kestrel Fintech"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "consent click").map((a) => a.company)).toEqual(["Nebius"]);
+  });
+
+  it("matches date words and multi-word queries, case-insensitively", () => {
+    expect(applyFilter(filterApps, "all", TODAY, 21, "nov 10").map((a) => a.company)).toEqual(["Nebius"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "  KESTREL ").map((a) => a.company)).toEqual(["Kestrel Fintech"]);
+    expect(applyFilter(filterApps, "all", TODAY, 21, "tech jobs")).toHaveLength(3); // the three tech roles, not the barista
+    expect(applyFilter(filterApps, "all", TODAY, 21, "robotics perception").map((a) => a.company)).toEqual(["Atlas Robotics"]);
+  });
+});

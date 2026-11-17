@@ -315,12 +315,12 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.14em] text-faint">
              {mounted
-                    ? new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+              ? new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
                             : "\u00A0"}
           </p>
           <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">{mounted ? greeting(settings.display_name) : "\u00A0"}</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+  <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
           <button className={btn.secondary} onClick={openGeneralChatPanel} aria-label="Ask Pulse about your tracker" data-tour="ask-pulse">
             <PulseDot />

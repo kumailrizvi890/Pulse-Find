@@ -10,8 +10,8 @@ import { IconUndo } from "@/components/icons";
  * whole transcript renders at once — no typing, no waiting.
  */
 const LINES: { symbol: string; symbolTone: "dim" | "plain" | "good" | "bad"; text: string }[] = [
-  { symbol: "$", symbolTone: "dim", text: " claude mcp add --transport http pulse-find" },
-  { symbol: "", symbolTone: "dim", text: "    https://pulsefind-app.vercel.app/api/mcp" },
+  { symbol: "$", symbolTone: "dim", text: " claude mcp add --transport http pulse-find \\" },
+  { symbol: "", symbolTone: "dim", text: "    https://pulsefind-app.vercel.app/api/mcp \\" },
   { symbol: "", symbolTone: "dim", text: '    --header "Authorization: Bearer pf_…"' },
   { symbol: "", symbolTone: "plain", text: "" },
   { symbol: ">", symbolTone: "plain", text: " Scan my email from the last week and update Pulse Find." },

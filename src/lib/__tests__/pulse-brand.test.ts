@@ -182,11 +182,12 @@ describe("pulse brand placements", () => {
     // The old paragraph's two distinctive fragments must be gone entirely.
     expect(home).not.toContain("puts the assessments, replies and forms that need you at the top");
     expect(home).not.toContain("went quiet so you know when to follow up");
-    // The headline, the three buttons and the no-sign-up line stay.
+    // The headline, the four buttons and the no-sign-up line stay.
     expect(home).toContain("Know what&apos;s waiting");
     expect(home).toContain("Try the live demo");
-    expect(home).toContain("Create a free tracker");
-    expect(home).toContain("Find internships");
+    expect(home).toContain("Find jobs");
+    expect(home).toContain("Self host");
+    expect(home).toContain("Connect your agents");
     expect(home).toContain("No sign-up needed for the demo or the job board.");
   });
 

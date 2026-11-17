@@ -6,7 +6,7 @@ import { emptyContact } from "@/lib/types";
 import { addDays, todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
-import { dueBucket, sortContacts, type DueBucket } from "@/lib/pipeline";
+import { dueBucket, isExternalUrl, sortContacts, type DueBucket } from "@/lib/pipeline";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
 
 const BUCKET_LABEL: Record<Exclude<DueBucket, "none">, string> = {
@@ -163,7 +163,11 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                 <li key={c.id} className="grid grid-cols-1 gap-2 py-3 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className={cx("font-semibold", bucket === "overdue" && "text-danger")}>{c.person_name}</span>
+                      {c.linkedin_url && isExternalUrl(c.linkedin_url) ? (
+                        <a className={cx("font-semibold text-accent hover:underline", bucket === "overdue" && "text-danger")} href={c.linkedin_url} target="_blank" rel="noreferrer">{c.person_name}</a>
+                      ) : (
+                        <span className={cx("font-semibold", bucket === "overdue" && "text-danger")}>{c.person_name}</span>
+                      )}
                       {c.company && <span className="text-muted">· {c.company}</span>}
                       {bucket !== "none" && (
                         <Tag tone={bucket === "overdue" || bucket === "today" ? "danger" : bucket === "upcoming" ? "warn" : "muted"}>
@@ -172,6 +176,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                       )}
                     </p>
                     {c.status && <p className="mt-0.5 text-sm text-muted">{c.status}</p>}
+                    {c.last_contacted && <p className="mt-0.5 text-sm text-muted">Last talked {fmtDate(c.last_contacted)}</p>}
                     {(c.next_step || bucket !== "none") && (
                       <p className="mt-0.5 text-sm">
                         Next: {c.next_step.trim() || "Follow up"}
@@ -273,6 +278,14 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Status
             <input className={field} maxLength={200} value={v.status} onChange={(e) => set("status", e.target.value)} placeholder={`Connected — thanked ${fmtDate(addDays(todayISO(), -12))}`} />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
+            LinkedIn profile URL
+            <input className={field} type="url" maxLength={2000} value={v.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} placeholder="https://www.linkedin.com/in/..." />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
+            Last contacted
+            <input className={field} type="date" value={v.last_contacted ?? ""} onChange={(e) => set("last_contacted", e.target.value === "" ? null : e.target.value)} />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Next step

@@ -346,6 +346,29 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
     expect(tourHost).toContain("sessionStorage.getItem(TOUR_DISMISSED_KEY)");
   });
 
+  it("does not auto-start the tour when the visitor arrives to chat (?chat=1)", () => {
+    // The landing chat button and the demo nav link here with ?chat=1:
+    // the chat takes precedence, so the tour card never sits over the
+    // open chat panel. The gate sits before the auto-start replace.
+    const gate = tourHost.indexOf('searchParams.get("chat") === "1"');
+    const start = tourHost.indexOf("router.replace(tourStartHref())");
+    expect(gate).toBeGreaterThan(-1);
+    expect(start).toBeGreaterThan(-1);
+    expect(gate).toBeLessThan(start);
+    // DemoDashboard clears ?chat=1 right after the chat opens, so the
+    // decision is made once per mount, not re-read from the live param.
+    expect(tourHost).toContain("autoStartChecked");
+  });
+
+  it("stays startable by hand after a ?chat=1 arrival", () => {
+    // "Take the tour" forces step 1 even after a suppressed auto-start:
+    // an arrival with a ?tour= param clears the dismissed flag, and the
+    // nav link carries one.
+    expect(demoNav).toContain("Take the tour");
+    expect(demoNav).toContain('href="/demo?tour=dashboard"');
+    expect(tourHost).toContain("sessionStorage.removeItem(TOUR_DISMISSED_KEY)");
+  });
+
   it("keeps the tour param when the chat link clears ?chat=1", () => {
     expect(demoPage).toContain("tour?: string | string[]");
     expect(demoPage).toContain('tour={typeof sp.tour === "string" ? sp.tour : undefined}');

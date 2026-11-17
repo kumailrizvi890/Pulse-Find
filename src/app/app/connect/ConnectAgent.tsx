@@ -161,10 +161,14 @@ export function ConnectAgent({ userId }: { userId: string }) {
             </button>
           ))}
         </div>
-        <div className="relative">
-          <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, shown)}</pre>
-          <button className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")} onClick={() => copy(snippet(client, url, shown))}>Copy</button>
+                {/* The Copy buttons sit in flow above their code blocks, not
+            overlaid on them: the overlaid version covered the end of
+            the snippet on narrow screens and covered prompt text in
+            step 4, worse once the prompt block was scrolled. */}
+        <div className="mb-2 flex justify-end">
+          <button className={btn.ghost} onClick={() => copy(snippet(client, url, shown))}>Copy</button>
         </div>
+        <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, shown)}</pre>
         {!fresh && <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the token from step 1.</p>}
       </Panel>
 
@@ -191,14 +195,9 @@ export function ConnectAgent({ userId }: { userId: string }) {
           scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
           dashboard and start using it with nothing else to do.
         </p>
-        <div className="relative mt-3">
-          <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
-            {fresh
-              ? buildAgentPrompt({ endpoint: url, token: fresh })
-              : buildAgentPrompt({ endpoint: url, token: "pf_YOUR_TOKEN" })}
-          </pre>
+                <div className="mb-2 mt-3 flex justify-end">
           <button
-            className={cx(btn.ghost, "absolute right-1.5 top-1.5 bg-surface")}
+            className={btn.ghost}
             onClick={() =>
               copyPrompt(
                 fresh
@@ -210,6 +209,11 @@ export function ConnectAgent({ userId }: { userId: string }) {
             {promptCopied ? "Copied" : "Copy full prompt"}
           </button>
         </div>
+        <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
+          {fresh
+            ? buildAgentPrompt({ endpoint: url, token: fresh })
+            : buildAgentPrompt({ endpoint: url, token: "pf_YOUR_TOKEN" })}
+        </pre>
         {!fresh && <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the token from step 1.</p>}
       </Panel>
 

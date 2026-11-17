@@ -7,6 +7,7 @@ import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { PulseTrace } from "@/components/PulseTrace";
 import { Marquee } from "@/components/landing/Marquee";
 import { Showcase } from "@/components/landing/Showcase";
+import { ChatBeat } from "@/components/landing/ChatBeat";
 import { Bento } from "@/components/landing/Bento";
 import { TerminalDemo } from "@/components/landing/TerminalDemo";
 import { StatsBand } from "@/components/landing/StatsBand";
@@ -20,6 +21,10 @@ const primary =
   "inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-[15px] font-semibold text-accent-ink shadow-panel transition hover:brightness-110";
 const secondary =
   "inline-flex items-center justify-center rounded-xl border border-line bg-surface px-5 py-3 text-[15px] font-semibold text-ink transition hover:bg-surface-2";
+// Hero buttons stack full-width on phones (four of them would crowd one
+// row) and sit in a row on wider screens.
+const heroPrimary = `${primary} w-full justify-center sm:w-auto`;
+const heroSecondary = `${secondary} w-full justify-center sm:w-auto`;
 
 export const revalidate = 3600; // keep the sample dates in the hero current
 
@@ -119,10 +124,11 @@ export default async function Home() {
             <h1 className="mt-5 font-display text-[40px] font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-[56px]">
               Know what&apos;s waiting <span className="text-accent">on you.</span>
             </h1>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/demo" className={primary}>Try the live demo</Link>
-              <Link href="/login?mode=signup" className={secondary}>Create a free tracker</Link>
-              <Link href="/jobs" className={secondary}>Find internships</Link>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/demo?tour=dashboard" className={heroPrimary}>Try the live demo</Link>
+              <Link href="/jobs" className={heroSecondary}>Find jobs</Link>
+              <Link href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally" className={heroSecondary} target="_blank" rel="noopener">Self host</Link>
+              <Link href="/#mcp" className={heroSecondary}>Connect your agents</Link>
             </div>
             <p className="mt-4 text-sm text-faint">No sign-up needed for the demo or the job board. Your real tracker is private to you.</p>
             <ul className="mt-8 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
@@ -172,6 +178,9 @@ export default async function Home() {
               aria-label="A short screen recording of the Pulse Find demo tracker"
             />
             <p className="mt-3 text-center text-xs text-faint">Recorded from the live demo with sample data.</p>
+          </Reveal>
+          <Reveal delay={120}>
+            <ChatBeat />
           </Reveal>
         </section>
 

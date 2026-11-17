@@ -77,7 +77,7 @@ export function DemoConnectAgent() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-10">
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-10" data-tour="connect">
       <header>
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Connect your AI agent</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">

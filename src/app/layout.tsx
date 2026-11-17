@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { SiteBackdrop } from "@/components/SiteBackdrop";
+import { GuidedTour } from "@/components/GuidedTour";
 import "./globals.css";
 
 // Fonts are self-hosted so builds never depend on reaching a font CDN.
@@ -57,6 +59,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${GeistSans.variable} ${GeistMono.variable} ${bricolage.variable} antialiased min-h-dvh`}>
         <SiteBackdrop />
         {children}
+        <Suspense fallback={null}>
+          <GuidedTour />
+        </Suspense>
       </body>
     </html>
   );

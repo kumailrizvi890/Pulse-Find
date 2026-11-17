@@ -33,6 +33,12 @@ export function DemoNav() {
       />
       <nav aria-label="Demo sections" className="border-b border-line bg-surface">
         <div className="gutter mx-auto flex w-full max-w-[1180px] items-center gap-1 overflow-x-auto py-2 text-sm">
+          <Link href="/demo?tour=dashboard" className={navLink} aria-label="Take the guided tour of the demo">
+            <span className="flex items-center gap-1.5">
+              <PulseDot />
+              Take the tour
+            </span>
+          </Link>
           <Link href="/demo" className={navLink}>
             Dashboard
           </Link>

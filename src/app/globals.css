@@ -437,22 +437,21 @@ in empty editable cells instead of the faint dash. */
 }
 
 /* Guided tour spotlight ring: the red outline around the feature the
-   current step is about, with a dimmed backdrop painted by a huge
-   box-shadow so the page behind stays visible but out of focus. The ring
-   follows the anchor with a short transition; under reduced motion it
-   snaps instead. Stacking: the tour wrapper is z-80 and passes pointer
-   events through, the ring sits at z-1 inside it, and the tour card sits
-   at z-2 with a solid background, so the dim can never wash the card
-   out and the page under the tour stays clickable. */
+   current step is about. There is no dim backdrop: the quest coach is
+   a small bottom sheet and the page stays visible and tappable
+   underneath, so the ring is only an outline plus a soft glow. The
+   ring follows the anchor with a short transition; under reduced
+   motion it snaps instead. Stacking: the tour wrapper is z-80 and
+   passes pointer events through, the ring sits at z-1 inside it, and
+   the tour card sits at z-2 with a solid background, so the page under
+   the tour stays clickable. */
 .tour-ring {
   position: fixed;
   z-index: 1;
   pointer-events: none;
   border: 2px solid var(--accent);
   border-radius: 14px;
-  box-shadow:
-    0 0 0 9999px rgb(13 12 16 / 0.72),
-    0 0 24px rgb(253 88 93 / 0.35);
+  box-shadow: 0 0 24px rgb(253 88 93 / 0.35);
   transition:
     left 0.25s ease,
     top 0.25s ease,
@@ -471,11 +470,56 @@ in empty editable cells instead of the faint dash. */
     top 0.25s ease;
 }
 
-/* One short ring pulse when the visitor taps Try it, so the feature
-   they are about to use flashes once without advancing the step. */
+/* The coach crystal: a faceted PulseCrystal that floats gently and
+   glows red, so the coach reads as a character, not a card. On a
+   completed action it bursts once (a quick scale-up with a brighter
+   glow) while the ring pulses, then settles back to the float. */
+.tour-crystal {
+  display: inline-flex;
+  filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45));
+  animation: tour-crystal-float 3.2s ease-in-out infinite;
+}
+@keyframes tour-crystal-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.tour-crystal-burst {
+  animation: tour-crystal-burst 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes tour-crystal-burst {
+  0% { transform: scale(1); filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45)); }
+  40% { transform: scale(1.22); filter: drop-shadow(0 0 18px rgb(248 52 62 / 0.8)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45)); }
+}
+
+/* The coach speech bubble: a surface-2 bubble beside the crystal,
+   with a small tail pointing at it. */
+.tour-bubble {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  background-color: var(--surface-2);
+  padding: 10px 12px;
+}
+.tour-bubble::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 16px;
+  width: 11px;
+  height: 11px;
+  background-color: var(--surface-2);
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+/* One short ring pulse when the visitor does the real thing, so the
+   feature they just used flashes once as the tour moves on. */
 @keyframes tour-ring-pulse {
-  0%, 100% { box-shadow: 0 0 0 9999px rgb(13 12 16 / 0.72), 0 0 24px rgb(253 88 93 / 0.35); }
-  50% { box-shadow: 0 0 0 9999px rgb(13 12 16 / 0.72), 0 0 40px rgb(253 88 93 / 0.8); }
+  0%, 100% { box-shadow: 0 0 24px rgb(253 88 93 / 0.35); }
+  50% { box-shadow: 0 0 40px rgb(253 88 93 / 0.8); }
 }
 .tour-ring-pulse {
   animation: tour-ring-pulse 1.2s ease;
@@ -489,6 +533,8 @@ in empty editable cells instead of the faint dash. */
   .tour-ring { transition: none; }
   .tour-card { transition: none; }
   .tour-ring-pulse { animation: none; }
+  .tour-crystal { animation: none; }
+  .tour-crystal-burst { animation: none; }
 }
 
 /*

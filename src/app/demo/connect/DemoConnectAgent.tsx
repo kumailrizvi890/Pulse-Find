@@ -157,7 +157,7 @@ export function DemoConnectAgent() {
           scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
           dashboard and start using it with nothing else to do.
         </p>
-        <div className="mb-2 mt-3 flex justify-end">
+        <div className="mb-2 mt-3 flex justify-end" data-tour="connect-copy">
           <button className={btn.ghost} onClick={() => void copy(prompt, setPromptCopied)}>
             {promptCopied ? "Copied" : "Copy full prompt"}
           </button>

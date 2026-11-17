@@ -8,7 +8,7 @@ const MAX_BODY = 256 * 1024;
 const APP_COLS =
   "id,company,role,track,status,date_applied,last_contact,latest_update,action_needed,action_due,interviews_done,oa_received,link,notes";
 const LEAD_COLS = "id,company,role,track,location,pay,url,source,status,fit_note,date_found";
-const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes";
+const CONTACT_COLS = "id,person_name,company,status,next_step,next_step_on,notes,linkedin_url,last_contacted";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

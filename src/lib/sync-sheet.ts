@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Application, ApplicationInput, TrackerEvent } from "./types";
+import type { Application, ApplicationInput, Contact, ContactInput, TrackerEvent } from "./types";
 
 /*
  * The tracker workbook as stored in Supabase storage. The in-app sync
@@ -11,6 +11,8 @@ import type { Application, ApplicationInput, TrackerEvent } from "./types";
  */
 export const TRACKER_BUCKET = "dashboard-files";
 export const TRACKER_PATH = "Application_Tracker.xlsx";
+/* The Networking Tracker workbook, uploaded to the same bucket every 2h by the dashboard sync. */
+export const TRACKER_NETWORKING_PATH = "Networking_Tracker.xlsx";
 
 export type SyncCounts = {
   created: number;
@@ -228,6 +230,103 @@ export function buildSyncPlan(
     if (Object.keys(patch).length > 0) updates.push({ id: current.id, patch });
   }
   return { creates, updates, skipped, writebacks: planDismissalWritebacks(existing, incoming, dismissals) };
+}
+
+/* ---------- networking contacts ---------- */
+
+/** Dedupe identity for a contact: same person at the same company (case-insensitive) is the same contact. */
+export function contactKey(personName: string, company: string): string {
+  return [personName, company].map((part) => part.trim().toLowerCase()).join("::");
+}
+
+const CONTACT_SYNC_FIELDS: (keyof ContactInput)[] = [
+  "company",
+  "status",
+  "next_step",
+  "next_step_on",
+  "notes",
+  "linkedin_url",
+  "last_contacted",
+];
+
+export type ContactSyncPlan = {
+  creates: ContactInput[];
+  updates: { id: string; patch: SyncPatch }[];
+  skipped: number;
+};
+
+/*
+ * Compare tracker contacts against the owner's existing contacts. A
+ * non-blank tracker value wins; a blank tracker value is "no data", not
+ * "clear this field" — the tracker only has a Profile URL for 449 of 537
+ * people and a Last Touch for 133, so a blank must never wipe a URL or
+ * date the user entered by hand in the app. Rows are never deleted, and
+ * a second run over the same data plans no writes.
+ */
+export function buildContactSyncPlan(existing: Contact[], incoming: ContactInput[]): ContactSyncPlan {
+  const byKey = new Map<string, Contact>();
+  for (const row of existing) {
+    byKey.set(contactKey(row.person_name, row.company), row);
+  }
+  const seen = new Set<string>();
+  const creates: ContactInput[] = [];
+  const updates: ContactSyncPlan["updates"] = [];
+  let skipped = 0;
+  for (const row of incoming) {
+    const key = contactKey(row.person_name, row.company);
+    if (seen.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(key);
+    const current = byKey.get(key);
+    if (!current) {
+      creates.push(row);
+      continue;
+    }
+    const patch: SyncPatch = {};
+    for (const field of CONTACT_SYNC_FIELDS) {
+      const next = row[field];
+      if (next === null || next === "") continue;
+      if (!sameValue(current[field], next)) patch[field] = next;
+    }
+    if (Object.keys(patch).length > 0) updates.push({ id: current.id, patch });
+  }
+  return { creates, updates, skipped };
+}
+
+/*
+ * Apply a contact sync plan to the owner's rows only. Mirrors
+ * syncApplications: the service role client bypasses row level security,
+ * so every statement is filtered on user_id.
+ */
+export async function syncContacts(
+  supabase: SupabaseClient,
+  ownerId: string,
+  incoming: ContactInput[],
+): Promise<SyncCounts> {
+  const { data, error } = await supabase
+    .from("networking_contacts")
+    .select("id,person_name,company,status,next_step,next_step_on,notes,linkedin_url,last_contacted")
+    .eq("user_id", ownerId);
+  if (error) throw new Error(`Could not read the contacts: ${error.message}`);
+  const contacts = (data ?? []) as Contact[];
+  const plan = buildContactSyncPlan(contacts, incoming);
+  if (plan.creates.length > 0) {
+    const { error: insertError } = await supabase
+      .from("networking_contacts")
+      .insert(plan.creates.map((row) => ({ ...row, user_id: ownerId })));
+    if (insertError) throw new Error(`Could not create missing contacts: ${insertError.message}`);
+  }
+  for (const update of plan.updates) {
+    const { error: updateError } = await supabase
+      .from("networking_contacts")
+      .update(update.patch)
+      .eq("id", update.id)
+      .eq("user_id", ownerId);
+    if (updateError) throw new Error(`Could not update contact ${update.id}: ${updateError.message}`);
+  }
+  return { created: plan.creates.length, updated: plan.updates.length, skipped: plan.skipped, total: incoming.length };
 }
 
 /* A row of the sync log. Written with the service role client so the route

@@ -18,7 +18,7 @@ const bento = read("components/landing/Bento.tsx");
 const terminal = read("components/landing/TerminalDemo.tsx");
 const stats = read("components/landing/StatsBand.tsx");
 
-describe("hero is untouched", () => {
+describe("hero (four CTAs, demo launches the tour)", () => {
   it("keeps the viewport-height hero section with the backdrop, preview and pulse line", () => {
     expect(home).toContain("min-h-[calc(100dvh-69px)]");
     expect(home).toContain("<HeroBackdrop />");
@@ -27,7 +27,7 @@ describe("hero is untouched", () => {
     expect(home).toContain("Know what&apos;s waiting");
   });
 
-  it("keeps all seven capability bullets and the three hero CTAs", () => {
+  it("keeps all seven capability bullets and the four hero CTAs", () => {
     for (const line of [
       "Reads your email to track every application and reply",
       "Flags the companies that haven't replied in 21 days",
@@ -37,9 +37,12 @@ describe("hero is untouched", () => {
     ]) {
       expect(home).toContain(line);
     }
-    expect(home).toContain('href="/demo"');
-    expect(home).toContain('href="/login?mode=signup"');
+    // Demo launches the guided tour; jobs, self-host (README local setup)
+    // and Connect your agents are the visible secondaries.
+    expect(home).toContain('href="/demo?tour=dashboard"');
     expect(home).toContain('href="/jobs"');
+    expect(home).toContain('href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally"');
+    expect(home).toContain('href="/#mcp"');
   });
 });
 

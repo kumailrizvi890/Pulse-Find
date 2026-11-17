@@ -184,7 +184,7 @@ describe("showcase widgets (live demo data, not screenshots)", () => {
 
 describe("bento (six cells, one line each)", () => {
   it("renders all six cells with a mini-visual and no paragraph", () => {
-    expect(home).toContain("<Bento steps={steps} />");
+    expect(home).toContain("<Bento steps={demoSteps} />");
     for (const headline of [
       "Your pipeline, live",
       "Swipe the openings",

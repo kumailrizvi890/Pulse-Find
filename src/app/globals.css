@@ -440,10 +440,13 @@ in empty editable cells instead of the faint dash. */
    current step is about, with a dimmed backdrop painted by a huge
    box-shadow so the page behind stays visible but out of focus. The ring
    follows the anchor with a short transition; under reduced motion it
-   snaps instead. */
+   snaps instead. Stacking: the tour wrapper is z-80 and passes pointer
+   events through, the ring sits at z-1 inside it, and the tour card sits
+   at z-2 with a solid background, so the dim can never wash the card
+   out and the page under the tour stays clickable. */
 .tour-ring {
   position: fixed;
-  z-index: 70;
+  z-index: 1;
   pointer-events: none;
   border: 2px solid var(--accent);
   border-radius: 14px;
@@ -457,12 +460,35 @@ in empty editable cells instead of the faint dash. */
     height 0.25s ease;
 }
 
+/* Tour card: solid surface (the glass .bg-surface override is 86%
+   translucent, which let background text bleed through the card), and
+   it glides to its new spot when the step changes. */
+.tour-card {
+  z-index: 2;
+  background-color: var(--surface);
+  transition:
+    left 0.25s ease,
+    top 0.25s ease;
+}
+
+/* One short ring pulse when the visitor taps Try it, so the feature
+   they are about to use flashes once without advancing the step. */
+@keyframes tour-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 9999px rgb(13 12 16 / 0.72), 0 0 24px rgb(253 88 93 / 0.35); }
+  50% { box-shadow: 0 0 0 9999px rgb(13 12 16 / 0.72), 0 0 40px rgb(253 88 93 / 0.8); }
+}
+.tour-ring-pulse {
+  animation: tour-ring-pulse 1.2s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-marquee-track { animation: none; }
   .landing-swipe-nudge { animation: none; }
   .landing-sheet-pulse { animation: none; }
   .landing-caret { animation: none; opacity: 1; }
   .tour-ring { transition: none; }
+  .tour-card { transition: none; }
+  .tour-ring-pulse { animation: none; }
 }
 
 /*

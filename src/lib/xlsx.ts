@@ -67,7 +67,7 @@ export async function importXlsx(data: ArrayBuffer | Uint8Array, today: ISODate 
   }
   return {
     rows: [],
-    skipped: [{ line: 1, reason: "No sheet with a Company column found. Name one column “Company”.” }],
+    skipped: [{ line: 1, reason: "No sheet with a Company column found. Name one column “Company”." }],
     mapped: {},
   };
 }
@@ -139,6 +139,6 @@ export async function importNetworkingXlsx(data: ArrayBuffer | Uint8Array): Prom
   }
   return {
     rows: [],
-    skipped: [{ line: 1, reason: "No sheet with a Name column found. Name one column “Name”.” }],
+    skipped: [{ line: 1, reason: "No sheet with a Name column found. Name one column “Name”." }],
   };
 }

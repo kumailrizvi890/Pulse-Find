@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Lead, LeadInput, LeadStatus } from "@/lib/types";
+import type { Application, Lead, LeadInput, LeadStatus } from "@/lib/types";
 import { LEAD_STATUSES, TRACKS, emptyLead } from "@/lib/types";
 import { todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
-import { leadKey } from "@/lib/pipeline";
+import { canPromoteLead, isAlreadyTracked, leadKey } from "@/lib/pipeline";
 import type { TrackerStore } from "@/lib/store";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
 import { WaitingSignal } from "@/components/PulseBrand";
@@ -28,10 +28,14 @@ export function LeadPill({ status }: { status: LeadStatus }) {
  * The leads pipeline: roles found but not yet applied to, with the same
  * statuses as the Excel tracker's Leads tab. Promoting a lead creates the
  * application in the tracker — a human tap, here in the UI; Pulse Find
- * itself never applies to anything.
+ * itself never applies to anything. A lead whose company + role is already
+ * in the tracker shows Already tracked instead of the promote button, so
+ * the same application can never be created twice; Problem, Not eligible
+ * and Closed leads offer no promote button at all.
  */
 export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; tracker: TrackerStore }) {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [trackedApps, setTrackedApps] = useState<Application[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -72,6 +76,23 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
     setAttempt((n) => n + 1);
   };
 
+  useEffect(() => {
+    let alive = true;
+    // The tracker is the source of truth for what is already applied to.
+    // If this load fails the page still works; promote() re-checks fresh
+    // before creating, so a failed load can never silently make a duplicate.
+    tracker
+      .load()
+      .then(({ apps }) => {
+        if (!alive) return;
+        setTrackedApps(apps);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [tracker]);
+
   const counts = useMemo(
     () => Object.fromEntries(LEAD_STATUSES.map((s) => [s, leads.filter((l) => l.status === s).length])) as Record<LeadStatus, number>,
     [leads],
@@ -94,6 +115,26 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
 
   async function promote(l: Lead) {
     try {
+      if (isAlreadyTracked(trackedApps, l)) {
+        toast(`${l.company} is already in your tracker.`, "error");
+        return;
+      }
+      // The tracker can gain an application after this page loaded (the
+      // agent syncs in the background), so re-check fresh before creating.
+      // A failed re-check falls through: the create itself would fail too
+      // if the connection is down, and blocking the tap on a failed read
+      // would be worse than the duplicate it guards.
+      let fresh = trackedApps;
+      try {
+        fresh = (await tracker.load()).apps;
+        setTrackedApps(fresh);
+      } catch {
+        // Fall through with the loaded set.
+      }
+      if (isAlreadyTracked(fresh, l)) {
+        toast(`${l.company} is already in your tracker.`, "error");
+        return;
+      }
       const made = await tracker.create({
         company: l.company,
         role: l.role,
@@ -112,6 +153,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
       await tracker.addEvent({ application_id: made.id, event_date: today, kind: "Applied", details: l.role || "Applied from a lead" }).catch(() => undefined);
       const next = await pipeline.updateLead(l.id, { status: "Applied" });
       setLeads((p) => p.map((x) => (x.id === next.id ? next : x)));
+      setTrackedApps((p) => [made, ...p]);
       toast(`${l.company} is in your tracker`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't promote that lead.", "error");
@@ -251,11 +293,13 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                   {l.url && (
                     <a href={l.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
                   )}
-                  {l.status !== "Applied" ? (
-                    <button className={btn.primary} onClick={() => promote(l)}>I applied — track it</button>
-                  ) : (
+                  {l.status === "Applied" ? (
                     <Tag tone="muted">In tracker</Tag>
-                  )}
+                  ) : isAlreadyTracked(trackedApps, l) ? (
+                    <Tag tone="muted">Already tracked</Tag>
+                  ) : canPromoteLead(l, trackedApps) ? (
+                    <button className={btn.primary} onClick={() => promote(l)}>I applied - track it</button>
+                  ) : null}
                   <select
                     aria-label={`Status for ${l.company}`}
                     className="rounded-lg border border-line bg-surface px-2 py-2 text-sm text-ink"

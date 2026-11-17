@@ -167,7 +167,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm" data-tour="sheet-tools">
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.total}</b> applications</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.tech}</b> tech</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.actions}</b> waiting on you</span>

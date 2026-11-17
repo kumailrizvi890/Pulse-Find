@@ -122,7 +122,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   }
 
   return (
-    <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6">
+    <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6" data-tour="networking">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">Networking</h1>

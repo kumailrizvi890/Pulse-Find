@@ -69,7 +69,6 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
     }, []);
   
   
-  
 
   const [attempt, setAttempt] = useState(0);
   // A hung load used to sit on the skeleton forever (seen live Nov 16:

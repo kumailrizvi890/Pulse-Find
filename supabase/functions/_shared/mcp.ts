@@ -659,11 +659,15 @@ export function findLeadsPrompt(track?: string, query?: string) {
   const scope = [track ? `track: ${track}` : "any track", query ? `matching "${query}"` : "no keyword filter"].join(", ");
   return `Find me new roles to consider in Pulse Find.
 
-1. Call list_applications with ${scope}. Prefer the most recently posted roles.
-2. Drop anything whose company + role is already in my tracker, and anything I've clearly already seen in this list.
-3. Present what's left as a short lead list: company, role, location/remote, when it was posted, and the link. Group by track if there's a mix.
-4. If I pick some to keep an eye on, save those with add_lead so they land in my leads pipeline on the website. If I name the ones I applied to, add those with add_application and mark the matching lead Applied with update_lead.
-5. Stop there. These are leads for MY decision: never apply for me, and never contact recruiters.`;
+1. Call list_applications to see what I'm already tracking.
+2. Call search_jobs with ${scope}. Prefer the most recently posted roles.
+3. Drop anything whose company + role is already in my tracker, and anything I've clearly already seen in this list.
+4. Present what's left as a short lead list: company, role, location/remote, when it was posted, and the link. Group by track if there's a mix.
+5. If I pick some to keep an eye on, save those with add_lead so they land in my leads pipeline on the website. If I name the ones I applied to, add those with add_application and mark the matching lead Applied with update_lead.
+6. Stop there. These are leads for MY decision: never apply for me, and never contact anyone.
+
+
+Rules: never send email, never apply on my behalf, never contact recruiters.`;
 }
 
 // ---------- JSON-RPC ----------

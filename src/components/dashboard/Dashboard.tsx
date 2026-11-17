@@ -55,20 +55,20 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
   const today = todayISO();
 
   // The header date and greeting come from the visitor's clock, not the
-    // server's: the server renders on UTC, so a server-rendered date or
-    // part of day is already tomorrow, or the wrong part of the day, for
-    // a visitor west of UTC, and React throws the server tree away and
-    // re-renders on the client (hydration failed). The header renders a
-    // blank line until mount, so the server and client first renders
-    // match and the visitor's own date and greeting appear one tick
-    // later. Same deferred pattern as the Showcase and ChatBeat.
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-          const t = window.setTimeout(() => setMounted(true), 0);
-          return () => window.clearTimeout(t);
-    }, []);
-  
-    const [attempt, setAttempt] = useState(0);
+  // server's: the server renders on UTC, so a server-rendered date or
+  // part of day is already tomorrow, or the wrong part of the day, for
+  // a visitor west of UTC, and React throws the server tree away and
+  // re-renders on the client (hydration failed). The header renders a
+  // blank line until mount, so the server and client first renders
+  // match and the visitor's own date and greeting appear one tick
+  // later. Same deferred pattern as the Showcase and ChatBeat.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const [attempt, setAttempt] = useState(0);
   // A hung load used to sit on the skeleton forever (seen live Nov 16:
   // ~a minute of grey pulsing blocks on first load). After 15s the
   // timeout rejects and the existing error panel offers "Try again".
@@ -316,11 +316,11 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
           <p className="font-mono text-xs uppercase tracking-[0.14em] text-faint">
              {mounted
               ? new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
-                            : "\u00A0"}
+              : "\u00A0"}
           </p>
           <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">{mounted ? greeting(settings.display_name) : "\u00A0"}</h1>
         </div>
-  <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className={btn.primary} onClick={() => setDrawer({ open: true, editing: null })}>+ Add application</button>
           <button className={btn.secondary} onClick={openGeneralChatPanel} aria-label="Ask Pulse about your tracker" data-tour="ask-pulse">
             <PulseDot />

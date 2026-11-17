@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { demoApplications } from "@/lib/demo-data";
-import { actionQueue, addDays, daysBetween, followUp, summarize, todayISO, weekStart } from "@/lib/metrics";
+import { actionQueue, addDays, calendarWeekPace, daysBetween, followUp, summarize, todayISO, weekStart } from "@/lib/metrics";
 
 const srcRoot = join(__dirname, "..", "..");
 const repoRoot = join(srcRoot, "..");
@@ -108,6 +108,21 @@ describe("demo numbers the sections render (fictional seed data)", () => {
     const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
     expect(prevTotal).toBe(4);
   });
+
+  it("calendarWeekPace is the single source for the showcase week", () => {
+    // The same Monday/Tuesday shapes as above, through the helper the
+    // landing page and the Showcase both call — including the change
+    // against the previous Mon-Sun week (Monday: 1 vs 5, down 80%;
+    // Tuesday: 2 vs 4, down 50%, the "down 50%" the landing showed).
+    const monday = calendarWeekPace(demoApplications("2026-11-16"), "2026-11-16");
+    expect(monday.days.map((d) => d.value)).toEqual([1, 0, 0, 0, 0, 0, 0]);
+    expect(monday.total).toBe(1);
+    expect(monday.change).toBe(-80);
+    const tuesday = calendarWeekPace(demoApplications("2026-11-17"), "2026-11-17");
+    expect(tuesday.days.map((d) => d.value)).toEqual([1, 1, 0, 0, 0, 0, 0]);
+    expect(tuesday.total).toBe(2);
+    expect(tuesday.change).toBe(-50);
+  });
 });
 
 describe("proof marquee", () => {
@@ -139,8 +154,25 @@ describe("showcase widgets (live demo data, not screenshots)", () => {
     expect(showcase).toContain("What&apos;s next");
     expect(showcase).toContain("Who went quiet");
     expect(showcase).toContain("This week&apos;s pace");
-    expect(showcase).toContain("<WeeklyPace days={paceDays} total={paceTotal} change={paceChange} />");
+    expect(showcase).toContain("days={pace.days}");
+    expect(showcase).toContain('totalLabel="Total this week (Mon-Sun)"');
+    expect(showcase).toContain('prevLabel="last week (Mon-Sun)"');
+    expect(showcase).toContain('ariaLabel="Applications per day, this week (Monday to Sunday)"');
     expect(showcase).toContain("Open the demo →");
+  });
+
+  it("labels the pace window as the Mon-Sun calendar week and recomputes it in the browser", () => {
+    // The dashboard counts a trailing 7 days; the landing counts the
+    // Mon-Sun calendar week, so the card says so outright instead of
+    // letting the two totals look contradictory.
+    expect(showcase).toContain("Monday to Sunday, compared with last week.");
+    // The server renders on UTC, so a server-rendered "today" is already
+    // tomorrow for a visitor west of UTC once midnight UTC passes. The
+    // Showcase recomputes the week in the browser after mount, the same
+    // pattern as ChatBeat, from the same shared helper the page uses.
+    expect(showcase).toContain("calendarWeekPace(demoApplications(today), today)");
+    expect(showcase).toContain("todayISO()");
+    expect(home).toContain("calendarWeekPace(demoApps, today)");
   });
 
   it("tilts only on fine pointers and never under reduced motion", () => {
@@ -152,7 +184,7 @@ describe("showcase widgets (live demo data, not screenshots)", () => {
 
 describe("bento (six cells, one line each)", () => {
   it("renders all six cells with a mini-visual and no paragraph", () => {
-    expect(home).toContain("<Bento steps={demoSteps} />");
+    expect(home).toContain("<Bento steps={steps} />");
     for (const headline of [
       "Your pipeline, live",
       "Swipe the openings",

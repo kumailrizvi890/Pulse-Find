@@ -5,13 +5,15 @@ import {
   DISMISSAL_KIND,
   DISMISSAL_WINDOW_DAYS,
   TRACKER_BUCKET,
+  TRACKER_NETWORKING_PATH,
   TRACKER_PATH,
   recordSyncRun,
   syncApplications,
+  syncContacts,
   type SyncRunRecord,
 } from "@/lib/sync-sheet";
 import type { TrackerEvent } from "@/lib/types";
-import { importXlsx } from "@/lib/xlsx";
+import { importNetworkingXlsx, importXlsx } from "@/lib/xlsx";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +87,23 @@ export async function POST(request: Request) {
     const { writebacks, ...syncCounts } = await syncApplications(supabase, owner, parsed.rows, events);
     counts = syncCounts;
     dismissals = writebacks.length;
+    /*
+     * Networking contacts come from the Networking Tracker workbook in
+     * the same bucket. A failure here must never block the applications
+     * sync above: it is recorded and reported, and the next run retries.
+     */
+    let contactCounts = { created: 0, updated: 0, skipped: 0, total: 0 };
+    let contactsError: string | null = null;
+    try {
+      const { data: netData, error: netError } = await supabase.storage.from(TRACKER_BUCKET).download(TRACKER_NETWORKING_PATH);
+      if (netError || !netData) {
+        throw new Error(`Could not download the networking tracker: ${netError?.message ?? "empty file"}`);
+      }
+      const parsedNet = await importNetworkingXlsx(await netData.arrayBuffer());
+      contactCounts = await syncContacts(supabase, owner, parsedNet.rows);
+    } catch (e) {
+      contactsError = e instanceof Error ? e.message.slice(0, 500) : "Contacts sync failed";
+    }
     await recordSyncRun(supabase, {
       user_id: owner,
       started_at: startedAt,
@@ -94,7 +113,7 @@ export async function POST(request: Request) {
       ...counts,
       error: null,
     });
-    return NextResponse.json({ ok: true, trackerRows, ...counts, dismissals, dismissalsSkipped });
+    return NextResponse.json({ ok: true, trackerRows, ...counts, dismissals, dismissalsSkipped, contacts: contactCounts, contacts_error: contactsError });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
     // Record the failure too, so a broken run stays visible in the log.

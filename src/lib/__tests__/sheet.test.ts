@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applicationKey, dedupeImport, filterSheet, sheetRows, sortSheet, SHEET_COLUMNS } from "../sheet";
-import { emptyApplication, type Application } from "../types";
+import { emptyApplication, STATUSES, type Application } from "../types";
 
 const TODAY = "2026-11-11";
 const GHOST = 21;
@@ -103,6 +103,19 @@ describe("status filter", () => {
     expect(filterSheet(rows, "neb", false, "OA Received").map((r) => r.app.company)).toEqual(["Nebius"]);
     expect(filterSheet(rows, "acme", false, "OA Received")).toHaveLength(0); // Acme is Applied, not OA Received
     expect(filterSheet(rows, "", true, "OA Received").map((r) => r.app.company)).toEqual(["Nebius", "Beta"]);
+  });
+
+  it("returns the right rows for every one of the twelve statuses, and nothing for a status with no rows", () => {
+    const all = sheetRows(
+      STATUSES.map((s, i) => app({ company: `Status Co ${i}`, role: "SWE Intern", status: s })),
+      TODAY,
+      GHOST,
+    );
+    for (const [i, s] of STATUSES.entries()) {
+      expect(filterSheet(all, "", false, s).map((r) => r.app.company)).toEqual([`Status Co ${i}`]);
+    }
+    expect(filterSheet(rows, "", false, "Offer")).toHaveLength(0); // no Offer row in this fixture
+    expect(filterSheet(rows, "", false, "Accepted")).toHaveLength(0);
   });
 });
 

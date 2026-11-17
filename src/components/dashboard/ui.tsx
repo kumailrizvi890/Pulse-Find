@@ -23,9 +23,9 @@ export const btn = {
 export const field =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none";
 
-export function Panel({ title, hint, action, children, className }: { title?: string; hint?: string; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Panel({ title, hint, action, children, className, dataTour }: { title?: string; hint?: string; action?: ReactNode; children: ReactNode; className?: string; dataTour?: string }) {
   return (
-    <section className={cx("min-w-0 rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5", className)}>
+    <section data-tour={dataTour} className={cx("min-w-0 rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5", className)}>
       {(title || action) && (
         <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">

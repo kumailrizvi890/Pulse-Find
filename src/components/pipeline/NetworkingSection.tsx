@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Contact, ContactInput } from "@/lib/types";
 import { emptyContact } from "@/lib/types";
 import { addDays, todayISO } from "@/lib/metrics";
+import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
 import { dueBucket, sortContacts, type DueBucket } from "@/lib/pipeline";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
@@ -24,6 +25,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<{ open: boolean; editing: Contact | null }>({ open: false, editing: null });
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -32,8 +34,14 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
 
   useEffect(() => {
     let alive = true;
-    pipeline
-      .loadContacts()
+    // A hung load used to sit on the skeleton forever; after 15s the
+    // timeout rejects and the error panel offers "Try again". Retrying
+    // bumps `attempt`, so a fresh load gets a fresh timer.
+    withLoadTimeout(
+      pipeline.loadContacts(),
+      LOAD_TIMEOUT_MS,
+      "Your contacts are taking longer than usual to load. Check your connection and try again.",
+    )
       .then((d) => {
         if (!alive) return;
         setContacts(d);
@@ -47,7 +55,12 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
     return () => {
       alive = false;
     };
-  }, [pipeline]);
+  }, [pipeline, attempt]);
+
+  const retry = () => {
+    setState("loading");
+    setAttempt((n) => n + 1);
+  };
 
   const sorted = useMemo(() => sortContacts(contacts, today), [contacts, today]);
   const dueCount = useMemo(
@@ -102,6 +115,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
       <main className="gutter mx-auto w-full max-w-[1180px] pb-16 pt-6">
         <Panel title="Your contacts didn't load">
           <p className="text-sm text-muted">{loadError}</p>
+          <button className={cx(btn.primary, "mt-4")} onClick={retry}>Try again</button>
         </Panel>
       </main>
     );

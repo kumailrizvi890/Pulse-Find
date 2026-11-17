@@ -274,6 +274,7 @@ export function Overview({
         <Panel
           title="Waiting on you"
           hint={`Tasks needing your action — ${queue.length}`}
+          dataTour="waiting"
           className={cx("lg:col-span-3", queue.length ? "border-danger/30 pf-glow" : undefined)}
           action={
             queue.length ? (
@@ -291,12 +292,16 @@ export function Overview({
             </>
           ) : (
             <ul className="divide-y divide-line">
-              {shownWaiting.map((a) => {
+              {shownWaiting.map((a, i) => {
                 const d = a.action_due ? daysBetween(today, a.action_due) : null;
                 const due =
                   d === null ? "No date" : d < 0 ? `Overdue ${-d}d` : d === 0 ? "Due today" : d === 1 ? "Due tomorrow" : `Due in ${d}d`;
                 return (
-                  <li key={a.id} className="py-3 first:pt-0 last:pb-0">
+                  <li
+                    key={a.id}
+                    data-tour={i === 0 ? "waiting-first" : undefined}
+                    className="py-3 first:pt-0 last:pb-0"
+                  >
                     <p className="text-sm font-semibold text-danger">
                       {a.company}
                       <span className="font-normal text-muted"> · {a.role || "Role not set"}</span>
@@ -307,7 +312,7 @@ export function Overview({
                       <button className={btn.secondary} onClick={() => onDone(a)}>
                         Done
                       </button>
-                      <button className={btn.ghost} onClick={() => onOpen(a)}>
+                      <button className={btn.ghost} data-tour-action="waiting-open" onClick={() => onOpen(a)}>
                         Open
                       </button>
                     </div>
@@ -317,7 +322,7 @@ export function Overview({
             </ul>
           )}
           {queue.length > 3 && (
-            <button className={cx(btn.ghost, "mt-3")} onClick={onShowWaiting}>
+            <button className={cx(btn.ghost, "mt-3")} data-tour-action="waiting-all" onClick={onShowWaiting}>
               View all {queue.length} waiting items
             </button>
           )}

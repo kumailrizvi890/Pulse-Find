@@ -48,7 +48,10 @@ import { IconX } from "@/components/icons";
 // its own, unless the visitor already skipped, exited or finished the
 // tour in this session (a sessionStorage flag). Any arrival with a
 // ?tour= param clears that flag, so the hero demo button and the demo
-// nav "Take the tour" link always force-start the tour.
+// nav "Take the tour" link always force-start the tour. Arriving with
+// ?chat=1 suppresses the auto-start instead: the chat takes precedence,
+// so the tour card never sits over the open chat panel. The tour still
+// starts by hand afterwards, from "Take the tour" in the demo nav.
 
 const TOUR_ROUTES = ["/demo", "/demo/sheet", "/demo/leads", "/demo/networking", "/demo/connect", "/jobs"];
 
@@ -104,10 +107,20 @@ export function GuidedTour() {
   // Auto-start on plain /demo only: no tour param, no dismissal this
   // session, and not a demo sub-page or the signed-in app. Replace, so
   // no extra history entry is left behind for Back to restart into.
+  // The chat takes precedence: arriving with ?chat=1 opens the chat
+  // instead of the tour, so the tour card never sits over the open
+  // chat panel. The decision is made once per mount, because
+  // DemoDashboard clears ?chat=1 right after the chat opens, and a
+  // bare param check would re-fire the moment the param is gone.
+  // The tour stays startable by hand afterwards ("Take the tour").
+  const autoStartChecked = useRef(false);
   useEffect(() => {
+    if (autoStartChecked.current) return;
+    autoStartChecked.current = true;
     if (pathname !== "/demo" || step !== null || dismissed()) return;
+    if (searchParams.get("chat") === "1") return;
     router.replace(tourStartHref());
-  }, [pathname, step, router]);
+  }, [pathname, step, router, searchParams]);
 
   // A step opened on the wrong route (a pasted link, a stale tab) moves
   // to the step's own route instead of showing the wrong page.

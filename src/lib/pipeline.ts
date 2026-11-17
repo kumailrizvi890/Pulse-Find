@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Contact, ContactInput, ISODate, Lead, LeadInput } from "./types";
+import type { Application, Contact, ContactInput, ISODate, Lead, LeadInput } from "./types";
 import { addDays, daysBetween, parseISO, todayISO } from "./metrics";
 
 /**
@@ -24,6 +24,17 @@ const uid = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.ra
 /** Dedupe identity for a lead: same company + role (case-insensitive) is the same lead. */
 export function leadKey(l: Pick<Lead, "company" | "role">): string {
   return `${l.company.trim().toLowerCase()}::${l.role.trim().toLowerCase()}`;
+}
+
+/** True when the tracker already holds this company + role (same key as leadKey). A different role at the same company is a different application, so company alone never counts. */
+export function isAlreadyTracked(apps: Pick<Application, "company" | "role">[], lead: Pick<Lead, "company" | "role">): boolean {
+  const key = leadKey(lead);
+  return apps.some((a) => leadKey(a) === key);
+}
+
+/** Whether a lead may still offer "I applied - track it": only leads you can still apply to (New or Queued) that are not already in the tracker. Applied leads already show "In tracker". Problem, Not eligible and Closed leads have no application to track (a closed posting, an ineligible role), and their status can be changed back if that changes. */
+export function canPromoteLead(lead: Lead, apps: Pick<Application, "company" | "role">[]): boolean {
+  return (lead.status === "New" || lead.status === "Queued") && !isAlreadyTracked(apps, lead);
 }
 
 export type DueBucket = "overdue" | "today" | "upcoming" | "later" | "none";
@@ -175,7 +186,7 @@ export function accountPipelineStore(supabase: SupabaseClient, userId: string): 
     },
     async removeContact(id) {
       const { error } = await supabase.from("networking_contacts").delete().eq("id", id).eq("user_id", userId);
-      if (error) fail(error, "delete that contact");
+      if (error) fail(error, "delete that lead");
     },
   };
 }

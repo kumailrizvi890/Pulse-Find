@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
+import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import { accountPipelineStore, leadKey } from "@/lib/pipeline";
 import { TRACKS, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
@@ -62,6 +63,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [total, setTotal] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
   const [marks, setMarks] = useState<Record<string, Mark>>({});
   const [saved, setSaved] = useState<Record<string, Job>>({});
   const [history, setHistory] = useState<{ job: Job; prev: Mark | undefined }[]>([]);
@@ -158,18 +160,32 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       const safe = query.replace(/[%_,()*]/g, " ").slice(0, 60);
       req = req.or(`title.ilike.%${safe}%,company.ilike.%${safe}%,location.ilike.%${safe}%`);
     }
-    req
-      .order("posted_at", { ascending: false, nullsFirst: false })
-      .range(page * PAGE, page * PAGE + PAGE - 1)
+    // A hung query used to leave the board on skeletons forever, and a
+    // failed query had no catch at all, so it never even reached the error
+    // line. After 15s the timeout rejects, any failure lands on the error
+    // line, and "Try again" re-runs this same query with a fresh timer.
+    withLoadTimeout(
+      req.order("posted_at", { ascending: false, nullsFirst: false }).range(page * PAGE, page * PAGE + PAGE - 1),
+      LOAD_TIMEOUT_MS,
+      "Openings are taking longer than usual to load. Check your connection and try again.",
+    )
       .then(({ data, count, error }) => {
         if (!alive) return;
         if (error) { setState("error"); return; }
         setJobs((prev) => (page === 0 ? (data as Job[]) : [...prev, ...(data as Job[])]));
         setTotal(count ?? null);
         setState("ready");
+      })
+      .catch(() => {
+        if (alive) setState("error");
       });
     return () => { alive = false; };
-  }, [supabase, track, techOnly, remoteOnly, query, page]);
+  }, [supabase, track, techOnly, remoteOnly, query, page, attempt]);
+
+  const retry = () => {
+    setState("loading");
+    setAttempt((n) => n + 1);
+  };
 
   // any filter change starts from page 0
   const resetTo = <T,>(set: (v: T) => void) => (v: T) => { setPage(0); setState("loading"); set(v); };
@@ -315,7 +331,10 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       {!supabase ? (
         <p className="text-sm text-muted">Job search isn&apos;t connected on this copy of Pulse Find.</p>
       ) : state === "error" ? (
-        <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">Couldn&apos;t load openings. Reload the page to try again.</p>
+        <div className="rounded-xl bg-danger-soft px-4 py-3">
+          <p className="text-sm text-danger">Couldn&apos;t load openings.</p>
+          <button className={cx(btn.primary, "mt-3")} onClick={retry}>Try again</button>
+        </div>
       ) : state === "loading" && page === 0 ? (
         <ul className="flex flex-col gap-2" aria-hidden="true">
           {Array.from({ length: 6 }, (_, i) => <li key={i} className="h-[74px] animate-pulse rounded-xl border border-line bg-surface" />)}

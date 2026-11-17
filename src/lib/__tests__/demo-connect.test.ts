@@ -78,4 +78,23 @@ describe("demo connect page", () => {
     expect(signedIn).toContain('db.from("api_tokens")');
     expect(signedIn).toContain("newToken()");
   });
+
+  it("keeps the signed-in Connect page's copy buttons above the code blocks, never overlaid on them", () => {
+    const signedIn = read("app/app/connect/ConnectAgent.tsx");
+    // The signed-in page had the same overlaid pattern as the demo
+    // page: the step-2 Copy button covered the end of the snippet on
+    // narrow screens and "Copy full prompt" covered prompt text in
+    // step 4, worse once the prompt block was scrolled. Both buttons
+    // now sit in a row above their block, in normal flow. The step-1
+    // token Copy button was never overlaid (it sits in a flex row
+    // beside the token) and is untouched.
+    expect(signedIn).not.toContain("absolute");
+    expect(signedIn.match(/flex justify-end/g)?.length).toBe(2);
+    expect(signedIn).toContain("Copy full prompt");
+    expect(signedIn).toContain("setPromptCopied");
+    // Snippet content is unchanged: the Claude Code command and its
+    // continuation line are exactly as before.
+    expect(signedIn).toContain("claude mcp add --transport http pulse-find");
+    expect(signedIn).toContain('--header "Authorization: ${auth}"');
+  });
 });

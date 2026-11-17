@@ -74,7 +74,10 @@ function demoLeads(today: ISODate): Lead[] {
   ];
 }
 
-function demoContacts(today: ISODate): Contact[] {
+/** The demo networking contacts. Exported for the landing page chatbot beat
+ * and the guided tour, which both show the real deterministic answer for
+ * "What networking follow-ups are due?" from this data. */
+export function demoContacts(today: ISODate): Contact[] {
   const mk = (i: number, c: Omit<Contact, "id" | "next_step_on"> & { on: number | null }): Contact => {
     const { on, ...rest } = c;
     return { ...rest, id: `demo-contact-${i + 1}`, next_step_on: on === null ? null : addDays(today, on) };

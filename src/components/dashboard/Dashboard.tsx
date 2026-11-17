@@ -68,9 +68,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
           return () => window.clearTimeout(t);
     }, []);
   
-  
-
-  const [attempt, setAttempt] = useState(0);
+    const [attempt, setAttempt] = useState(0);
   // A hung load used to sit on the skeleton forever (seen live Nov 16:
   // ~a minute of grey pulsing blocks on first load). After 15s the
   // timeout rejects and the existing error panel offers "Try again".

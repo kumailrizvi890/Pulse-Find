@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
-import { accountPipelineStore, leadKey } from "@/lib/pipeline";
-import { TRACKS, type Track } from "@/lib/types";
+import { accountPipelineStore, isAlreadyTracked, leadKey } from "@/lib/pipeline";
+import { accountStore } from "@/lib/store";
+import { TRACKS, type Application, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
 import { IconX } from "@/components/icons";
 import { PulseDot } from "@/components/PulseBrand";
@@ -70,6 +71,12 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [view, setView] = useState<"swipe" | "list">("swipe");
   const [meta, setMeta] = useState<{ companies: number; refreshed: string | null }>({ companies: 0, refreshed: null });
   const [leadKeys, setLeadKeys] = useState<ReadonlySet<string>>(new Set());
+  // which of these jobs are already in the user's tracker (company + role)
+  const [trackedApps, setTrackedApps] = useState<Pick<Application, "company" | "role">[]>([]);
+  // a tap already in flight for this job, so a double-tap cannot insert twice:
+  // the marks state only updates after the insert below resolves
+  const applying = useRef(new Set<string>());
+  const trackedKeys = useMemo(() => new Set(trackedApps.map((a) => leadKey(a))), [trackedApps]);
   const { toast, toastNode } = useToast();
 
   // which of these jobs are already in the user's leads pipeline
@@ -82,6 +89,20 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         if (alive) setLeadKeys(new Set(leads.map(leadKey)));
       })
       .catch(() => undefined); // leads are a bonus here; the board works without them
+    return () => { alive = false; };
+  }, [supabase, userId]);
+
+  // which of these jobs are already in the user's tracker, so "I applied"
+  // never offers to track the same application twice
+  useEffect(() => {
+    if (!supabase || !userId) return;
+    let alive = true;
+    accountStore(supabase, userId)
+      .load()
+      .then(({ apps }) => {
+        if (alive) setTrackedApps(apps);
+      })
+      .catch(() => undefined); // the board works without it; setMark re-checks fresh
     return () => { alive = false; };
   }, [supabase, userId]);
 
@@ -201,20 +222,55 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       if (next === "applied") return false;
       writeLocal(nextMarks, nextSaved);
     } else if (supabase) {
-      const { error } = next
-        ? await supabase.from("saved_jobs").upsert({ user_id: userId, job_id: job.id, state: next })
-        : await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", job.id);
-      if (error) { toast("Couldn't save that. Try again.", "error"); return false; }
       if (next === "applied") {
-        const today = todayISO();
-        const { error: appErr } = await supabase.from("applications").insert({
-          user_id: userId, company: job.company, role: job.title,
-          track: job.track === "Internship" || job.track === "New Grad" ? job.track : "Full-Time",
-          status: "Applied", date_applied: today, last_contact: today, link: job.url,
-          latest_update: "Applied through the posting",
-        });
-        if (appErr) toast("Saved, but couldn't add it to your tracker.", "error");
-        else toast(`Added ${job.company} to your tracker`);
+        const key = leadKey({ company: job.company, role: job.title });
+        // A second tap while the first is still in flight would insert
+        // twice: the marks state only updates after the await below.
+        if (applying.current.has(key)) return false;
+        if (isAlreadyTracked(trackedApps, { company: job.company, role: job.title })) {
+          toast(`${job.company} is already in your tracker.`, "error");
+          return false;
+        }
+        applying.current.add(key);
+        try {
+          // The tracker can gain an application after this page loaded (the
+          // agent syncs in the background), so re-check fresh before
+          // inserting. A failed re-check falls through: the insert itself
+          // would fail too if the connection is down, and blocking the tap
+          // on a failed read would be worse than the duplicate it guards.
+          let fresh = trackedApps;
+          try {
+            fresh = (await accountStore(supabase, userId).load()).apps;
+            setTrackedApps(fresh);
+          } catch {
+            // Fall through with the loaded set.
+          }
+          if (isAlreadyTracked(fresh, { company: job.company, role: job.title })) {
+            toast(`${job.company} is already in your tracker.`, "error");
+            return false;
+          }
+          const { error } = await supabase.from("saved_jobs").upsert({ user_id: userId, job_id: job.id, state: next });
+          if (error) { toast("Couldn't save that. Try again.", "error"); return false; }
+          const today = todayISO();
+          const { error: appErr } = await supabase.from("applications").insert({
+            user_id: userId, company: job.company, role: job.title,
+            track: job.track === "Internship" || job.track === "New Grad" ? job.track : "Full-Time",
+            status: "Applied", date_applied: today, last_contact: today, link: job.url,
+            latest_update: "Applied through the posting",
+          });
+          if (appErr) toast("Saved, but couldn't add it to your tracker.", "error");
+          else {
+            toast(`Added ${job.company} to your tracker`);
+            setTrackedApps((prev) => [...prev, { company: job.company, role: job.title }]);
+          }
+        } finally {
+          applying.current.delete(key);
+        }
+      } else {
+        const { error } = next
+          ? await supabase.from("saved_jobs").upsert({ user_id: userId, job_id: job.id, state: next })
+          : await supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", job.id);
+        if (error) { toast("Couldn't save that. Try again.", "error"); return false; }
       }
     }
     setMarks(nextMarks);
@@ -388,7 +444,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                     <div className="flex shrink-0 items-center gap-1">
                       <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
                       {userId && <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>}
-                      {userId && <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>}
+                      {userId && (trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
+                        <Tag tone="muted">In tracker</Tag>
+                      ) : (
+                        <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>
+                      ))}
                       <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>
                       <IconX className="h-3.5 w-3.5" />
                         </button>
@@ -419,7 +479,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                 <div className="flex flex-wrap items-center gap-1.5">
                   <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
                   {userId ? (
-                    m === "applied" ? (
+                    m === "applied" || trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
                       <Tag tone="muted">In tracker</Tag>
                     ) : (
                       <>

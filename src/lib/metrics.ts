@@ -205,10 +205,77 @@ export function actionQueue(apps: Application[]): Application[] {
 
 export type Filter = "all" | "action" | "tech" | "active" | "ghosted" | "closed";
 
-export function applyFilter(apps: Application[], f: Filter, today: ISODate, ghostDays: number, query = ""): Application[] {
-  const q = query.trim().toLowerCase();
+/**
+ * Words that carry no filtering meaning on their own: they describe the
+ * tracker itself, not a row. Dropping them lets "tech jobs" find tech roles
+ * instead of matching nothing because no row contains the word "jobs".
+ * "Internship" is deliberately NOT here: it is a real track value.
+ * Mirrors the sheet's list in src/lib/sheet.ts so the two search boxes
+ * answer the same queries the same way.
+ */
+const QUERY_STOPWORDS: ReadonlySet<string> = new Set([
+  "job", "jobs", "role", "roles", "application", "applications",
+  "app", "apps", "position", "positions", "opening", "openings",
+]);
+
+const MONTHS_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const MONTHS_LONG = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+/**
+ * Turns an ISO date into searchable text: "2026-11-15" becomes
+ * "2026-11-15 november nov 15 2026", so "nov", "nov 15" and "2026-11"
+ * all match it. Same helper as the sheet's, kept here so the tracker
+ * search answers date words too.
+ */
+function dateSearchText(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const [, y, mo, d] = m;
+  const mi = Number(mo) - 1;
+  if (mi < 0 || mi > 11) return iso;
+  const day = String(Number(d));
+  return `${iso} ${y} ${mo} ${day} ${MONTHS_SHORT[mi]} ${MONTHS_LONG[mi]} ${MONTHS_SHORT[mi]} ${day} ${y} ${MONTHS_LONG[mi]} ${day} ${y}`;
+}
+
+/**
+ * Everything a tracker row can be found by: company, role, track, status,
+ * latest update, link, notes, action needed, the three dates in
+ * human-readable form, and derived words the fields alone do not carry
+ * (an OA is only a boolean, an interview count only a number, ghosted
+ * only a quiet-days flag). The applications table has no location field,
+ * so there is nothing location-shaped to match. A city only matches
+ * when it appears in notes or the latest update.
+ */
+export function applicationSearchText(a: Application, today: ISODate, ghostDays: number): string {
+  const dates = [a.date_applied, a.last_contact, a.action_due]
+    .filter((d): d is string => Boolean(d))
+    .map(dateSearchText)
+    .join(" ");
+  const flag = followUp(a, today, ghostDays);
+  const derived = [
+    a.oa_received ? "oa received yes" : "",
+    a.interviews_done > 0 ? "interviews" : "",
+    flag === "ghosted" ? "ghosted" : "",
+    isTechRole(a.role) ? "tech" : "",
+  ].join(" ");
+  return `${a.company} ${a.role} ${a.track} ${a.status} ${a.latest_update} ${a.link} ${a.notes} ${a.action_needed} ${dates} ${derived}`.toLowerCase();
+}
+
+export function applyFilter(apps: Application[], f: Filter, today: ISODate, ghostDays: number, query = "", status: Status | "All" = "All"): Application[] {
+  const words = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w && !QUERY_STOPWORDS.has(w));
   return apps.filter((a) => {
-    if (q && !`${a.company} ${a.role}`.toLowerCase().includes(q)) return false;
+    if (status !== "All" && a.status !== status) return false;
+    if (words.length > 0) {
+      const hay = applicationSearchText(a, today, ghostDays);
+      if (!words.every((w) => hay.includes(w))) return false;
+    }
     switch (f) {
       case "action": return hasAction(a);
       case "tech": return isTechRole(a.role);

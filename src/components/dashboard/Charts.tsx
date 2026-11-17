@@ -155,7 +155,7 @@ export function WeeklyPace({
           {days.map((d, i) => (
             <div key={d.sub} role="listitem" className="flex flex-1 flex-col items-center gap-1">
               <span className="text-xs font-semibold tabular-nums text-ink">{d.value}</span>
-              <div className="flex h-28 w-full items-end overflow-hidden rounded-md bg-track">
+              <div className="flex h-28 w-full items-end overflow-hidden rounded-md">
                 <div
                   className="w-full rounded-md bg-accent"
                   style={{ height: d.value === 0 ? "4px" : `${Math.max(10, (d.value / max) * 100)}%` }}

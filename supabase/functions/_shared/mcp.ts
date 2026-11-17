@@ -671,7 +671,6 @@ Rules: never send email, never apply on my behalf, never contact recruiters.`;
 }
 
 // ---------- JSON-RPC ----------
-
 type Rpc = { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 const ok = (id: Rpc["id"], result: unknown) => ({ jsonrpc: "2.0", id, result });
 const err = (id: Rpc["id"], code: number, message: string) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });

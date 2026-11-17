@@ -138,6 +138,38 @@ export function weekly(apps: Application[], today: ISODate, weeks = 12): WeekBuc
 export interface MonthBucket { start: ISODate; tech: number; other: number }
 
 /**
+ * The landing week's pace: applications per day over the Mon-Sun calendar
+ * week containing `today`, compared with the previous Mon-Sun week. This
+ * is the calendar week, not the dashboard's trailing 7-day window, so the
+ * two numbers differ on purpose — the landing card labels its window
+ * (Mon-Sun) so they never read as a contradiction. Both the landing page
+ * (server render) and the Showcase (browser recompute after mount) call
+ * this one function, so the week can never drift apart again the way the
+ * chatbot beat and the tour did.
+ */
+export function calendarWeekPace(apps: Application[], today: ISODate): {
+  days: { label: string; sub: string; value: number }[];
+  total: number;
+  change: number | null;
+} {
+  const monday = weekStart(today);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const iso = addDays(monday, i);
+    const date = parseISO(iso);
+    return {
+      label: date.toLocaleDateString(undefined, { weekday: "short" }),
+      sub: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      value: apps.filter((a) => a.date_applied === iso).length,
+    };
+  });
+  const total = days.reduce((s, d) => s + d.value, 0);
+  const prevStart = addDays(monday, -7);
+  const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
+  const change = prevTotal === 0 ? null : Math.round(((total - prevTotal) / prevTotal) * 100);
+  return { days, total, change };
+}
+
+/**
  * The last `months` calendar months ending with the current one, oldest
  * first. `start` is the first day of each month. Follows weekly() — the
  * same { start, tech, other } shape, so the same WeeklyBars chart draws

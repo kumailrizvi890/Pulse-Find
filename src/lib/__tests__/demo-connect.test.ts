@@ -60,6 +60,19 @@ describe("demo connect page", () => {
     expect(chat).toContain(DEMO_CONNECT_LINK);
   });
 
+  it("keeps the copy buttons above the code blocks, never overlaid on them", () => {
+    const agent = read("app/demo/connect/DemoConnectAgent.tsx");
+    // The overlaid version (absolute button over the <pre>) covered the
+    // end of the step-2 snippet on narrow screens and covered prompt
+    // text in step 4, worse once the prompt block was scrolled. Both
+    // buttons now sit in a row above their block, in normal flow.
+    expect(agent).not.toContain("absolute");
+    expect(agent.match(/flex justify-end/g)?.length).toBe(2);
+    expect(agent).toContain("setSnippetCopied");
+    expect(agent).toContain("setPromptCopied");
+    expect(agent).toContain("Copy full prompt");
+  });
+
   it("leaves the signed-in Connect page doing real tokens", () => {
     const signedIn = read("app/app/connect/ConnectAgent.tsx");
     expect(signedIn).toContain('db.from("api_tokens")');

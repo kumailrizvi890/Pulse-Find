@@ -34,7 +34,7 @@ describe("demoPipelineStore leads", () => {
 
 describe("networking due buckets", () => {
   const contact = (patch: Partial<Contact>): Contact => ({
-    id: "c", person_name: "P", company: "", status: "", next_step: "Follow up", next_step_on: null, notes: "", ...patch,
+    id: "c", person_name: "P", company: "", status: "", next_step: "Follow up", next_step_on: null, notes: "", linkedin_url: "", last_contacted: null, ...patch,
   });
 
   it("classifies overdue / today / upcoming / later / none", () => {

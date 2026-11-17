@@ -283,7 +283,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 shadow-panel sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 shadow-panel sm:flex-row sm:items-center" data-tour="find-jobs">
         <input
           id="job-search"
           type="search"
@@ -340,7 +340,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           {Array.from({ length: 6 }, (_, i) => <li key={i} className="h-[74px] animate-pulse rounded-xl border border-line bg-surface" />)}
         </ul>
       ) : view === "swipe" ? (
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" data-tour="jobs">
           <div>
             {/* The pulsing dot is the same live-status mark as the
               "Waiting on you" panel header: it only shows while there

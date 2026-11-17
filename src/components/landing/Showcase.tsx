@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WeeklyPace, type PaceDay } from "@/components/dashboard/Charts";
 import { Tag } from "@/components/dashboard/ui";
 import { Reveal } from "./Reveal";
+import { demoApplications } from "@/lib/demo-data";
+import { calendarWeekPace, todayISO } from "@/lib/metrics";
 
 export type ShowcaseQueueItem = { company: string; action: string; dueLabel: string; urgent: boolean };
 export type ShowcaseGhostedItem = { company: string; quietDays: number };
@@ -36,6 +38,20 @@ export function Showcase({
   paceChange: number | null;
   goal: number;
 }) {
+  // The pace week is recomputed in the browser after mount: the server
+  // renders on UTC, so a server-rendered "today" is already tomorrow for
+  // a visitor west of UTC once midnight UTC passes, and the week would
+  // count an application dated tomorrow. Same pattern as ChatBeat: the
+  // server props render first (no hydration mismatch), the browser's
+  // week replaces them one tick after mount.
+  const [pace, setPace] = useState({ days: paceDays, total: paceTotal, change: paceChange });
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const today = todayISO();
+      setPace(calendarWeekPace(demoApplications(today), today));
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, []);
   return (
     <section className="gutter mx-auto w-full max-w-[1180px] py-16">
       <Reveal>
@@ -99,11 +115,18 @@ export function Showcase({
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display text-lg font-bold">This week&apos;s pace</h3>
               <span className="rounded-full bg-accent-soft px-3 py-1 font-mono text-xs font-semibold text-accent">
-                {paceTotal} / {goal}
+                {pace.total} / {goal}
               </span>
             </div>
-            <p className="mb-4 text-sm text-muted">One week of effort, at a glance.</p>
-            <WeeklyPace days={paceDays} total={paceTotal} change={paceChange} />
+            <p className="mb-4 text-sm text-muted">Monday to Sunday, compared with last week.</p>
+            <WeeklyPace
+              days={pace.days}
+              total={pace.total}
+              change={pace.change}
+              totalLabel="Total this week (Mon-Sun)"
+              prevLabel="last week (Mon-Sun)"
+              ariaLabel="Applications per day, this week (Monday to Sunday)"
+            />
           </TiltCard>
         </Reveal>
       </div>

@@ -4,12 +4,14 @@ import { describe, expect, it } from "vitest";
 import {
   TOUR_DISMISSED_KEY,
   TOUR_STEPS,
+  isDemoPath,
   nextTourStep,
   parseTourStep,
   placeTourCard,
   prevTourStep,
   tourHref,
   tourStartHref,
+  type TourCompletion,
   type TourStepId,
 } from "@/lib/guided-tour";
 import { answerGeneralQuestion, DEFAULT_APP_ORIGIN, type GeneralChatContext } from "@/lib/task-chat";
@@ -29,7 +31,7 @@ const demoDashboard = read("app/demo/DemoDashboard.tsx");
 const demoPage = read("app/demo/page.tsx");
 const tourLib = read("lib/guided-tour.ts");
 
-describe("tour steps (Pulse-guided walkthrough)", () => {
+describe("tour steps (Pulse-guided quest)", () => {
   it("covers every feature in the order a new user should meet them", () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual([
       "dashboard",
@@ -43,7 +45,7 @@ describe("tour steps (Pulse-guided walkthrough)", () => {
     ]);
   });
 
-  it("sends each step to its own route with a matching spotlight anchor", () => {
+  it("sends each step to its own route with a tight spotlight anchor", () => {
     const routes: Record<TourStepId, string> = {
       dashboard: "/demo",
       sheet: "/demo/sheet",
@@ -54,26 +56,82 @@ describe("tour steps (Pulse-guided walkthrough)", () => {
       chat: "/demo",
       connect: "/demo/connect",
     };
+    // The ring targets the exact control the visitor acts on, not the
+    // whole page: the first waiting task, the sheet toolbar, the first
+    // row's Edit button, the save heart, the copy button.
+    const anchors: Record<TourStepId, string> = {
+      dashboard: "waiting-first",
+      sheet: "sheet-tools",
+      "find-jobs": "find-jobs",
+      jobs: "job-save",
+      leads: "lead-edit",
+      networking: "contact-edit",
+      chat: "ask-pulse",
+      connect: "connect-copy",
+    };
     for (const step of TOUR_STEPS) {
       expect(step.route).toBe(routes[step.id]);
-      expect(step.anchor).toBe(step.id === "chat" ? "ask-pulse" : step.id);
+      expect(step.anchor).toBe(anchors[step.id]);
       expect(step.title.length).toBeGreaterThan(0);
-      expect(step.body.length).toBeGreaterThan(40);
+      expect(step.line.length).toBeGreaterThan(20);
+      expect(step.done.length).toBeGreaterThan(0);
     }
   });
 
-  it("keeps Pulse's narration free of em dashes", () => {
+  it("gives every step one real action that completes it, and nothing else", () => {
+    const completions: Record<TourStepId, TourCompletion> = {
+      dashboard: "waiting-open",
+      sheet: "sheet-filter",
+      "find-jobs": "jobs-search",
+      jobs: "jobs-save",
+      leads: "lead-edit",
+      networking: "contact-edit",
+      chat: "chat-ask",
+      connect: "connect-copy",
+    };
     for (const step of TOUR_STEPS) {
-      expect(step.title).not.toContain("—");
-      expect(step.body).not.toContain("—");
-      expect(step.tryIt).not.toContain("—");
+      expect(step.completion).toBe(completions[step.id]);
     }
   });
 
-  it("gives every step a Try-it label for the hands-on button", () => {
+  it("keeps Pulse's narration free of em dashes, short, and lowercase", () => {
     for (const step of TOUR_STEPS) {
-      expect(step.tryIt.startsWith("Try it: ")).toBe(true);
-      expect(step.tryIt.length).toBeGreaterThan("Try it: ".length);
+      for (const text of [step.title, step.line, step.done, step.lineAlt, step.doneAlt]) {
+        if (text === undefined) continue;
+        expect(text).not.toContain("—");
+      }
+      // One short line at a time, plain lowercase friend voice.
+      expect(step.line.length).toBeLessThanOrEqual(120);
+      expect(step.done.length).toBeLessThanOrEqual(170);
+      expect(step.line[0]).toBe(step.line[0].toLowerCase());
+      expect(step.done[0]).toBe(step.done[0].toLowerCase());
+    }
+  });
+
+  it("has no badges, missions, or achievement screens in the copy", () => {
+    const all = TOUR_STEPS.map((s) => `${s.line} ${s.done}`).join(" ");
+    expect(all).not.toContain("Mission");
+    expect(all).not.toContain("badge");
+    expect(all).not.toContain("achievement");
+    expect(all).not.toContain("trophy");
+    expect(all).not.toContain("congratulations");
+    expect(all).not.toContain("Next");
+    expect(all).not.toContain("Back");
+    expect(all).not.toContain("Try it");
+  });
+
+  it("gives the jobs step a signed-in variant: preview, never save a real job", () => {
+    const jobs = TOUR_STEPS.find((s) => s.id === "jobs")!;
+    expect(jobs.lineAlt).toBe("this is the board. tap a posting to peek at the role");
+    expect(jobs.doneAlt).toBe("that's the one, the posting opens right from the card");
+    expect(jobs.anchorAlt).toBe("job-posting");
+    expect(jobs.line).toContain("tap save on a card");
+    // No other step needs a mode variant.
+    for (const step of TOUR_STEPS) {
+      if (step.id === "jobs") continue;
+      expect(step.lineAlt).toBeUndefined();
+      expect(step.doneAlt).toBeUndefined();
+      expect(step.anchorAlt).toBeUndefined();
     }
   });
 
@@ -99,63 +157,45 @@ describe("tour steps (Pulse-guided walkthrough)", () => {
     expect(tourHref(TOUR_STEPS[6])).toBe("/demo?tour=chat");
     expect(tourStartHref()).toBe("/demo?tour=dashboard");
   });
+
+  it("knows which routes are demo routes (sample data may be written there)", () => {
+    expect(isDemoPath("/demo")).toBe(true);
+    expect(isDemoPath("/demo/sheet")).toBe(true);
+    expect(isDemoPath("/demo/leads")).toBe(true);
+    expect(isDemoPath("/demo/networking")).toBe(true);
+    expect(isDemoPath("/demo/connect")).toBe(true);
+    expect(isDemoPath("/jobs")).toBe(false);
+    expect(isDemoPath("/app")).toBe(false);
+    expect(isDemoPath("/")).toBe(false);
+  });
 });
 
-describe("the tour teaches, not just describes", () => {
+describe("the tour teaches one real action per stop", () => {
   const byId = (id: TourStepId) => TOUR_STEPS.find((s) => s.id === id)!;
 
-  it("orients on the nav tabs and the tour order in step 1", () => {
-    const body = byId("dashboard").body;
-    expect(body).toContain("Dashboard, Sheet, Leads, Networking, then Connect");
-    expect(body).toContain("Jobs in the top nav");
+  it("orients on the nav tabs in step 1", () => {
+    expect(byId("dashboard").line).toContain("tabs up top");
   });
 
-  it("says where each feature lives in navigation", () => {
-    expect(byId("sheet").body).toContain("Find it under Sheet in the demo nav");
-    expect(byId("find-jobs").body).toContain("Find it under Jobs in the top nav");
-    expect(byId("leads").body).toContain("Find it under Leads in the demo nav");
-    expect(byId("networking").body).toContain("Find it under Networking in the demo nav");
-    expect(byId("chat").body).toContain("Find it under Ask Pulse in the top nav");
-    expect(byId("connect").body).toContain("Find it under Connect in the demo nav");
-  });
-
-  it("names every feature in a step body, so nothing in the tour has no home", () => {
-    const all = TOUR_STEPS.map((s) => s.body).join(" ");
-    // Dashboard header actions, named on the dashboard step.
-    expect(all).toContain("Add application");
-    expect(all).toContain("Import sheet");
-    expect(all).toContain("Export");
-    expect(all).toContain("Settings");
-    // Pace chart and funnel, on the dashboard step.
-    expect(all).toContain("pace chart");
-    expect(all).toContain("funnel");
-    // Sheet: status filter, search, edit, Waiting on you toggle, export.
-    expect(all).toContain("status dropdown");
-    expect(all).toContain("search box");
-    expect(all).toContain("Click any editable cell");
-    expect(all).toContain("Waiting on you toggle");
-    // Jobs: swipe, board, saved list, Applied flow.
-    expect(all).toContain("Swipe right to save");
-    expect(all).toContain("Saved roles gather");
-    // Leads: search, filter, fit note.
-    expect(all).toContain("fit note");
-    // Networking: follow-ups, search, notes expand.
-    expect(all).toContain("Show more");
-    // Chat: general answers plus task chat plus Talk to Agent.
-    expect(all).toContain("Open a task first");
-    expect(all).toContain("Talk to Agent");
-    // Connect: token setup for the named clients.
-    expect(all).toContain("access token");
-    expect(all).toContain("Claude, Cursor or Copilot");
+  it("names the one action to try in every line", () => {
+    expect(byId("dashboard").line).toContain("tap open on a waiting task");
+    expect(byId("sheet").line).toContain("status dropdown");
+    expect(byId("find-jobs").line).toContain("type a company or a role in the search");
+    expect(byId("jobs").line).toContain("tap save on a card");
+    expect(byId("leads").line).toContain("tap edit on one");
+    expect(byId("networking").line).toContain("tap edit on someone due");
+    expect(byId("chat").line).toContain("tap ask pulse up top");
+    expect(byId("chat").line).toContain("i never guess");
+    expect(byId("connect").line).toContain("tap copy");
+    expect(byId("connect").line).toContain("claude, cursor or copilot");
   });
 
   it("closes the Connect step with where to start and the replay link", () => {
-    const body = byId("connect").body;
-    expect(body).toContain("Where to start:");
-    expect(body).toContain("add one application");
-    expect(body).toContain("save one job from Jobs");
-    expect(body).toContain("ask Pulse what is due next");
-    expect(body).toContain("Replay this tour anytime from Take the tour in the demo nav");
+    const done = byId("connect").done;
+    expect(done).toContain("start with one application");
+    expect(done).toContain("one saved job");
+    expect(done).toContain("ask me what's due next");
+    expect(done).toContain("replay anytime from take the tour in the demo nav");
   });
 });
 
@@ -205,7 +245,7 @@ describe("card placement (never covers the anchor)", () => {
   });
 });
 
-describe("the chat step shows the real answer, not a typed one", () => {
+describe("the chat answer itself (used by the real chat panel, not the tour coach)", () => {
   it("answers the follow-ups question from the demo data (Marcus then Priya)", () => {
     const today = todayISO();
     const apps = demoApplications(today);
@@ -256,19 +296,27 @@ describe("the chat step shows the real answer, not a typed one", () => {
   });
 });
 
-describe("tour host (spotlight, controls, reduced motion)", () => {
-  it("reads the tour param, spotlights the anchor, and offers back / next / skip / exit", () => {
+describe("tour host (quest coach: no action buttons, advance only on the real action)", () => {
+  it("reads the tour param, spotlights the anchor, and offers only dots, skip, and exit", () => {
     expect(tourHost).toContain('useSearchParams()');
     expect(tourHost).toContain('parseTourStep(searchParams.get("tour"))');
     expect(tourHost).toContain("data-tour=");
     expect(tourHost).toContain("scrollIntoView");
     expect(tourHost).toContain("Skip tour");
     expect(tourHost).toContain("Exit tour");
-    expect(tourHost).toContain("disabled={!prev}");
-    expect(tourHost).toContain("tourHref(prev)");
-    expect(tourHost).toContain("tourHref(next)");
-    expect(tourHost).toContain("Finish");
+    expect(tourHost).toContain("Done");
     expect(tourHost).toContain("Go to step ${i + 1}");
+    // The coach has zero action buttons: no Next, no Back, no Try-it,
+    // no Finish, no precomputed chat answer.
+    expect(tourHost).not.toContain(">Next<");
+    expect(tourHost).not.toContain(">Back<");
+    expect(tourHost).not.toContain("Try it");
+    expect(tourHost).not.toContain("tryIt");
+    expect(tourHost).not.toContain(">Finish<");
+    expect(tourHost).not.toContain("answerGeneralQuestion");
+    expect(tourHost).not.toContain("Try Ask Pulse yourself");
+    expect(tourHost).not.toContain('href="/demo?tour=chat&chat=1"');
+    expect(tourHost).not.toContain("demoApplications");
   });
 
   it("exits on Escape and never smooth-scrolls under reduced motion", () => {
@@ -283,14 +331,86 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
     expect(tourHost).toContain("{rect && (");
   });
 
-  it("shows the live chat answer on the chat step, with a way to try it for real", () => {
-    expect(tourHost).toContain("answerGeneralQuestion");
-    expect(tourHost).toContain("What networking follow-ups are due?");
-    expect(tourHost).toContain('href="/demo?tour=chat&chat=1"');
-    expect(tourHost).toContain("Try Ask Pulse yourself");
+  it("advances only when the visitor does the real thing, after a beat", () => {
+    // One detector per completion kind, each scoped to its own feature.
+    for (const kind of [
+      "waiting-open",
+      "sheet-filter",
+      "jobs-search",
+      "jobs-save",
+      "lead-edit",
+      "contact-edit",
+      "chat-ask",
+      "connect-copy",
+    ]) {
+      expect(tourHost).toContain(`case "${kind}":`);
+    }
+    expect(tourHost).toContain('data-tour-action="waiting-open"');
+    expect(tourHost).toContain('data-tour-action="waiting-all"');
+    expect(tourHost).toContain('aria-label") === "Filter by status"');
+    expect(tourHost).toContain('t.id === "job-search"');
+    expect(tourHost).toContain('[data-tour="job-save"]');
+    expect(tourHost).toContain(".pf-chat-bubble-user-3d");
+    expect(tourHost).toContain('startsWith("Copy")');
+    // The advance is a timer after the action, never a button press,
+    // and it waits for any open dialog to close first, so the visitor
+    // reads the drawer or the edit form before the page changes.
+    expect(tourHost).toContain("TOUR_ADVANCE_MS");
+    expect(tourHost).toContain("nextTourStep(step)");
+    expect(tourHost).toContain("tourHref(next)");
+    expect(tourHost).toContain("if (overlayOpen) return;");
+    expect(tourHost).toContain("do the thing and the tour moves on");
   });
 
-  it("keeps the card in front of the dim, on a solid background", () => {
+  it("bursts the crystal and pulses the ring when the action lands", () => {
+    expect(tourHost).toContain("PulseCrystal");
+    expect(tourHost).toContain("tour-crystal");
+    expect(tourHost).toContain("tour-crystal-burst");
+    expect(tourHost).toContain("tour-ring-pulse");
+    expect(tourHost).toContain("setTimeout(() => setPulsing(false), 1200)");
+    const css = read("app/globals.css");
+    expect(css).toContain("@keyframes tour-crystal-float");
+    expect(css).toContain("@keyframes tour-crystal-burst");
+    expect(css).toContain(".tour-crystal {");
+    expect(css).toContain(".tour-crystal-burst {");
+    expect(css).toContain(".tour-bubble {");
+    expect(css).toContain(".tour-bubble::before");
+    expect(css).toContain("@keyframes tour-ring-pulse");
+    expect(css).toContain(".tour-ring-pulse {");
+    expect(css).toContain("animation: tour-ring-pulse 1.2s ease;");
+    // Reduced motion kills the float, the burst, and the ring pulse.
+    expect(css).toContain(".tour-crystal { animation: none; }");
+    expect(css).toContain(".tour-crystal-burst { animation: none; }");
+    expect(css).toContain(".tour-ring-pulse { animation: none; }");
+  });
+
+  it("is a phone-first bottom sheet, never more than ~35% of the viewport", () => {
+    expect(tourHost).toContain("max-h-[35dvh]");
+    expect(tourHost).toContain("inset-x-3 bottom-3");
+    expect(tourHost).toContain("overflow-y-auto");
+  });
+
+  it("steps aside entirely when a dialog opens over the page", () => {
+    // The chat panel, the task drawer, and the lead/contact edit forms
+    // are all role="dialog" aria-modal="true". The tour's own coach is
+    // a dialog too, but never aria-modal, so it never matches. A slim
+    // bar on top was tried and caught clicks on the drawer's Close
+    // button, so the coach hides instead and resumes when the dialog
+    // closes, following the floating assistant's convention.
+    expect(tourHost).toContain('[role="dialog"][aria-modal="true"]');
+    expect(tourHost).toContain("overlayOpen");
+    expect(tourHost).toContain("if (compact) return null;");
+    expect(tourHost).toContain('className="pointer-events-none fixed inset-0 z-[80]" role="dialog" aria-labelledby="tour-line"');
+    expect(tourHost).not.toContain("inset-x-3 top-3");
+  });
+
+  it("is non-modal: the page stays clickable and the coach takes only its own clicks", () => {
+    expect(tourHost).toContain('className="pointer-events-none fixed inset-0 z-[80]"');
+    expect(tourHost).toContain('role="dialog"');
+    expect(tourHost).toContain("pointer-events-auto");
+  });
+
+  it("keeps the coach in front of the ring, on a solid background, with no dim anywhere", () => {
     expect(tourHost).toContain("z-[80]");
     expect(tourHost).toContain("tour-card");
     const css = read("app/globals.css");
@@ -299,16 +419,15 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
     expect(css).toContain(".tour-card {");
     expect(css).toContain("z-index: 2;");
     expect(css).toContain("background-color: var(--surface);");
+    // The dim is gone: no 9999px backdrop in the ring or its pulse.
+    // (9999px still appears as border-radius on fully-rounded pills,
+    // which is unrelated.)
+    expect(css).not.toContain("0 0 0 9999px");
+    expect(css).toContain("border: 2px solid var(--accent)");
+    expect(css).toContain(".tour-ring { transition: none; }");
   });
 
-  it("is non-modal: the page stays clickable and the card takes only its own clicks", () => {
-    expect(tourHost).toContain('className="pointer-events-none fixed inset-0 z-[80]"');
-    expect(tourHost).toContain('role="dialog"');
-    expect(tourHost).not.toContain('aria-modal="true"');
-    expect(tourHost).toContain("pointer-events-auto");
-  });
-
-  it("moves the card beside the anchor instead of parking it bottom-right", () => {
+  it("moves the coach beside the anchor instead of parking it bottom-right", () => {
     expect(tourHost).toContain("placeTourCard");
     expect(tourHost).toContain("setPlacement");
     expect(tourHost).toContain("window.innerWidth < 640");
@@ -321,18 +440,33 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
     expect(css).toContain(".tour-card { transition: none; }");
   });
 
-  it("lets the visitor try the feature: Try-it focuses the anchor and pulses the ring, without advancing", () => {
-    expect(tourHost).toContain("step.tryIt");
-    expect(tourHost).toContain("Go ahead, try it, the tour stays open.");
-    expect(tourHost).toContain("tour-ring-pulse");
-    expect(tourHost).toContain("setTimeout(() => setPulsing(false), 1200)");
-    expect(tourHost).toContain("querySelector(FOCUSABLE)");
-    expect(tourHost).toContain("target.focus({ preventScroll: true })");
-    const css = read("app/globals.css");
-    expect(css).toContain("@keyframes tour-ring-pulse");
-    expect(css).toContain(".tour-ring-pulse {");
-    expect(css).toContain("animation: tour-ring-pulse 1.2s ease;");
-    expect(css).toContain(".tour-ring-pulse { animation: none; }");
+  it("reads the signed-in mode once, and previews instead of saving when signed in", () => {
+    expect(tourHost).toContain("getSession");
+    expect(tourHost).toContain("signedIn");
+    expect(tourHost).toContain("anchorAlt");
+    expect(tourHost).toContain('a[target="_blank"]');
+    expect(tourHost).toContain("step.lineAlt");
+    expect(tourHost).toContain("step.doneAlt");
+    expect(tourHost).toContain("step.anchorAlt");
+    // The save toast is the catch-all for swipe and keyboard saves.
+    expect(tourHost).toContain('startsWith("Saved")');
+  });
+
+  it("never performs a mutation: it only watches, never saves, dismisses, or sends", () => {
+    expect(tourHost).not.toContain("saveLead");
+    expect(tourHost).not.toContain("setMark");
+    expect(tourHost).not.toContain("promote(");
+    expect(tourHost).not.toContain("markDone");
+    expect(tourHost).not.toContain("store.update");
+    expect(tourHost).not.toContain("store.create");
+    expect(tourHost).not.toContain("addEvent(");
+    expect(tourHost).not.toContain("onDone");
+    expect(tourHost).not.toContain("decide(");
+    expect(tourHost).not.toContain("mark(");
+    expect(tourHost).not.toContain("removeSaved");
+    expect(tourHost).not.toContain("deleteApplication");
+    // The dashboard step accepts Open and View-all, never Done.
+    expect(tourHost).not.toContain('data-tour-action="waiting-done"');
   });
 
   it("auto-starts on plain /demo only, and never re-prompts a visitor who left", () => {
@@ -348,7 +482,7 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
 
   it("does not auto-start the tour when the visitor arrives to chat (?chat=1)", () => {
     // The landing chat button and the demo nav link here with ?chat=1:
-    // the chat takes precedence, so the tour card never sits over the
+    // the chat takes precedence, so the tour coach never sits over the
     // open chat panel. The gate sits before the auto-start replace.
     const gate = tourHost.indexOf('searchParams.get("chat") === "1"');
     const start = tourHost.indexOf("router.replace(tourStartHref())");
@@ -381,23 +515,27 @@ describe("tour host (spotlight, controls, reduced motion)", () => {
     expect(layout).toContain("<Suspense fallback={null}>");
     expect(layout).toContain("<GuidedTour />");
   });
-
-  it("uses the red accent only, with the ring dimming the rest of the page", () => {
-    const css = read("app/globals.css");
-    expect(css).toContain(".tour-ring");
-    expect(css).toContain("border: 2px solid var(--accent)");
-    expect(css).toContain("0 0 0 9999px rgb(13 12 16 / 0.72)");
-    expect(css).toContain(".tour-ring { transition: none; }");
-  });
 });
 
 describe("tour anchors exist on the pages the steps visit", () => {
-  it("marks the dashboard, sheet, leads, networking and connect views", () => {
+  it("marks the tight spotlight targets the ring follows", () => {
+    expect(read("components/dashboard/Overview.tsx")).toContain('dataTour="waiting"');
+    expect(read("components/dashboard/Overview.tsx")).toContain('"waiting-first"');
+    expect(read("components/dashboard/Overview.tsx")).toContain('data-tour-action="waiting-open"');
+    expect(read("components/dashboard/Overview.tsx")).toContain('data-tour-action="waiting-all"');
+    expect(read("components/dashboard/SheetView.tsx")).toContain('data-tour="sheet-tools"');
+    expect(read("components/pipeline/LeadsSection.tsx")).toContain('"lead-edit"');
+    expect(read("components/pipeline/NetworkingSection.tsx")).toContain('"contact-edit"');
+    expect(read("app/demo/connect/DemoConnectAgent.tsx")).toContain('data-tour="connect-copy"');
+    expect(read("app/jobs/SwipeDeck.tsx")).toContain('data-tour="job-save"');
+    expect(read("app/jobs/SwipeDeck.tsx")).toContain('"job-posting"');
+  });
+
+  it("keeps the page-level anchors the detectors listen inside", () => {
     expect(read("components/dashboard/Overview.tsx")).toContain('data-tour="dashboard"');
     expect(read("components/dashboard/SheetView.tsx")).toContain('data-tour="sheet"');
     expect(read("components/pipeline/LeadsSection.tsx")).toContain('data-tour="leads"');
     expect(read("components/pipeline/NetworkingSection.tsx")).toContain('data-tour="networking"');
-    expect(read("app/demo/connect/DemoConnectAgent.tsx")).toContain('data-tour="connect"');
   });
 
   it("marks the jobs search bar and the swipe deck separately", () => {

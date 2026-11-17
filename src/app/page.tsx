@@ -12,9 +12,8 @@ import { Bento } from "@/components/landing/Bento";
 import { TerminalDemo } from "@/components/landing/TerminalDemo";
 import { StatsBand } from "@/components/landing/StatsBand";
 import { Reveal } from "@/components/landing/Reveal";
-import type { PaceDay } from "@/components/dashboard/Charts";
 import { demoApplications } from "@/lib/demo-data";
-import { actionQueue, addDays, daysBetween, followUp, funnel, parseISO, summarize, todayISO, weekStart } from "@/lib/metrics";
+import { actionQueue, calendarWeekPace, daysBetween, followUp, funnel, summarize, todayISO } from "@/lib/metrics";
 import { env } from "@/lib/env";
 
 const primary =
@@ -67,20 +66,9 @@ export default async function Home() {
     .filter((a) => followUp(a, today, 21) === "ghosted")
     .sort((a, b) => (b.last_contact ?? "").localeCompare(a.last_contact ?? ""));
   const demoSteps = funnel(demoApps);
-  const monday = weekStart(today);
-  const paceDays: PaceDay[] = Array.from({ length: 7 }, (_, i) => {
-    const iso = addDays(monday, i);
-    const date = parseISO(iso);
-    return {
-      label: date.toLocaleDateString(undefined, { weekday: "short" }),
-      sub: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      value: demoApps.filter((a) => a.date_applied === iso).length,
-    };
-  });
-  const paceTotal = paceDays.reduce((s, d) => s + d.value, 0);
-  const prevStart = addDays(monday, -7);
-  const prevTotal = demoApps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
-  const paceChange = prevTotal === 0 ? null : Math.round(((paceTotal - prevTotal) / prevTotal) * 100);
+  // The landing week is the Mon-Sun calendar week, computed by the one
+  // shared helper the Showcase also calls in the browser after mount.
+  const { days: paceDays, total: paceTotal, change: paceChange } = calendarWeekPace(demoApps, today);
   const showcaseQueue = demoQueue.slice(0, 3).map((a) => {
     const d = a.action_due ? daysBetween(today, a.action_due) : null;
     return {
@@ -159,7 +147,7 @@ export default async function Home() {
           goal={8}
         />
 
-        <section className="gutter mx-auto w-full max-w-[1180px] border-t border-line py-16">
+        <section className="gutter mx-auto grid w-full max-w-[1180px] border-t border-line py-16">
           <Reveal>
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">See it move</p>
             <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Watch it work</h2>

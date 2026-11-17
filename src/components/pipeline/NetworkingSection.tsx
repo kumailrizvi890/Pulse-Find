@@ -157,7 +157,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
           </p>
         ) : (
           <ul className="divide-y divide-line">
-            {rows.map((c) => {
+            {rows.map((c, i) => {
               const bucket = dueBucket(c, today);
               return (
                 <li key={c.id} className="grid grid-cols-1 gap-2 py-3 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
@@ -182,7 +182,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(c.next_step || c.next_step_on) && <button className={btn.secondary} onClick={() => markDone(c)}>Step done</button>}
-                    <button className={btn.ghost} onClick={() => setForm({ open: true, editing: c })}>Edit</button>
+                    <button className={btn.ghost} data-tour={i === 0 ? "contact-edit" : undefined} onClick={() => setForm({ open: true, editing: c })}>Edit</button>
                     {confirmDelete === c.id ? (
                       <>
                         <button className={btn.danger} onClick={() => remove(c)}>Delete?</button>

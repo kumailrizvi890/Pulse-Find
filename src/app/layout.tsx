@@ -5,6 +5,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { SiteBackdrop } from "@/components/SiteBackdrop";
 import { GuidedTour } from "@/components/GuidedTour";
+import { FloatingPulseButton } from "@/components/FloatingPulseButton";
 import "./globals.css";
 
 // Fonts are self-hosted so builds never depend on reaching a font CDN.
@@ -61,6 +62,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <Suspense fallback={null}>
           <GuidedTour />
+        </Suspense>
+        <Suspense fallback={null}>
+          <FloatingPulseButton />
         </Suspense>
       </body>
     </html>

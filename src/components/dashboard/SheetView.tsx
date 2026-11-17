@@ -185,6 +185,16 @@ export function SheetView({ store }: { store: TrackerStore }) {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          {status !== "All" && (
+            <button
+              onClick={() => setStatus("All")}
+              aria-label={`Clear status filter ${status}`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-danger/40 bg-danger-soft px-2.5 py-1.5 text-xs font-semibold text-danger transition hover:brightness-110"
+            >
+              Status: {status} · {apps.filter((a) => a.status === status).length}
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
           <input
             type="search"
             className={cx(field, "w-52")}

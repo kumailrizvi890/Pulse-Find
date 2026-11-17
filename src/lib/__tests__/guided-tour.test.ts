@@ -109,6 +109,34 @@ describe("the chat step shows the real answer, not a typed one", () => {
     expect(answer.text.indexOf("Marcus Webb")).toBeLessThan(answer.text.indexOf("Priya Nair"));
     expect(answer.text).not.toContain("Sam Ortiz");
   });
+
+  it("shifts the follow-up dates by a day when today shifts a day (UTC server vs local browser)", () => {
+    // Nov 17 is the server's UTC date once midnight UTC passes; Nov 16 is
+    // the visitor's date in PT at the same moment. The same answer names
+    // Nov 15 / Nov 17 from one today and Nov 14 / Nov 16 from the other,
+    // which is exactly the one-day split the landing beat and the tour
+    // step showed. Both paths must feed the same local today, or the two
+    // copies of this answer disagree.
+    const ctxFor = (today: string): GeneralChatContext => {
+      const apps = demoApplications(today);
+      return {
+        apps,
+        events: demoEvents(apps),
+        contacts: demoContacts(today),
+        today,
+        origin: DEFAULT_APP_ORIGIN,
+        ghostDays: 21,
+        weeklyGoal: 8,
+        trackerPath: "/demo",
+      };
+    };
+    const server = answerGeneralQuestion("What networking follow-ups are due?", ctxFor("2026-11-17"));
+    const browser = answerGeneralQuestion("What networking follow-ups are due?", ctxFor("2026-11-16"));
+    expect(server.text).toContain("(Nov 15)");
+    expect(server.text).toContain("(Nov 17)");
+    expect(browser.text).toContain("(Nov 14)");
+    expect(browser.text).toContain("(Nov 16)");
+  });
 });
 
 describe("tour host (spotlight, controls, reduced motion)", () => {
@@ -196,6 +224,17 @@ describe("landing chatbot beat (Watch it work)", () => {
     expect(chatBeat).toContain("demoContacts");
     expect(chatBeat).toContain('href="/demo?chat=1"');
     expect(chatBeat).toContain("never guesses");
+  });
+
+  it("computes the answer in the browser after mount, not on the server", () => {
+    // The server runs on UTC, so a server-rendered "today" is already
+    // tomorrow for a visitor west of UTC once midnight UTC passes, while
+    // the tour and the demo compute today in the browser. The beat once
+    // showed Nov 15 / Nov 17 where the tour step showed Nov 14 / Nov 16.
+    expect(chatBeat).toContain('"use client"');
+    expect(chatBeat).toContain("useEffect");
+    expect(chatBeat).toContain("useState<string | null>(null)");
+    expect(chatBeat).toContain("setAnswer(answerGeneralQuestion");
   });
 });
 

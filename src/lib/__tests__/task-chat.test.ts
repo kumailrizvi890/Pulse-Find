@@ -41,6 +41,8 @@ const CONTACTS: Contact[] = [
     next_step: "Ask about the intern project",
     next_step_on: "2026-11-18",
     notes: "",
+    linkedin_url: "",
+    last_contacted: null,
   },
 ];
 

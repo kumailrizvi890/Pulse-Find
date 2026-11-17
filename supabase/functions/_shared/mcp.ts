@@ -50,6 +50,8 @@ export interface ContactRow {
   next_step: string;
   next_step_on: string | null;
   notes: string;
+  linkedin_url: string;
+  last_contacted: string | null;
 }
 
 export interface EventRow {
@@ -94,6 +96,7 @@ function contactBrief(c: ContactRow) {
   return {
     id: c.id, person_name: c.person_name, company: c.company || null, status: c.status || null,
     next_step: c.next_step || null, next_step_on: c.next_step_on, notes: c.notes || null,
+    linkedin_url: c.linkedin_url || null, last_contacted: c.last_contacted,
   };
 }
 
@@ -437,7 +440,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "add_lead",
     title: "Save a job lead",
-    description: "Save a role the user is considering as a lead in their pipeline. This does NOT apply to anything — it only records the lead for the user's own decision later. If the same company + role is already a lead, returns the existing one instead of duplicating.",
+    description: "Save a role the user is considering as a lead in their pipeline. This does NOT apply to anything — it only records the lead for the user's decision later. If the same company + role is already a lead, returns the existing one instead of duplicating.",
     inputSchema: {
       type: "object",
       properties: {
@@ -541,11 +544,15 @@ export const TOOLS: ToolDef[] = [
         next_step: { type: "string" },
         next_step_on: { ...dateProp, nullable: true },
         notes: { type: "string" },
+        linkedin_url: { type: "string", description: "LinkedIn profile URL, must start with https://" },
+        last_contacted: { ...dateProp, nullable: true, description: "Last date the user was in touch, YYYY-MM-DD" },
       },
       required: ["person_name"],
       additionalProperties: false,
     },
     run: async (s, a) => {
+      const url = str(a, "linkedin_url", 2000);
+      if (url && !/^https:\/\//i.test(url)) throw new InvalidParams(`"linkedin_url" must start with https://`);
       const row = await s.insertContact({
         person_name: str(a, "person_name", 120, true),
         company: str(a, "company", 200) ?? "",
@@ -553,6 +560,8 @@ export const TOOLS: ToolDef[] = [
         next_step: str(a, "next_step", 500) ?? "",
         next_step_on: date(a, "next_step_on") ?? null,
         notes: str(a, "notes", 2000) ?? "",
+        linkedin_url: url ?? "",
+        last_contacted: date(a, "last_contacted") ?? null,
       });
       return { created: contactBrief(row) };
     },
@@ -569,6 +578,8 @@ export const TOOLS: ToolDef[] = [
         next_step: { type: "string" },
         next_step_on: { ...dateProp, nullable: true },
         notes: { type: "string" },
+        linkedin_url: { type: "string", description: "LinkedIn profile URL, must start with https://" },
+        last_contacted: { ...dateProp, nullable: true, description: "Last date the user was in touch, YYYY-MM-DD" },
       },
       required: ["id"],
       additionalProperties: false,
@@ -580,6 +591,12 @@ export const TOOLS: ToolDef[] = [
       if (typeof a.next_step === "string") fields.next_step = a.next_step.slice(0, 500);
       const on = date(a, "next_step_on"); if (on !== undefined) fields.next_step_on = on;
       const nt = str(a, "notes", 2000); if (nt !== undefined) fields.notes = nt;
+      const url = str(a, "linkedin_url", 2000);
+      if (url !== undefined) {
+        if (url && !/^https:\/\//i.test(url)) throw new InvalidParams(`"linkedin_url" must start with https://`);
+        fields.linkedin_url = url;
+      }
+      const lc = date(a, "last_contacted"); if (lc !== undefined) fields.last_contacted = lc;
       if (!Object.keys(fields).length) throw new InvalidParams("Nothing to change");
       const row = await s.updateContact(id, fields);
       if (!row) throw new InvalidParams("No contact with that id. Call list_contacts to find it.");
@@ -642,14 +659,11 @@ export function findLeadsPrompt(track?: string, query?: string) {
   const scope = [track ? `track: ${track}` : "any track", query ? `matching "${query}"` : "no keyword filter"].join(", ");
   return `Find me new roles to consider in Pulse Find.
 
-1. Call list_applications to see what I'm already tracking.
-2. Call search_jobs with ${scope}. Prefer the most recently posted roles.
-3. Drop anything whose company + role is already in my tracker, and anything I've clearly already seen in this list.
-4. Present what's left as a short lead list: company, role, location/remote, when it was posted, and the link. Group by track if there's a mix.
-5. If I pick some to keep an eye on, save those with add_lead so they land in my leads pipeline on the website. If I name the ones I applied to, add those with add_application and mark the matching lead Applied with update_lead.
-6. Stop there. These are leads for MY decision: never apply for me, and never contact anyone.
-
-Rules: never send email, never apply on my behalf, never contact recruiters.`;
+1. Call list_applications with ${scope}. Prefer the most recently posted roles.
+2. Drop anything whose company + role is already in my tracker, and anything I've clearly already seen in this list.
+3. Present what's left as a short lead list: company, role, location/remote, when it was posted, and the link. Group by track if there's a mix.
+4. If I pick some to keep an eye on, save those with add_lead so they land in my leads pipeline on the website. If I name the ones I applied to, add those with add_application and mark the matching lead Applied with update_lead.
+5. Stop there. These are leads for MY decision: never apply for me, and never contact recruiters.`;
 }
 
 // ---------- JSON-RPC ----------

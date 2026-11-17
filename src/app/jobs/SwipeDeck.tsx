@@ -170,6 +170,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
                     href={j.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    data-tour={isTop ? "job-posting" : undefined}
                     className="font-semibold text-accent hover:underline"
                     onPointerDown={(e) => e.stopPropagation()}
                     tabIndex={isTop ? 0 : -1}
@@ -207,6 +208,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
         <button
           type="button"
           aria-label="Save"
+          data-tour="job-save"
           disabled={!top}
           onClick={() => decide("saved")}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-interview text-interview-ink shadow-panel transition hover:scale-105 disabled:opacity-35"

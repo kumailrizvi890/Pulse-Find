@@ -193,6 +193,16 @@ describe("OA and Interview sections", () => {
     expect(overview).toContain("No interviews yet.");
   });
 
+  it("says the Interviews count reached the stage, not that it sits at it", () => {
+    // The count is cumulative: it includes interview-stage applications
+    // with no OA and rejected ones (demo Kestrel Fintech was rejected
+    // after its recruiter screen), so "N at interview stage" overstates
+    // it. The counting is unchanged, only the hint wording.
+    expect(overview).toContain("`${interviewList.length} reached interview stage`");
+    expect(overview).not.toContain("at interview stage");
+    expect(DEMO.filter(reachedInterview).map((a) => a.company)).toContain("Kestrel Fintech");
+  });
+
   it("distinguishes ghosted interviews from active ones", () => {
     expect(overview).toContain('tone="danger">Ghosted</Tag>');
     expect(overview).toContain(">Active</span>");

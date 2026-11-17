@@ -4,12 +4,12 @@ import { DemoDashboard } from "./DemoDashboard";
 
 export const metadata: Metadata = { title: "Live demo" };
 
-export default async function DemoPage({ searchParams }: { searchParams: Promise<{ chat?: string | string[] }> }) {
+export default async function DemoPage({ searchParams }: { searchParams: Promise<{ chat?: string | string[]; tour?: string | string[] }> }) {
   const sp = await searchParams;
   return (
     <>
       <DemoNav />
-      <DemoDashboard openChat={sp.chat === "1"} />
+      <DemoDashboard openChat={sp.chat === "1"} tour={typeof sp.tour === "string" ? sp.tour : undefined} />
     </>
   );
 }

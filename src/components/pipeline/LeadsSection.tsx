@@ -272,7 +272,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
           </div>
         ) : (
           <ul className="divide-y divide-line">
-            {rows.map((l) => (
+            {rows.map((l, i) => (
               <li key={l.id} className="grid grid-cols-1 gap-2 py-3 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm">
@@ -310,7 +310,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  <button className={btn.ghost} onClick={() => setForm({ open: true, editing: l })}>Edit</button>
+                  <button className={btn.ghost} data-tour={i === 0 ? "lead-edit" : undefined} onClick={() => setForm({ open: true, editing: l })}>Edit</button>
                   {confirmDelete === l.id ? (
                     <>
                       <button className={btn.danger} onClick={() => remove(l)}>Delete?</button>

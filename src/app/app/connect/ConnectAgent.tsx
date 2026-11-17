@@ -161,7 +161,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
             </button>
           ))}
         </div>
-                {/* The Copy buttons sit in flow above their code blocks, not
+        {/* The Copy buttons sit in flow above their code blocks, not
             overlaid on them: the overlaid version covered the end of
             the snippet on narrow screens and covered prompt text in
             step 4, worse once the prompt block was scrolled. */}
@@ -195,7 +195,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
           scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
           dashboard and start using it with nothing else to do.
         </p>
-                <div className="mb-2 mt-3 flex justify-end">
+        <div className="mb-2 mt-3 flex justify-end">
           <button
             className={btn.ghost}
             onClick={() =>

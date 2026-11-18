@@ -443,7 +443,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         </div>
         <div className="h-[5px] w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100} aria-label="Reviewed so far">
           <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
-        </div>div>
+        </div>
         {/* The count in words, next to the bar, so every view reads the
           same numbers: the bar alone only carries a percentage (2 of
           266 rounds to 1%), and the swipe view used to be the only

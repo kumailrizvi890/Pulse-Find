@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Contact, ContactInput } from "@/lib/types";
 import { emptyContact } from "@/lib/types";
-import { addDays, todayISO } from "@/lib/metrics";
+import { addDays, contactResponseRate, todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
 import { dueBucket, isExternalUrl, sortContacts, type DueBucket } from "@/lib/pipeline";
@@ -67,6 +67,10 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
     () => contacts.filter((c) => dueBucket(c, today) === "overdue" || dueBucket(c, today) === "today").length,
     [contacts, today],
   );
+  // Same status-based definition as the dashboard's Response Rate: a
+  // contact counts as responded once their status moved forward (accepted,
+  // replied, moved to a later stage), not only when they wrote back.
+  const responseRate = useMemo() => contactResponseRate(contacts), [contacts]);
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? sorted.filter((c) => `${c.person_name} ${c.company} ${c.status} ${c.next_step} ${c.notes}`.toLowerCase().includes(q)) : sorted;
@@ -130,6 +134,11 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
             People you&apos;re building real connections with, and the next step you owe each of them.
             {dueCount > 0 && <> <b className="text-danger">{dueCount} step{dueCount === 1 ? " is" : "s are"} due or overdue.</b></>}
           </p>
+          {state === "ready" && contacts.length > 0 && (
+            <p className="mt-1 text-sm text-muted">
+              {responseRate.responded} of {responseRate.total} responded · {Math.round(responseRate.rate * 100)}% response rate
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <input

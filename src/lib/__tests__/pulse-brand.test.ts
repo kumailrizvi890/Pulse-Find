@@ -191,13 +191,14 @@ describe("pulse brand placements", () => {
     expect(home).toContain("No sign-up needed for the demo or the job board.");
   });
 
-  it("scrolls Connect your agent to the MCP section instead of leaving the page", () => {
+  it("sends Connect your agent to the demo Connect instructions instead of a dead self-link", () => {
     const home = read("app/page.tsx");
-    // The button used to link to /app/connect, which sends a signed-out
-    // visitor to the login page. It now scrolls to the MCP section at the
-    // bottom of this same page, so a visitor can read how the agent
-    // connects before signing up.
-    expect(home).toContain('<Link href="#mcp" className={primary}>Connect your agent</Link>');
+    // The button used to link to /app/connect (signed-out visitors hit
+    // the login page), then to #mcp — but it sits inside the #mcp
+    // section itself, so that link went nowhere at all. It now goes to
+    // the demo Connect page, where a visitor can read the four steps
+        // and copy the token and agent prompt without signing in.
+    expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
     expect(home).toContain('<section id="mcp" className="border-t border-line bg-surface">');
     expect(home).toContain("Let your own AI agent keep it current");
     expect(home).toContain("MCP server");

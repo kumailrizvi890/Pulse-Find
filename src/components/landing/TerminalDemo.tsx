@@ -16,9 +16,9 @@ const LINES: { symbol: string; symbolTone: "dim" | "plain" | "good" | "bad"; tex
   { symbol: "", symbolTone: "plain", text: "" },
   { symbol: ">", symbolTone: "plain", text: " Scan my email from the last week and update Pulse Find." },
   { symbol: "", symbolTone: "plain", text: "" },
-  { symbol: "✓", symbolTone: "good", text: " Roblox · OA received · due Nov 11" },
-  { symbol: "✓", symbolTone: "good", text: " Ramp · new application" },
-  { symbol: "!", symbolTone: "bad", text: ' "Global Corp" · likely a fake job offer, nothing added' },
+  { symbol: "✓", symbolTone: "good", text: " Northwind Labs · OA received · due Nov 11" },
+  { symbol: "✓", symbolTone: "good", text: " Atlas Robotics · new application" },
+  { symbol: "!", symbolTone: "bad", text: ' "Meridian Retail" · likely a fake job offer, nothing added' },
 ];
 
 const SYMBOL_CLASS = {

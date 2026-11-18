@@ -213,7 +213,7 @@ export default async function Home() {
                 Your agent reads your email and updates the tracker. Pulse Find never sees your inbox.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="#mcp" className={primary}>Connect your agent</Link>
+                <Link href="/demo/connect" className={primary}>Connect your agent</Link>
                 <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it</Link>
               </div>
             </Reveal>

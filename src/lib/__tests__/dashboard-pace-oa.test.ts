@@ -222,9 +222,16 @@ describe("OA and Interview sections", () => {
 });
 
 describe("stats row", () => {
-  it("shows the interview-stage count with an OA sub-line", () => {
-    expect(overview).toContain('<OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${oaList.length} OAs`} />');
-    expect(overview).not.toContain("`${sum.oas} assessments`");
+  it("shows the interview-stage count with an active-interview sub-line", () => {
+    // Dashboard-numbers fix (Nov 18, 2026): the old sub showed an OA
+    // count under Interviews, which was a copy error. The sub is now
+    // the active-interview count — interview-stage applications that
+    // have not finished (Rejected / Withdrawn / Accepted). Demo: 5 of 6.
+    expect(overview).toContain(
+      '<OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${activeInterviews} active`} />',
+    );
+    expect(overview).not.toContain("`${oaList.length} OAs`");
+    expect(overview).toContain("activeInterviews");
   });
 });
 

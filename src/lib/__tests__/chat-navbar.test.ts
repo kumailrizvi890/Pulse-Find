@@ -20,7 +20,11 @@ const panel = readFileSync(join(root, "components", "dashboard", "TaskChatPanel.
 
 describe("demo navbar Ask Pulse entry", () => {
   it("links to the demo dashboard with the chat trigger", () => {
-    expect(demoNav).toContain('href="/demo?chat=1"');
+    // The link carries the running tour step along when one is present:
+    // a plain ?chat=1 link dropped tour=chat on the tour's chat step
+    // and stranded the tour. With no tour running it is still the
+    // plain ?chat=1 link it always was.
+    expect(demoNav).toContain('href={tour ? `/demo?tour=${tour}&chat=1` : "/demo?chat=1"}');
     expect(demoNav).toContain("Ask Pulse");
   });
 

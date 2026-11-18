@@ -1,0 +1,44 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const srcRoot = join(__dirname, "..", "..");
+const read = (p: string) => readFileSync(join(srcRoot, p), "utf8");
+
+const home = read("app/page.tsx");
+
+// The landing navbar carries a red "Connect" button (Kumail, Nov 18, 5:02am):
+// strangers should reach the Connect Agent instructions from the navbar
+// itself, not only from the hero or the MCP section further down the page.
+describe("landing navbar Connect button", () => {
+    it("shows a Connect button in the top bar that goes to /demo/connect", () => {
+        const topBar = home.slice(home.indexOf("<TopBar"), home.indexOf("<main>"));
+        expect(topBar).toContain('<Link href="/demo/connect" className={navButton}>Connect</Link>');
+    });
+
+    it("styles the button with the red accent treatment, sized for the top bar", () => {
+        expect(home).toContain("bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink");
+        expect(home).toContain("const navButton =");
+    });
+
+    it("keeps the existing navbar links and their order", () => {
+        const topBar = home.slice(home.indexOf("<TopBar"), home.indexOf("<main>"));
+        for (const href of ['href="/jobs"', 'href="/demo"', 'href="/login"']) {
+            expect(topBar).toContain(href);
+        }
+        expect(topBar).toContain("<GitHubLink />");
+        // The button is the last item, after Sign in, so it reads as the CTA.
+        expect(topBar.indexOf('href="/login"')).toBeLessThan(topBar.indexOf('href="/demo/connect"'));
+    });
+
+    it("hides the GitHub link below the sm breakpoint so the row fits on phones", () => {
+        const topBar = home.slice(home.indexOf("<TopBar"), home.indexOf("<main>"));
+        expect(topBar).toContain('<span className="hidden sm:inline">');
+        expect(topBar).toContain("<GitHubLink />");
+    });
+
+    it("does not change the MCP section button, which already points at /demo/connect", () => {
+        expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
+    });
+});
+

@@ -9,14 +9,22 @@ import { PulseDot } from "@/components/PulseBrand";
 // "Ask Pulse" links to the demo dashboard with ?chat=1, which opens the
 // general chat (see DemoDashboard / Dashboard): the chat answers from the
 // whole sample tracker, so a demo visitor can try it from any demo page
-// without opening a task first.
-export function DemoNav() {
+// without opening a task first. When a tour is running, the tour step
+// rides along (?tour=<step>&chat=1): the plain ?chat=1 link used to drop
+// it, and the chat-clear in DemoDashboard then replaced the URL with
+// plain /demo, stranding the tour with no coach and no ring. The clear
+// already preserves tour; this link is the half that was missing.
+export function DemoNav({ tour }: { tour?: string }) {
   return (
     <>
       <TopBar
         right={
           <>
-            <Link href="/demo?chat=1" className={navLink} aria-label="Ask Pulse about the demo tracker">
+            <Link
+              href={tour ? `/demo?tour=${tour}&chat=1` : "/demo?chat=1"}
+              className={navLink}
+              aria-label="Ask Pulse about the demo tracker"
+            >
               <span className="flex items-center gap-1.5">
                 <PulseDot />
                 Ask Pulse

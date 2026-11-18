@@ -197,7 +197,7 @@ describe("pulse brand placements", () => {
     // the login page), then to #mcp — but it sits inside the #mcp
     // section itself, so that link went nowhere at all. It now goes to
     // the demo Connect page, where a visitor can read the four steps
-        // and copy the token and agent prompt without signing in.
+// and copy the token and agent prompt without signing in.
     expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
     expect(home).toContain('<section id="mcp" className="border-t border-line bg-surface">');
     expect(home).toContain("Let your own AI agent keep it current");

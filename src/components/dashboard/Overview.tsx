@@ -215,6 +215,14 @@ export function Overview({
     [interviewList],
   );
 
+  // Active OAs for the OAs panel hint, mirroring the Interviews stat
+  // card's "5 active": assessments received that have not finished. On
+  // the demo data that is 5 of the 6, Saltmarsh Security being the
+  // finished one. The count itself stays cumulative by design.
+  const activeOAs = useMemo(
+    () => oaList.filter((a) => a.status !== "Rejected" && a.status !== "Withdrawn" && a.status !== "Accepted").length,
+    [oaList],
+    );
   const hired = useMemo(() => apps.filter((a) => a.status === "Accepted").length, [apps]);
   const funnelSteps: (FunnelStep & { color?: string })[] = [
     { label: "Applied", value: steps[0]?.value ?? sum.total, color: "#f66367" },
@@ -520,7 +528,7 @@ export function Overview({
         </Panel>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Panel title="OAs" hint={`${oaList.length} with an assessment`}>
+        <Panel title="OAs" hint={`${oaList.length} with an assessment · ${activeOAs} active`}>
           {oaList.length === 0 ? (
             <p className="text-sm text-muted">No assessments yet. When a company sends one, it shows up here.</p>
           ) : (

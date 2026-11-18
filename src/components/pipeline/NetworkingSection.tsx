@@ -70,7 +70,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   // Same status-based definition as the dashboard's Response Rate: a
   // contact counts as responded once their status moved forward (accepted,
   // replied, moved to a later stage), not only when they wrote back.
-  const responseRate = useMemo() => contactResponseRate(contacts), [contacts]);
+  const responseRate = useMemo(() => contactResponseRate(contacts), [contacts]);
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? sorted.filter((c) => `${c.person_name} ${c.company} ${c.status} ${c.next_step} ${c.notes}`.toLowerCase().includes(q)) : sorted;

@@ -81,6 +81,8 @@ describe("blank-step contacts in task chat", () => {
     next_step: "",
     next_step_on: TODAY,
     notes: "",
+    linkedin_url: "",
+    last_contacted: null,
   };
   const undatedBlank: Contact = {
     id: "c-undated",
@@ -90,6 +92,8 @@ describe("blank-step contacts in task chat", () => {
     next_step: "",
     next_step_on: null,
     notes: "",
+    linkedin_url: "",
+    last_contacted: null,
   };
 
   it("names a dated blank-step contact with the Follow up fallback", () => {

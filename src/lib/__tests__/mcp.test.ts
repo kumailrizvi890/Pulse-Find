@@ -56,7 +56,7 @@ function memoryStore(seed: Partial<AppRow>[] = []): Store & {
     async listContacts() { return contacts.map((c) => ({ ...c })); },
     async insertContact(f) {
       const c: ContactRow = {
-        id: `contact-${++n}`, person_name: "", company: "", status: "", next_step: "", next_step_on: null, notes: "",
+        id: `contact-${++n}`, person_name: "", company: "", status: "", next_step: "", next_step_on: null, notes: "", linkedin_url: "", last_contacted: null,
         ...(f as Partial<ContactRow>),
       };
       contacts.push(c);

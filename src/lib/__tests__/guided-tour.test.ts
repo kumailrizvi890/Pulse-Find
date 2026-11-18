@@ -47,9 +47,9 @@ describe("tour steps (Pulse-guided quest)", () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual([
       "dashboard",
       "sheet",
+      "leads",
       "find-jobs",
       "jobs",
-      "leads",
       "networking",
       "chat",
       "connect",
@@ -164,12 +164,13 @@ describe("tour steps (Pulse-guided quest)", () => {
 
   it("builds step URLs from route + tour param, starting at the dashboard", () => {
     expect(tourHref(TOUR_STEPS[1])).toBe("/demo/sheet?tour=sheet");
-    expect(tourHref(TOUR_STEPS[2])).toBe("/jobs?tour=find-jobs");
+    expect(tourHref(TOUR_STEPS[2])).toBe("/demo/leads?tour=leads");
+    expect(tourHref(TOUR_STEPS[3])).toBe("/jobs?tour=find-jobs");
     expect(tourHref(TOUR_STEPS[6])).toBe("/demo?tour=chat");
     expect(tourStartHref()).toBe("/demo?tour=dashboard");
   });
 
-  it("knows which routes are demo routes (sample data may be written there)", () => {
+  it("knows which routes are demo routes (written there)", () => {
     expect(isDemoPath("/demo")).toBe(true);
     expect(isDemoPath("/demo/sheet")).toBe(true);
     expect(isDemoPath("/demo/leads")).toBe(true);
@@ -587,15 +588,15 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
     expect(demo).toEqual([
       "opened a waiting task",
       "filtered the sheet by stage",
+      "opened a lead",
       "searched fresh roles",
       "saved a job to your leads",
-      "opened a lead",
       "opened a due contact",
       "asked Pulse what is due next",
       "copied the agent prompt",
     ]);
     const signedIn = tourRecapLines(all, true);
-    expect(signedIn[3]).toBe("peeked at a posting");
+    expect(signedIn[4]).toBe("peeked at a posting");
     expect(tourRecapLines(["networking", "dashboard"], false)).toEqual([
       "opened a waiting task",
       "opened a due contact",

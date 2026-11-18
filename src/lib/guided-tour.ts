@@ -93,7 +93,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "dashboard",
     title: "Dashboard",
-    line: "this is home and the tour follows the tabs up top. tap open on a waiting task and see what it needs",
+    line: "this is home. tap Open on the first waiting task at the top of the waiting on you panel",
     done: "nice, that's the list that matters most",
     completion: "waiting-open",
     route: "/demo",
@@ -102,7 +102,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "sheet",
     title: "Sheet",
-    line: "this is your tracker as a sheet. pick a stage in the status dropdown and watch the rows narrow",
+    line: "tap the Status dropdown in the toolbar above the sheet, then pick any stage and watch the rows narrow",
     done: "see how fast that narrows it down",
     completion: "sheet-filter",
     route: "/demo/sheet",
@@ -111,7 +111,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "find-jobs",
     title: "Find jobs",
-    line: "fresh roles land here every few hours. type a company or a role in the search and see what shows up",
+    line: "type a company or a role in the search box at the top of the jobs page and see what shows up",
     done: "there they are, all fresh from the career pages",
     completion: "jobs-search",
     route: "/jobs",
@@ -120,9 +120,9 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "jobs",
     title: "Jobs board",
-    line: "this is the board. tap save on a card you like and it lands in your leads",
+    line: "tap the green check button under the card to save the top job, it lands in your leads",
     done: "saved, it's waiting in your leads whenever you want it",
-    lineAlt: "this is the board. tap a posting to peek at the role",
+    lineAlt: "tap View posting on the top card to peek at the role",
     doneAlt: "that's the one, the posting opens right from the card",
     completion: "jobs-save",
     route: "/jobs",
@@ -132,7 +132,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "leads",
     title: "Leads",
-    line: "these are roles you found but haven't applied to yet. tap edit on one to see everything you know about it",
+    line: "tap Edit on the first lead row to see everything you know about that role",
     done: "that's the whole lead, fit note and all",
     completion: "lead-edit",
     route: "/demo/leads",
@@ -141,7 +141,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "networking",
     title: "Networking",
-    line: "everyone you know at a company lives here. tap edit on someone due to see what you owe them",
+    line: "tap Edit on the first contact row to see what you owe them and when",
     done: "that's their whole story, next step and all",
     completion: "contact-edit",
     route: "/demo/networking",
@@ -150,7 +150,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "chat",
     title: "Ask Pulse",
-    line: "i can answer from your tracker and i never guess. tap ask pulse up top and ask me what's due next",
+    line: "tap Ask Pulse in the top bar and ask what is due next, i never guess",
     done: "see, that's straight from your tracker",
     completion: "chat-ask",
     route: "/demo",
@@ -159,13 +159,106 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "connect",
     title: "Connect",
-    line: "this is how claude, cursor or copilot plug in. tap copy on the setup steps and the prompt is ready to paste",
+    line: "tap Copy full prompt under step 4 to plug claude, cursor or copilot in",
     done: "and that's the whole tour. start with one application and one saved job then ask me what's due next. replay anytime from take the tour in the demo nav",
     completion: "connect-copy",
     route: "/demo/connect",
     anchor: "connect-copy",
   },
 ];
+
+/** Rewards, guidance-first: a small chip earned only by doing the real
+    action on its step, never by tapping through. There is no Next
+    button to game, and no full-screen achievement wall: earned chips
+    sit quietly in the coach, the ring around the crystal fills as
+    steps complete, and the last step shows a short recap of what the
+    visitor just did. The names come from the Nov 17 02:56 design
+    (Explorer, Inbox Zero, Networker); the mapping is: Explorer for
+    searching fresh roles, Inbox Zero for opening the first waiting
+    task, Networker for opening a due contact. */
+export type TourBadgeId = "explorer" | "inbox-zero" | "networker";
+
+export interface TourBadge {
+  id: TourBadgeId;
+  name: string;
+  /** The step whose real action earns it. */
+  earnedBy: TourStepId;
+  /** One short line for the recap. */
+  blurb: string;
+}
+
+export const TOUR_BADGES: TourBadge[] = [
+  { id: "inbox-zero", name: "Inbox Zero", earnedBy: "dashboard", blurb: "opened a waiting task" },
+  { id: "explorer", name: "Explorer", earnedBy: "find-jobs", blurb: "searched fresh roles" },
+  { id: "networker", name: "Networker", earnedBy: "networking", blurb: "opened a due contact" },
+];
+
+/** The badge a step earns, if any. */
+export function badgeForStep(stepId: TourStepId): TourBadge | undefined {
+  return TOUR_BADGES.find((b) => b.earnedBy === stepId);
+}
+
+/** What the tour remembers across visits, so a replay shows what was
+    earned. Stored as JSON in localStorage under TOUR_PROGRESS_KEY,
+    next to the session dismissed flag. Only step completions and
+    badges earned by real actions are ever written here. */
+export const TOUR_PROGRESS_KEY = "pulsefind-tour-progress";
+
+export interface TourProgress {
+  steps: TourStepId[];
+  badges: TourBadgeId[];
+}
+
+export function emptyTourProgress(): TourProgress {
+  return { steps: [], badges: [] };
+}
+
+/** The progress after a step's real action lands: the step is added
+    once, and its badge too when it earns one. Pure, so tests can pin
+    the one-badge-per-step rule without a browser. */
+export function progressAfterCompletion(progress: TourProgress, stepId: TourStepId): TourProgress {
+  const steps = progress.steps.includes(stepId) ? progress.steps : [...progress.steps, stepId];
+  const badge = badgeForStep(stepId);
+  const badges =
+    badge && !progress.badges.includes(badge.id) ? [...progress.badges, badge.id] : progress.badges;
+  return { steps, badges };
+}
+
+/** Fraction of the tour done (0 to 1), for the ring around the crystal. */
+export function tourProgressFraction(progress: TourProgress): number {
+  return progress.steps.length / TOUR_STEPS.length;
+}
+
+/** The progress ring is an SVG circle of this radius around the
+    crystal. The dash values are strings with two decimals, so the
+    host can set them straight onto the circle. */
+export const TOUR_RING_RADIUS = 26;
+
+export function tourRingDash(fraction: number): { dasharray: string; dashoffset: string } {
+  const circumference = 2 * Math.PI * TOUR_RING_RADIUS;
+  const clamped = Math.max(0, Math.min(1, fraction));
+  return {
+    dasharray: circumference.toFixed(2),
+    dashoffset: (circumference * (1 - clamped)).toFixed(2),
+  };
+}
+
+/** One short line per completed step, in tour order, for the recap on
+    the last step. The jobs line follows the mode: a signed-in visitor
+    peeks at a posting instead of saving a real job. */
+export function tourRecapLines(completed: TourStepId[], signedIn: boolean): string[] {
+  const lines: Record<TourStepId, string> = {
+    dashboard: "opened a waiting task",
+    sheet: "filtered the sheet by stage",
+    "find-jobs": "searched fresh roles",
+    jobs: signedIn ? "peeked at a posting" : "saved a job to your leads",
+    leads: "opened a lead",
+    networking: "opened a due contact",
+    chat: "asked Pulse what is due next",
+    connect: "copied the agent prompt",
+  };
+  return TOUR_STEPS.filter((s) => completed.includes(s.id)).map((s) => lines[s.id]);
+}
 
 /** True for the demo routes, where sample data may be written by a
     tour action (save a demo job, edit a demo cell). Everywhere else the

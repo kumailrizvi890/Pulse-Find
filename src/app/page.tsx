@@ -24,6 +24,10 @@ const secondary =
 // row) and sit in a row on wider screens.
 const heroPrimary = `${primary} w-full justify-center sm:w-auto`;
 const heroSecondary = `${secondary} w-full justify-center sm:w-auto`;
+// Compact red button for the landing navbar: same accent treatment as the
+// page CTAs, sized for the top bar so it reads as a button, not a plain link.
+const navButton =
+  "ml-1 inline-flex items-center justify-center rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-panel transition hover:brightness-110";
 
 export const revalidate = 3600; // keep the sample dates in the hero current
 
@@ -97,9 +101,12 @@ export default async function Home() {
           <>
             <Link href="/jobs" className={navLink}>Jobs</Link>
             <Link href="/demo" className={navLink}>Demo</Link>
-            <GitHubLink />
+            <span className="hidden sm:inline">
+              <GitHubLink />
+            </span>
             <Link href="/login" className={navLink}>Sign in</Link>
-          </>
+            <Link href="/demo/connect" className={navButton}>Connect</Link>
+            </>
         }
       />
       <main>

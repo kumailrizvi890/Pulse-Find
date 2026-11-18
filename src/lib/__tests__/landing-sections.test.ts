@@ -212,8 +212,8 @@ describe("MCP terminal (typed, not a static block)", () => {
 
   it("types the same transcript as the old static block, with a replay button", () => {
     expect(terminal).toContain("claude mcp add --transport http pulse-find");
-    expect(terminal).toContain("Roblox · OA received · due Nov 11");
-    expect(terminal).toContain("Ramp · new application");
+    expect(terminal).toContain("Northwind Labs · OA received · due Nov 11");
+    expect(terminal).toContain("Atlas Robotics · new application");
     expect(terminal).toContain("likely a fake job offer, nothing added");
     expect(terminal).toContain('aria-label="Replay the terminal demo"');
     expect(terminal).toContain("landing-caret");

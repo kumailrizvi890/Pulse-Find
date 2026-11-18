@@ -36,6 +36,8 @@ export interface TaskChatContext {
   today: ISODate;
   /** App origin, used for links back into the tracker. */
   origin: string;
+    /** Where the tracker itself lives: /app when signed in, /demo otherwise. */
+    trackerPath: "/app" | "/demo";
 }
 
 export const DEFAULT_APP_ORIGIN = "https://pulsefind-app.vercel.app";
@@ -70,7 +72,7 @@ function duePhrase(app: Application, today: ISODate): string {
 }
 
 function trackerLink(ctx: TaskChatContext): ChatLink {
-  return { label: "Open your tracker", href: `${ctx.origin.replace(/\/+$/, "")}/app` };
+  return { label: "Open your tracker", href: `${ctx.origin.replace(/\/+$/, "")}${ctx.trackerPath}` };
 }
 
 function postingLink(ctx: TaskChatContext): ChatLink | null {

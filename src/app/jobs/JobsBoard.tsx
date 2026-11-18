@@ -331,13 +331,19 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     setView("swipe");
   }
 
-  /** Opens the details panel for the front card; on phones it scrolls into view, on desktop it is already beside the deck. */
-  function openDetails() {
-    setDetailsOpen(true);
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-      requestAnimationFrame(() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  /** Opens the details panel for the front card and scrolls it into view.
+     * On phones the panel is hidden until this opens it; on desktop it is
+     * already beside the deck, so the scroll is the visible response — the
+     * old mobile-only gate left the button a no-op on desktop. */
+    function openDetails() {
+      setDetailsOpen(true);
+    if (typeof window !== "undefined") {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() =>
+    detailsRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }),
+    );
     }
-  }
+    }
 
   function changeView(v: "swipe" | "list" | "saved") {
     setView(v);
@@ -353,8 +359,14 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const moreAvailable = total !== null && jobs.length < total;
   // Reviewed counts every decision made, not just the ones on the loaded
   // page, and the percentage is against the whole feed (total), so
-  // reviewed + left to review = total.
+  // reviewed + left to review = total. The "left" number below is the
+    // same derivation, not the loaded page's arithmetic: the old line
+    // subtracted the marks on the loaded page from the total, so a mark
+    // on a job outside the loaded page (another filter, a later page, a
+    // stale id) made the swipe line and the progress bar disagree — the
+    // swipe view said 2 reviewed while the other views' numbers read 1.
   const reviewed = Object.keys(marks).length;
+    const leftToReview = total === null ? null : Math.max(0, total - reviewed);
   const progressPct = total === null ? 0 : Math.min(100, Math.round((reviewed / total) * 100));
 
   // keep the deck stocked: fetch the next page when only a few cards are left
@@ -431,7 +443,16 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         </div>
         <div className="h-[5px] w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100} aria-label="Reviewed so far">
           <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
-        </div>
+        </div>div>
+        {/* The count in words, next to the bar, so every view reads the
+          same numbers: the bar alone only carries a percentage (2 of
+          266 rounds to 1%), and the swipe view used to be the only
+          place the count appeared at all. */}
+          {total !== null && (
+          <p className="font-mono text-[11px] text-faint">
+            {reviewed} reviewed · {leftToReview} left of {total}
+          </p>
+        )}
       </div>
 
       {!supabase ? (
@@ -453,7 +474,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
               are jobs left to review. */}
             <p className="mb-3 flex items-center justify-center gap-2 text-center font-mono text-xs text-faint">
               {queue.length ? <PulseDot /> : null}
-              {queue.length ? <><b className="text-accent">{moreAvailable ? (total ?? 0) - (jobs.length - queue.length) : queue.length}</b> left to review</> : " "}
+              {queue.length ? <><b className="text-accent">{leftToReview ?? queue.length}</b> left to review</> : " "}
             </p>
             <SwipeDeck
               queue={queue}

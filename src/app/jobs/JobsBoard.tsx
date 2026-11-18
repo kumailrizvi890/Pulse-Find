@@ -13,7 +13,8 @@ import { TRACKS, type Application, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
 import { IconX } from "@/components/icons";
 import { PulseDot } from "@/components/PulseBrand";
-import { SwipeDeck } from "./SwipeDeck";
+import { JobDetails } from "./JobDetails";
+import { initials, SwipeDeck } from "./SwipeDeck";
 
 type Job = JobPick;
 type TrackFilter = "Internship" | "New Grad" | "all";
@@ -46,7 +47,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [marks, setMarks] = useState<Record<string, Mark>>({});
   const [saved, setSaved] = useState<Record<string, Job>>({});
   const [history, setHistory] = useState<{ job: Job; prev: Mark | undefined }[]>([]);
-  const [view, setView] = useState<"swipe" | "list">("swipe");
+  const [view, setView] = useState<"swipe" | "list" | "saved">("swipe");
   const [meta, setMeta] = useState<{ companies: number; refreshed: string | null }>({ companies: 0, refreshed: null });
   const [leadKeys, setLeadKeys] = useState<ReadonlySet<string>>(new Set());
   // which of these jobs are already in the user's tracker (company + role)
@@ -56,6 +57,12 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const applying = useRef(new Set<string>());
   const trackedKeys = useMemo(() => new Set(trackedApps.map((a) => leadKey(a))), [trackedApps]);
   const { toast, toastNode } = useToast();
+  // The list row a visitor tapped to jump back to in the deck.
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  // Details panel: always synced to the front card on desktop; on phones
+  // it stays hidden until the deck's Details button opens it.
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsRef = useRef<HTMLElement | null>(null);
 
   // which of these jobs are already in the user's leads pipeline
   useEffect(() => {
@@ -84,12 +91,12 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     return () => { alive = false; };
   }, [supabase, userId]);
 
-  /** Saves a board job into the user's leads pipeline (their decision list — never an application). */
-  async function saveLead(job: Job) {
+  /** Saves a board job into the user's leads pipeline (their decision list — never an application). Silent when a save action already toasts its own word. */
+  async function saveLead(job: Job, silent = false) {
     if (!supabase || !userId) return;
     const key = leadKey({ company: job.company, role: job.title });
     if (leadKeys.has(key)) {
-      toast(`${job.company} is already in your leads`);
+      if (!silent) toast(`${job.company} is already in your leads`);
       return;
     }
     try {
@@ -106,9 +113,9 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         date_found: todayISO(),
       });
       setLeadKeys((prev) => new Set(prev).add(key));
-      toast(`Saved ${job.company} to your Leads`);
+      if (!silent) toast(`Saved ${job.company} to your Leads`);
     } catch {
-      toast("Couldn't save that lead. Try again.", "error");
+      if (!silent) toast("Couldn't save that lead. Try again.", "error");
     }
   }
 
@@ -258,6 +265,10 @@ export function JobsBoard({ userId }: { userId: string | null }) {
 
   async function mark(job: Job, next: Mark) {
     if (await setMark(job, next)) {
+      // A save is a shortlist, and a shortlist belongs in leads without
+      // a second manual step (the demo path lands there through the
+      // local picks the demo leads page reads).
+      if (next === "saved") await saveLead(job, true);
       if (next !== "applied") toast(next === "saved" ? "Saved" : "Hidden");
     }
   }
@@ -265,7 +276,9 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   async function swipe(job: Job, choice: "saved" | "hidden") {
     const prev = marks[job.id];
     if (await setMark(job, choice)) {
+      if (choice === "saved") await saveLead(job, true);
       setHistory((h) => [...h.slice(-30), { job, prev }]);
+      setPinnedId((p) => (p === job.id ? null : p));
       toast(choice === "saved" ? "Saved" : "Hidden");
     }
   }
@@ -283,14 +296,63 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     if (await setMark(job, null)) toast("Removed");
   }
 
-  function changeView(v: "swipe" | "list") {
+  /** Re-reviews the passed jobs in this view: clears the hidden marks, keeps saves.
+   * One batched update, not a setMark loop: each setMark rebuilds from the
+   * marks captured at render time, so a loop would re-hide the jobs the
+   * earlier calls had just cleared. */
+  async function reviewAgain() {
+    const hidden = jobs.filter((j) => marks[j.id] === "hidden");
+    const nextMarks = { ...marks };
+    for (const j of hidden) delete nextMarks[j.id];
+    if (userId && supabase && hidden.length) {
+      const results = await Promise.all(
+        hidden.map((j) => supabase.from("saved_jobs").delete().eq("user_id", userId).eq("job_id", j.id)),
+      );
+      if (results.some((r) => r.error)) {
+        toast("Couldn't reset that. Try again.", "error");
+        return;
+      }
+    } else if (!userId) {
+      writeJobPicks(nextMarks, saved);
+    }
+    setMarks(nextMarks);
+    setHistory([]);
+    setPinnedId(null);
+    toast("Back to the start");
+  }
+
+  /** A list or saved row jumps to that job in the deck (saved rows open the Saved tab instead). */
+  function jumpToJob(job: Job) {
+    if (marks[job.id] === "saved") {
+      setView("saved");
+      return;
+    }
+    setPinnedId(job.id);
+    setView("swipe");
+  }
+
+  /** Opens the details panel for the front card; on phones it scrolls into view, on desktop it is already beside the deck. */
+  function openDetails() {
+    setDetailsOpen(true);
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      requestAnimationFrame(() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+  }
+
+  function changeView(v: "swipe" | "list" | "saved") {
     setView(v);
     try { localStorage.setItem("pf_jobs_view", v); } catch {}
   }
 
-  const queue = jobs.filter((j) => !marks[j.id]);
+  const baseQueue = jobs.filter((j) => !marks[j.id]);
+  const queue = pinnedId
+    ? [...baseQueue.filter((j) => j.id === pinnedId), ...baseQueue.filter((j) => j.id !== pinnedId)]
+    : baseQueue;
+  const topJob = queue[0] ?? null;
   const savedList = Object.values(saved).filter((j) => marks[j.id] === "saved");
   const moreAvailable = total !== null && jobs.length < total;
+  const reviewed = jobs.filter((j) => marks[j.id]).length;
+  const progressPct = reviewed + queue.length ? Math.round((reviewed / (reviewed + queue.length)) * 100) : 0;
 
   // keep the deck stocked: fetch the next page when only a few cards are left
   useEffect(() => {
@@ -351,14 +413,21 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         </div>
         <div className="flex items-center gap-3 sm:ml-auto">
           <p className="tnum font-mono text-xs text-faint">{total === null ? "…" : `${total.toLocaleString()} open`}</p>
-          <div className="flex rounded-full border border-line p-0.5" role="tablist" aria-label="View">
-            {(["swipe", "list"] as const).map((v) => (
-              <button key={v} role="tab" aria-selected={view === v} onClick={() => changeView(v)}
-                className={cx("rounded-full px-3 py-1 text-xs font-semibold transition", view === v ? "bg-accent text-accent-ink" : "text-muted hover:text-ink")}>
-                {v === "swipe" ? "Swipe" : "List"}
-              </button>
-            ))}
-          </div>
+        </div>
+      </div>
+
+      {/* Swipe / List / Saved tabs, centred on the deck column. */}
+      <div className="mx-auto flex w-full max-w-[430px] flex-col items-center gap-2">
+        <div className="flex w-full rounded-full border border-line p-0.5" role="tablist" aria-label="View">
+          {(["swipe", "list", "saved"] as const).map((v) => (
+            <button key={v} role="tab" aria-selected={view === v} onClick={() => changeView(v)}
+              className={cx("flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition", view === v ? "bg-accent text-accent-ink" : "text-muted hover:text-ink")}>
+              {v === "swipe" ? "Swipe" : v === "list" ? "List" : `Saved (${savedList.length})`}
+            </button>
+          ))}
+        </div>
+        <div className="h-[5px] w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100} aria-label="Reviewed so far">
+          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
         </div>
       </div>
 
@@ -374,7 +443,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           {Array.from({ length: 6 }, (_, i) => <li key={i} className="h-[74px] animate-pulse rounded-xl border border-line bg-surface" />)}
         </ul>
       ) : view === "swipe" ? (
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" data-tour="jobs">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,430px)_minmax(0,336px)] lg:justify-center" data-tour="jobs">
           <div>
             {/* The pulsing dot is the same live-status mark as the
               "Waiting on you" panel header: it only shows while there
@@ -390,52 +459,61 @@ export function JobsBoard({ userId }: { userId: string | null }) {
               onUndo={undo}
               canUndo={history.length > 0}
               emptyText={jobs.length ? "You've reviewed everything that matches. Change a filter for more." : "No openings match. Try turning off a filter."}
+              onDetails={openDetails}
+              onReviewAgain={reviewAgain}
+              canReviewAgain={reviewed > 0}
             />
           </div>
-          <section className="rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5">
-            <div className="mb-3 flex items-start justify-between gap-2">
-              <div>
-                <h2 className="font-display text-[15px] font-bold tracking-tight">Saved, ready to apply</h2>
-                <p className="mt-0.5 text-xs text-muted">
-                  Swipe right to add roles here. {userId ? "Mark one applied and it goes straight into your tracker." : "Saved in this browser only."}
-                </p>
-              </div>
-              {/* The saved count wears the same glowing badge as the
-                notification counts elsewhere (pf-badge): a dark pill,
-                accent count, red glow. No bell here — the count alone
-                is the parallel. */}
-              {savedList.length > 0 && <span className="pf-badge">{savedList.length} saved</span>}
+          {topJob && (
+            <section ref={detailsRef} className={cx("rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5", !detailsOpen && "hidden lg:block")}>
+              <JobDetails job={topJob} onClose={() => setDetailsOpen(false)} />
+            </section>
+          )}
+        </div>
+      ) : view === "saved" ? (
+        <div className="mx-auto flex w-full max-w-[430px] flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="font-display text-[15px] font-bold tracking-tight">Saved, ready to apply</h2>
+              <p className="mt-0.5 text-xs text-muted">
+                Swipe right to add roles here. {userId ? "Mark one applied and it goes straight into your tracker." : "Saved in this browser only."}
+              </p>
             </div>
-            {!userId && (
-              <Link href="/login?mode=signup&next=/jobs" className={cx(btn.secondary, "mb-3 w-full")}>Sign up to keep your picks and track applications</Link>
-            )}
-            {savedList.length === 0 ? (
-              <p className="py-6 text-center text-sm text-faint">Nothing saved yet.</p>
-            ) : (
-              <ul className="max-h-[420px] divide-y divide-line overflow-y-auto">
-                {savedList.map((j) => (
-                  <li key={j.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{j.title}</p>
-                      <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
-                      {userId && <button className={btn.ghost} onClick={() => saveLead(j)}>Lead</button>}
-                      {userId && (trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
-                        <Tag tone="muted">In tracker</Tag>
-                      ) : (
-                        <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>
-                      ))}
-                      <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>
+            {savedList.length > 0 && <span className="pf-badge">{savedList.length} saved</span>}
+          </div>
+          {!userId && (
+            <Link href="/login?mode=signup&next=/jobs" className={cx(btn.secondary, "w-full")}>Sign up to keep your picks and track applications</Link>
+          )}
+          {savedList.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">Nothing saved yet. Swipe right on a role to keep it here.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {savedList.map((j) => (
+                <li key={j.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3" onClick={(e) => { if (!(e.target as HTMLElement).closest("a,button")) jumpToJob(j); }}>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-sm font-bold text-accent" aria-hidden="true">
+                    {initials(j.company)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{j.title}</p>
+                    <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {j.url ? (
+                      <a href={j.url} target="_blank" rel="noopener noreferrer" className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink transition hover:opacity-90">View posting ↗</a>
+                    ) : null}
+                    {userId && (trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
+                      <Tag tone="muted">In tracker</Tag>
+                    ) : (
+                      <button className={btn.ghost} onClick={() => mark(j, "applied")}>Applied</button>
+                    ))}
+                    <button className={btn.ghost} aria-label={`Remove ${j.title}`} onClick={() => removeSaved(j)}>
                       <IconX className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ) : visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted">No openings match. Try turning off a filter.</p>
@@ -444,9 +522,13 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           {visible.map((j) => {
             const m = marks[j.id];
             return (
-              <li key={j.id} className="grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <li key={j.id} className="grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" onClick={(e) => { if (!(e.target as HTMLElement).closest("a,button")) jumpToJob(j); }}>
                 <div className="min-w-0">
-                  <a href={j.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-accent">{j.title}</a>
+                  {j.url ? (
+                    <a href={j.url} target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-accent">{j.title}</a>
+                  ) : (
+                    <span className="font-semibold">{j.title}</span>
+                  )}
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
                     <span className="font-medium text-ink">{j.company}</span>
                     {j.location && <span className="truncate">· {j.location}</span>}
@@ -455,7 +537,9 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
+                  {j.url ? (
+                    <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
+                  ) : null}
                   {userId ? (
                     m === "applied" || trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
                       <Tag tone="muted">In tracker</Tag>

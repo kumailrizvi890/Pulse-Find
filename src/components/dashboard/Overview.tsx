@@ -15,6 +15,7 @@ import {
   daysBetween,
   followUp,
   hasOA,
+  hasResponded,
   monthly,
   parseISO,
   reachedInterview,
@@ -24,7 +25,7 @@ import {
   type FunnelStep,
   type Summary,
 } from "@/lib/metrics";
-import type { Application, Contact } from "@/lib/types";
+import type { Application, Contact, ISODate } from "@/lib/types";
 import { Funnel, WeeklyBars, WeeklyPace, type PaceDay } from "./Charts";
 import { Panel, StatusPill, Tag, btn, cx, fmtDate } from "./ui";
 import { NotifyBell, PulseDot, PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
@@ -212,11 +213,23 @@ export function Overview({
     { label: "Hired", value: hired, color: "#4e874f" },
   ];
 
+  // Avg Response and the Response Rate card read the same status-based
+  // definition (hasResponded): the replies count IS the responded count,
+  // so "10 replies" sits next to a 45% rate instead of the old date rule's
+  // "11 replies". The average still measures applied-to-last-contact days,
+  // over the responded rows that have both dates; it is null when none do.
   const response = useMemo(() => {
-    const responded = apps.filter((a) => a.last_contact && a.date_applied && a.last_contact > a.date_applied);
+    const responded = apps.filter(hasResponded);
     if (responded.length === 0) return null;
-    const days = responded.map((a) => a.date_applied && a.last_contact ? daysBetween(a.date_applied, a.last_contact) : 0);
-    return { average: days.reduce((s, d) => s + d, 0) / days.length, count: responded.length };
+    const dated = responded.filter(
+      (a): a is Application & { date_applied: ISODate; last_contact: ISODate } =>
+        Boolean(a.date_applied && a.last_contact),
+    );
+    const days = dated.map((a) => daysBetween(a.date_applied, a.last_contact));
+    return {
+      average: days.length ? days.reduce((s, d) => s + d, 0) / days.length : null,
+      count: responded.length,
+    };
   }, [apps]);
 
   const pipeline = useMemo(
@@ -561,7 +574,7 @@ export function Overview({
         <OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${oaList.length} OAs`} />
         <OverviewStat
           label="Avg Response"
-          value={response ? `${response.average.toFixed(1)}d` : "—"}
+          value={response && response.average !== null ? `${response.average.toFixed(1)}d` : "—"}
           sub={response ? `${response.count} replies` : "No replies yet"}
         />
         <OverviewStat

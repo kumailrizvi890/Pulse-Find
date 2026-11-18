@@ -206,7 +206,7 @@ describe("MCP terminal (typed, not a static block)", () => {
     expect(home).toContain('id="mcp"');
     expect(home).toContain("<TerminalDemo />");
     expect(home).toContain("Your agent reads your email and updates the tracker. Pulse Find never sees your inbox.");
-    expect(home).toContain('href="#mcp"');
+    expect(home).toContain('href="/demo/connect"');
     expect(home).toContain("SELF_HOST.md");
   });
 

@@ -128,7 +128,9 @@ describe("general chat greeting", () => {
     expect(g.text).toContain("Soonest: Northwind Labs, Finish the HackerRank");
     expect(g.text).toContain("Nov 20");
     expect(g.text).toContain("in 5 days");
-    expect(g.links).toEqual([{ label: "Open your tracker", href: "https://pulsefind-app.vercel.app/demo" }]);
+    // No tracker link on the greeting: the first answer already carries
+    // one, and the two together showed the same pill twice in a row.
+    expect(g.links ?? []).toEqual([]);
     expect(g.text).not.toContain("—");
   });
 
@@ -137,9 +139,14 @@ describe("general chat greeting", () => {
     expect(g.text).toContain("Nothing is waiting on you right now");
   });
 
-  it("links to /app when signed in", () => {
+  it("links answers to /app when signed in, not the greeting", () => {
+    // The greeting carries no tracker link any more (it duplicated the
+    // first answer's pill); the signed-in /app routing still lives on
+    // the answers.
     const g = generalChatGreeting(ctx({ trackerPath: "/app" }));
-    expect(g.links?.[0].href).toBe("https://pulsefind-app.vercel.app/app");
+    expect(g.links ?? []).toEqual([]);
+    const a = answerGeneralQuestion("what is waiting on me?", ctx({ trackerPath: "/app" }));
+    expect(a.links?.[0].href).toBe("https://pulsefind-app.vercel.app/app");    
   });
 });
 

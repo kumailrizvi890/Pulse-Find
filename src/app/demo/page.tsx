@@ -8,7 +8,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   return (
     <>
-      <DemoNav />
+      <DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefined} />
       <DemoDashboard openChat={sp.chat === "1"} tour={typeof sp.tour === "string" ? sp.tour : undefined} />
     </>
   );

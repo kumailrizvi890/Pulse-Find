@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Application, Contact, ContactInput, ISODate, Lead, LeadInput } from "./types";
+import { TRACKS } from "./types";
+import type { Application, Contact, ContactInput, ISODate, Lead, LeadInput, Track } from "./types";
+import { readJobPicks, removeJobPick } from "./job-picks";
 import { addDays, daysBetween, parseISO, todayISO } from "./metrics";
 
 /**
@@ -106,9 +108,46 @@ export function demoContacts(today: ISODate): Contact[] {
   ];
 }
 
+/** Lead ids for jobs saved on the board carry this prefix, so removing one can forget the pick too. */
+const PICK_LEAD_PREFIX = "demo-pick-";
+
+/**
+ * Saved board jobs become demo leads, so the tour's promise holds: a job
+ * saved on Find jobs is waiting in /demo/leads. Reads the same
+ * localStorage key the jobs board writes; in Node (tests, prerender)
+ * there is no storage, so this is just the six seed leads. Picks land
+ * after the seeds so the first row — and the tour's lead-edit anchor —
+ * stays the seeded Westfield Labs lead. A pick that duplicates a seed
+ * lead (same company + role) is skipped, never shown twice.
+ */
+function pickLeads(today: ISODate, seedKeys: ReadonlySet<string>): Lead[] {
+  const { marks, saved } = readJobPicks();
+  return Object.values(saved)
+    .filter(
+      (job) =>
+        marks[job.id] === "saved" &&
+        job.company.trim() &&
+        !seedKeys.has(leadKey({ company: job.company, role: job.title })),
+    )
+    .map((job) => ({
+      id: `${PICK_LEAD_PREFIX}${job.id}`,
+      company: job.company,
+      role: job.title,
+      track: (TRACKS as readonly string[]).includes(job.track) ? (job.track as Track) : "Other",
+      location: job.location,
+      pay: "",
+      url: job.url,
+      source: "Job board",
+      status: "New" as const,
+      fit_note: "Saved from Find jobs",
+      date_found: today,
+    }));
+}
+
 /** In-memory pipeline store for /demo. Nothing leaves the browser tab. */
 export function demoPipelineStore(today: ISODate = todayISO()): PipelineStore {
-  let leads = demoLeads(today);
+  const seeds = demoLeads(today);
+  let leads = [...seeds, ...pickLeads(today, new Set(seeds.map(leadKey)))];
   let contacts = demoContacts(today);
   return {
     kind: "demo",
@@ -125,7 +164,12 @@ export function demoPipelineStore(today: ISODate = todayISO()): PipelineStore {
       leads = leads.map((l) => (l.id === id ? next : l));
       return next;
     },
-    async removeLead(id) { leads = leads.filter((l) => l.id !== id); },
+    async removeLead(id) {
+      leads = leads.filter((l) => l.id !== id);
+      // A saved pick deleted here must not resurrect on the next visit:
+      // the jobs board re-reads the same key, so forget the pick there too.
+      if (id.startsWith(PICK_LEAD_PREFIX)) removeJobPick(id.slice(PICK_LEAD_PREFIX.length));
+    },
     async loadContacts() { return [...contacts]; },
     async createContact(input) {
       const c = { ...input, id: uid() };

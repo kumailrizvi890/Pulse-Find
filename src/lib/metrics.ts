@@ -1,4 +1,4 @@
-import type { Application, ISODate, Status } from "./types";
+import type { Application, Contact, ISODate, Status } from "./types";
 
 // ---------- dates ----------
 
@@ -61,6 +61,64 @@ export const reachedOA = (a: Application) => a.oa_received || OA_STAGE.includes(
 /** An application that actually received an assessment — the tracker's "OA". Unlike reachedOA, this does not fold interview-stage applications in, so the OA count on the dashboard matches the tracker's OA Received column. */
 export const hasOA = (a: Application) => a.oa_received || OA_STAGE.includes(a.status);
 export const hasAction = (a: Application) => a.action_needed.trim().length > 0;
+/**
+ * Response rate, one definition everywhere. An application counts as
+ * responded once its status moved forward from the starting state — any
+ * later stage (OA, interview, offer, rejection, withdrawal) means the
+ * company engaged, even when no written reply arrived. A later
+ * last-contact date alone does not count: Sable Studio in the demo was
+ * contacted 12 days after applying while still sitting at Applied, and
+ * the old date rule counted it as a reply while the rate did not, so the
+ * dashboard showed "11 replies" next to a 45% rate (10 of 22). The
+ * dashboard's rate, its replies count, and the Networking page all read
+ * these helpers, so they cannot drift apart again.
+ */
+export const hasResponded = (a: Application) => a.status !== "Applied" && a.status !== "Incomplete";
+
+/** { responded, total, rate } for applications, from hasResponded. */
+export function applicationResponseRate(apps: Application[]): { responded: number; total: number; rate: number } {
+  const responded = apps.filter(hasResponded).length;
+  return { responded, total: apps.length, rate: apps.length ? responded / apps.length : 0 };
+}
+
+/**
+ * The same "any forward movement counts" rule for networking contacts. A
+ * contact's status is free text in the shape "Stage — detail", so the
+ * leading stage decides: "Connected — replied Nov 9" moved forward, while
+ * "Messaged — awaiting reply" only records the outreach itself. The detail
+ * after the dash is never read, so "awaiting reply" can never count as a
+ * reply. A status that names no forward movement (Requested, Messaged,
+ * blank, anything unrecognised) never counts, so the rate never overstates.
+ */
+const CONTACT_PENDING = [
+  "awaiting reply", "waiting for reply", "waiting to hear",
+  "no reply", "not replied", "no response", "hasn't replied", "haven't replied",
+  "no answer", "ghosted", "unanswered", "pending",
+];
+// Outreach-only stages, matched at the start of the head so they cannot
+// swallow a forward stage that mentions them ("Accepted my request"
+// starts with "accepted", not "request"; "Replied to my message" does
+// not start with "messag").
+const CONTACT_PENDING_START = ["request", "messag", "sent"];
+const CONTACT_FORWARD = [
+  "connect", "accept", "repli", "respond", "met", "talk", "spoke",
+  "call", "chat", "refer", "introduc", "interview", "coffee", "thank",
+  "in touch", "caught up",
+];
+
+export function contactResponded(c: Pick<Contact, "status">): boolean {
+  const head = c.status.split(/[—\-:]/)[0]?.trim().toLowerCase() ?? "";
+  if (!head) return false;
+  if (CONTACT_PENDING.some((p) => head.includes(p))) return false;
+  if (CONTACT_PENDING_START.some((p) => head.startsWith(p))) return false;
+  return CONTACT_FORWARD.some((m) => head.includes(m));
+}
+
+/** { responded, total, rate } for contacts, from contactResponded. */
+export function contactResponseRate(contacts: Contact[]): { responded: number; total: number; rate: number } {
+  const responded = contacts.filter(contactResponded).length;
+  return { responded, total: contacts.length, rate: contacts.length ? responded / contacts.length : 0 };
+}
 
 // ---------- summaries ----------
 
@@ -80,7 +138,7 @@ export interface Summary {
 
 export function summarize(apps: Application[], today: ISODate, ghostDays: number): Summary {
   const wk = weekStart(today);
-  const responded = apps.filter((a) => a.status !== "Applied" && a.status !== "Incomplete").length;
+  const responded = apps.filter(hasResponded).length;
   return {
     total: apps.length,
     thisWeek: apps.filter((a) => a.date_applied && a.date_applied >= wk && a.date_applied <= today).length,

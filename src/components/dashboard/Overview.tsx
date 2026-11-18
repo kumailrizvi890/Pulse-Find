@@ -204,6 +204,17 @@ export function Overview({
     [apps, today, ghostDays],
   );
 
+    // Active interviews for the stats row: interview-stage applications
+  // that have not finished (Rejected, Withdrawn, or Accepted) — the same
+  // "finished" predicate the Interviews panel uses per row. On the demo
+  // data that is 5 of the 6, Kestrel Fintech being the finished one.
+  const activeInterviews = useMemo(
+    () =>
+      interviewList.filter((a) => a.status !== "Rejected" && a.status !== "Withdrawn" && a.status !== "Accepted")
+        .length,
+    [interviewList],
+  );
+
   const hired = useMemo(() => apps.filter((a) => a.status === "Accepted").length, [apps]);
   const funnelSteps: (FunnelStep & { color?: string })[] = [
     { label: "Applied", value: steps[0]?.value ?? sum.total, color: "#f66367" },
@@ -342,10 +353,13 @@ export function Overview({
         </Panel>
         <Panel
           title="Application Funnel"
-          hint={`Week of ${fmtDate(monday)} – ${fmtDate(addDays(monday, 6), true)}`}
+          hint="All time"
           className="lg:col-span-6"
         >
           <Funnel steps={funnelSteps} />
+          <p className="mt-3 text-xs text-muted">
+            Each step counts every application that reached it, including ones that moved past it.
+          </p>
           <div className="mt-5 border-t border-line pt-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-sm font-semibold">Pace</h3>
@@ -512,7 +526,7 @@ export function Overview({
           ) : (
             <>
               <ul className="divide-y divide-line">
-                {oaList.slice(0, 5).map((a) => (
+                {oaList.slice(0, 6).map((a) => (
                   <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
                     <button onClick={() => onOpen(a)} className="block w-full text-left">
                       <span className="flex flex-wrap items-center gap-2 text-sm">
@@ -524,8 +538,8 @@ export function Overview({
                   </li>
                 ))}
               </ul>
-              {oaList.length > 5 && (
-                <p className="mt-3 text-xs text-muted">And {oaList.length - 5} more in the list below.</p>
+              {oaList.length > 6 && (
+                <p className="mt-3 text-xs text-muted">And {oaList.length - 6} more in the list below.</p>
               )}
             </>
           )}
@@ -571,7 +585,7 @@ export function Overview({
           sub={sum.thisWeek > 0 ? `+${sum.thisWeek} this week` : undefined}
           good={sum.thisWeek > 0}
         />
-        <OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${oaList.length} OAs`} />
+        <OverviewStat label="Interviews" value={`${sum.interviews}`} sub={`${activeInterviews} active`} />
         <OverviewStat
           label="Avg Response"
           value={response && response.average !== null ? `${response.average.toFixed(1)}d` : "—"}

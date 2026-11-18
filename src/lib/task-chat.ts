@@ -87,7 +87,10 @@ export function taskChatGreeting(ctx: TaskChatContext): ChatMessage {
     lines.push(`Nothing is waiting on you for this one right now. Status is ${app.status}.`);
   }
   lines.push("Ask me anything about it, like what is due or where the link is.");
-  const links = [postingLink(ctx), trackerLink(ctx)].filter((l): l is ChatLink => l !== null);
+  // No tracker link here: every answer already carries one, so the
+  // greeting plus the first answer showed the same "Open your tracker"
+  // pill twice in a row. The posting link stays — it belongs to this task.
+  const links = [postingLink(ctx)].filter((l): l is ChatLink => l !== null);
   return { id: "greeting", role: "assistant", text: lines.join(" "), links };
 }
 
@@ -346,7 +349,10 @@ export function generalChatGreeting(ctx: GeneralChatContext): ChatMessage {
     );
   }
   lines.push("Ask me what is waiting, what is due next, who went quiet, or how your week is going.");
-  return { id: "greeting", role: "assistant", text: lines.join(" "), links: [generalTrackerLink(ctx)] };
+  // No tracker link here, for the same reason as the task greeting: the
+  // first answer already carries one, and the greeting plus that answer
+  // showed the same pill twice in a row.
+  return { id: "greeting", role: "assistant", text: lines.join(" ") };
 }
 
 function answerGeneralWaiting(ctx: GeneralChatContext): ChatMessage {

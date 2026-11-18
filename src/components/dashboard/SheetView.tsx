@@ -204,7 +204,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
             aria-label="Filter the sheet"
           />
           <button
-            className={cx("rounded-lg border px-3 py-1.5 font-mono text-xs transition", onlyActions ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", onlyActions ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
             aria-pressed={onlyActions}
             onClick={() => setOnlyActions((v) => !v)}
           >

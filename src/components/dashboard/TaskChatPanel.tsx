@@ -195,8 +195,9 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
       contacts,
       today,
       origin,
+            trackerPath: userId ? "/app" : "/demo",
     };
-  }, [application, events, contacts, today, origin]);
+  }, [application, events, contacts, today, origin, userId]);
 
   const generalCtx: GeneralChatContext | null = useMemo(() => {
     if (!general) return null;

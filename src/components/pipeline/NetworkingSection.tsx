@@ -149,7 +149,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search people"
           />
-          <button className={btn.primary} onClick={() => setForm({ open: true, editing: null })}>+ Add person</button>
+          <button className={cx(btn.primary, "whitespace-nowrap")} onClick={() => setForm({ open: true, editing: null })}>+ Add person</button>
         </div>
       </div>
 

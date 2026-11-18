@@ -72,7 +72,7 @@ export function Bento({ steps }: { steps: FunnelStep[] }) {
                 <PulseDot className="shrink-0" />
                 <span className="truncate">Authorization: Bearer pf_…</span>
               </span>
-              <span className="text-good">✓ Roblox · OA received</span>
+              <span className="text-good">✓ Northwind Labs · OA received</span>
               <span className="text-muted">Agent connected · MCP</span>
             </div>
             <h3 className="font-display text-lg font-bold">Your agent keeps it current</h3>

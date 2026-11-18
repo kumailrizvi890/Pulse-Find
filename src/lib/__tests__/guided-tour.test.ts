@@ -170,7 +170,7 @@ describe("tour steps (Pulse-guided quest)", () => {
     expect(tourStartHref()).toBe("/demo?tour=dashboard");
   });
 
-  it("knows which routes are demo routes (written there)", () => {
+  it("knows which routes are demo routes (sample data may be written there)", () => {
     expect(isDemoPath("/demo")).toBe(true);
     expect(isDemoPath("/demo/sheet")).toBe(true);
     expect(isDemoPath("/demo/leads")).toBe(true);

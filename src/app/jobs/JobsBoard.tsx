@@ -351,8 +351,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const topJob = queue[0] ?? null;
   const savedList = Object.values(saved).filter((j) => marks[j.id] === "saved");
   const moreAvailable = total !== null && jobs.length < total;
-  const reviewed = jobs.filter((j) => marks[j.id]).length;
-  const progressPct = reviewed + queue.length ? Math.round((reviewed / (reviewed + queue.length)) * 100) : 0;
+  // Reviewed counts every decision made, not just the ones on the loaded
+  // page, and the percentage is against the whole feed (total), so
+  // reviewed + left to review = total.
+  const reviewed = Object.keys(marks).length;
+  const progressPct = total === null ? 0 : Math.min(100, Math.round((reviewed / total) * 100));
 
   // keep the deck stocked: fetch the next page when only a few cards are left
   useEffect(() => {

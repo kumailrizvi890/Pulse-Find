@@ -77,6 +77,8 @@ const CONTACTS: Contact[] = [
     next_step: "Ask about the intern project",
     next_step_on: "2026-11-18",
     notes: "",
+    linkedin_url: "",
+    last_contacted: null,
   },
   {
     id: "c2",
@@ -86,6 +88,8 @@ const CONTACTS: Contact[] = [
     next_step: "Thank her for the referral",
     next_step_on: "2026-11-14",
     notes: "",
+    linkedin_url: "",
+    last_contacted: null,
   },
 ];
 
@@ -202,6 +206,8 @@ describe("answerGeneralQuestion", () => {
       next_step: "",
       next_step_on: TODAY,
       notes: "",
+      linkedin_url: "",
+      last_contacted: null,
     };
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [blank] }));
     expect(a.text).toContain("1 follow-up due");
@@ -219,6 +225,8 @@ describe("answerGeneralQuestion", () => {
       next_step: "Send the intro",
       next_step_on: TODAY,
       notes: "",
+      linkedin_url: "",
+      last_contacted: null,
     };
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [due] }));
     expect(a.text).toContain("1 follow-up due");
@@ -235,6 +243,8 @@ describe("answerGeneralQuestion", () => {
       next_step: "Chase the referral",
       next_step_on: "2026-11-14",
       notes: "",
+      linkedin_url: "",
+      last_contacted: null,
     };
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts: [overdue] }));
     expect(a.text).toContain("1 follow-up due");
@@ -247,9 +257,9 @@ describe("answerGeneralQuestion", () => {
     // every due line carries the "Follow up" fallback instead of an
     // empty step, whatever the contact data holds.
     const contacts: Contact[] = [
-      { id: "c-blank", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "" },
-      { id: "c-space", person_name: "Spacey Sue", company: "Globex", status: "Connected", next_step: "   ", next_step_on: "2026-11-14", notes: "" },
-      { id: "c-due", person_name: "Due Dan", company: "Globex", status: "Connected", next_step: "Send the intro", next_step_on: TODAY, notes: "" },
+      { id: "c-blank", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-space", person_name: "Spacey Sue", company: "Globex", status: "Connected", next_step: "   ", next_step_on: "2026-11-14", notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-due", person_name: "Due Dan", company: "Globex", status: "Connected", next_step: "Send the intro", next_step_on: TODAY, notes: "", linkedin_url: "", last_contacted: null },
     ];
     const a = answerGeneralQuestion("who do I need to follow up with", ctx({ contacts }));
     expect(a.text).toContain("3 follow-ups due");
@@ -263,11 +273,11 @@ describe("answerGeneralQuestion", () => {
 
   it("counts due follow-ups the same way dueBucket does", () => {
     const contacts: Contact[] = [
-      { id: "c-1", person_name: "Overdue Olive", company: "Globex", status: "Connected", next_step: "Ping her", next_step_on: "2026-11-13", notes: "" },
-      { id: "c-2", person_name: "Today Tom", company: "Globex", status: "Connected", next_step: "Call him", next_step_on: TODAY, notes: "" },
-      { id: "c-3", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "" },
-      { id: "c-4", person_name: "Future Fay", company: "Globex", status: "Connected", next_step: "Meet up", next_step_on: "2026-11-20", notes: "" },
-      { id: "c-5", person_name: "No Date Ned", company: "Globex", status: "Connected", next_step: "Email him", next_step_on: null, notes: "" },
+      { id: "c-1", person_name: "Overdue Olive", company: "Globex", status: "Connected", next_step: "Ping her", next_step_on: "2026-11-13", notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-2", person_name: "Today Tom", company: "Globex", status: "Connected", next_step: "Call him", next_step_on: TODAY, notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-3", person_name: "Blank Ben", company: "Globex", status: "Connected", next_step: "", next_step_on: TODAY, notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-4", person_name: "Future Fay", company: "Globex", status: "Connected", next_step: "Meet up", next_step_on: "2026-11-20", notes: "", linkedin_url: "", last_contacted: null },
+      { id: "c-5", person_name: "No Date Ned", company: "Globex", status: "Connected", next_step: "Email him", next_step_on: null, notes: "", linkedin_url: "", last_contacted: null },
     ];
     const expected = contacts.filter((c) => {
       const b = dueBucket(c, TODAY);
@@ -292,9 +302,9 @@ describe("answerGeneralQuestion", () => {
     // applications; "networking follow-ups" fell through to "I do not
     // know") must both name the two due contacts.
     const demoContacts: Contact[] = [
-      { id: "d1", person_name: "Priya Nair", company: "Copperline", status: "Connected", next_step: "Week 2 value touch", next_step_on: "2026-11-16", notes: "" },
-      { id: "d2", person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged", next_step: "Follow up if no reply", next_step_on: "2026-11-14", notes: "" },
-      { id: "d3", person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", next_step_on: null, notes: "" },
+      { id: "d1", person_name: "Priya Nair", company: "Copperline", status: "Connected", next_step: "Week 2 value touch", next_step_on: "2026-11-16", notes: "", linkedin_url: "", last_contacted: null },
+      { id: "d2", person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged", next_step: "Follow up if no reply", next_step_on: "2026-11-14", notes: "", linkedin_url: "", last_contacted: null },
+      { id: "d3", person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", next_step_on: null, notes: "", linkedin_url: "", last_contacted: null },
     ];
     const demoCtx = ctx({ contacts: demoContacts, today: "2026-11-16" });
     for (const q of [

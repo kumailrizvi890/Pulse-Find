@@ -130,7 +130,12 @@ export function DemoConnectAgent() {
             {snippetCopied ? "Copied" : "Copy"}
           </button>
         </div>
-        <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
+        {/* The Claude Code command is one long line; the JSON snippets
+        are already multi-line. Wrapping here (like the step-4 prompt
+        block) keeps the whole command readable at once instead of
+        behind a horizontal scrollbar. Copy still takes the exact
+        snippet string, not the wrapped rendering. */}
+        <pre className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
         <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
       </Panel>
 

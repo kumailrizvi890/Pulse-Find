@@ -2,16 +2,27 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  TOUR_BADGES,
+  TOUR_PROGRESS_KEY,
+  TOUR_RING_RADIUS,
   TOUR_DISMISSED_KEY,
   TOUR_STEPS,
+  badgeForStep,
+  emptyTourProgress,
   isDemoPath,
   nextTourStep,
   parseTourStep,
   placeTourCard,
   prevTourStep,
+  progressAfterCompletion,
   tourHref,
+  tourProgressFraction,
+  tourRecapLines,
+  tourRingDash,
   tourStartHref,
+  type TourBadgeId,
   type TourCompletion,
+  type TourProgress,
   type TourStepId,
 } from "@/lib/guided-tour";
 import { answerGeneralQuestion, DEFAULT_APP_ORIGIN, type GeneralChatContext } from "@/lib/task-chat";
@@ -122,10 +133,10 @@ describe("tour steps (Pulse-guided quest)", () => {
 
   it("gives the jobs step a signed-in variant: preview, never save a real job", () => {
     const jobs = TOUR_STEPS.find((s) => s.id === "jobs")!;
-    expect(jobs.lineAlt).toBe("this is the board. tap a posting to peek at the role");
+    expect(jobs.lineAlt).toBe("tap View posting on the top card to peek at the role");
     expect(jobs.doneAlt).toBe("that's the one, the posting opens right from the card");
     expect(jobs.anchorAlt).toBe("job-posting");
-    expect(jobs.line).toContain("tap save on a card");
+    expect(jobs.line).toContain("tap the green check button under the card");
     // No other step needs a mode variant.
     for (const step of TOUR_STEPS) {
       if (step.id === "jobs") continue;
@@ -173,20 +184,20 @@ describe("tour steps (Pulse-guided quest)", () => {
 describe("the tour teaches one real action per stop", () => {
   const byId = (id: TourStepId) => TOUR_STEPS.find((s) => s.id === id)!;
 
-  it("orients on the nav tabs in step 1", () => {
-    expect(byId("dashboard").line).toContain("tabs up top");
+  it("orients on home in step 1", () => {
+    expect(byId("dashboard").line).toContain("this is home");
   });
 
   it("names the one action to try in every line", () => {
-    expect(byId("dashboard").line).toContain("tap open on a waiting task");
-    expect(byId("sheet").line).toContain("status dropdown");
-    expect(byId("find-jobs").line).toContain("type a company or a role in the search");
-    expect(byId("jobs").line).toContain("tap save on a card");
-    expect(byId("leads").line).toContain("tap edit on one");
-    expect(byId("networking").line).toContain("tap edit on someone due");
-    expect(byId("chat").line).toContain("tap ask pulse up top");
+    expect(byId("dashboard").line).toContain("tap Open on the first waiting task");
+    expect(byId("sheet").line).toContain("Status dropdown in the toolbar above the sheet");
+    expect(byId("find-jobs").line).toContain("type a company or a role in the search box at the top of the jobs page");
+    expect(byId("jobs").line).toContain("tap the green check button under the card");
+    expect(byId("leads").line).toContain("tap Edit on the first lead row");
+    expect(byId("networking").line).toContain("tap Edit on the first contact row");
+    expect(byId("chat").line).toContain("tap Ask Pulse in the top bar");
     expect(byId("chat").line).toContain("i never guess");
-    expect(byId("connect").line).toContain("tap copy");
+    expect(byId("connect").line).toContain("tap Copy full prompt under step 4");
     expect(byId("connect").line).toContain("claude, cursor or copilot");
   });
 
@@ -423,8 +434,8 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     // (9999px still appears as border-radius on fully-rounded pills,
     // which is unrelated.)
     expect(css).not.toContain("0 0 0 9999px");
-    expect(css).toContain("border: 2px solid var(--accent)");
-    expect(css).toContain(".tour-ring { transition: none; }");
+    expect(css).toContain("border: 3px solid var(--accent)");
+    expect(css).toContain(".tour-ring { transition: none; animation: none; }");
   });
 
   it("moves the coach beside the anchor instead of parking it bottom-right", () => {
@@ -514,6 +525,176 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     expect(layout).toContain("GuidedTour");
     expect(layout).toContain("<Suspense fallback={null}>");
     expect(layout).toContain("<GuidedTour />");
+  });
+});
+
+describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", () => {
+  it("has exactly the three badges from the Nov 17 design, one per key step", () => {
+    expect(TOUR_BADGES.map((b) => b.id)).toEqual(["inbox-zero", "explorer", "networker"]);
+    expect(TOUR_BADGES.map((b) => b.name)).toEqual(["Inbox Zero", "Explorer", "Networker"]);
+    const earnedBy: Record<TourBadgeId, TourStepId> = {
+      "inbox-zero": "dashboard",
+      explorer: "find-jobs",
+      networker: "networking",
+    };
+    for (const badge of TOUR_BADGES) {
+      expect(badge.earnedBy).toBe(earnedBy[badge.id]);
+      expect(badge.blurb.length).toBeGreaterThan(0);
+      expect(badge.blurb).not.toContain("—");
+    }
+    // No other step earns a badge.
+    for (const step of TOUR_STEPS) {
+      if (step.id === "dashboard" || step.id === "find-jobs" || step.id === "networking") continue;
+      expect(badgeForStep(step.id)).toBeUndefined();
+    }
+    expect(badgeForStep("dashboard")?.id).toBe("inbox-zero");
+    expect(badgeForStep("find-jobs")?.id).toBe("explorer");
+    expect(badgeForStep("networking")?.id).toBe("networker");
+  });
+
+  it("records a step once and its badge once, and never duplicates on replay", () => {
+    const empty = emptyTourProgress();
+    expect(empty).toEqual({ steps: [], badges: [] });
+    const afterDashboard = progressAfterCompletion(empty, "dashboard");
+    expect(afterDashboard).toEqual({ steps: ["dashboard"], badges: ["inbox-zero"] });
+    const again = progressAfterCompletion(afterDashboard, "dashboard");
+    expect(again).toEqual({ steps: ["dashboard"], badges: ["inbox-zero"] });
+    const noBadge = progressAfterCompletion(afterDashboard, "sheet");
+    expect(noBadge).toEqual({ steps: ["dashboard", "sheet"], badges: ["inbox-zero"] });
+    let all: TourProgress = emptyTourProgress();
+    for (const step of TOUR_STEPS) all = progressAfterCompletion(all, step.id);
+    expect(all.steps).toHaveLength(8);
+    expect(all.badges).toEqual(["inbox-zero", "explorer", "networker"]);
+    expect(tourProgressFraction(all)).toBe(1);
+    expect(tourProgressFraction(empty)).toBe(0);
+    expect(tourProgressFraction({ steps: ["dashboard", "sheet"], badges: ["inbox-zero"] })).toBe(0.25);
+  });
+
+  it("sizes the progress ring from the step fraction", () => {
+    const circumference = 2 * Math.PI * TOUR_RING_RADIUS;
+    expect(TOUR_RING_RADIUS).toBe(26);
+    expect(tourRingDash(0).dasharray).toBe(circumference.toFixed(2));
+    expect(tourRingDash(0).dashoffset).toBe(circumference.toFixed(2));
+    expect(tourRingDash(1).dashoffset).toBe("0.00");
+    expect(tourRingDash(0.5).dashoffset).toBe((circumference * 0.5).toFixed(2));
+    expect(tourRingDash(2).dashoffset).toBe("0.00");
+    expect(tourRingDash(-1).dashoffset).toBe(circumference.toFixed(2));
+  });
+
+  it("recaps what was done, in tour order, with the signed-in jobs variant", () => {
+    const all = TOUR_STEPS.map((s) => s.id);
+    const demo = tourRecapLines(all, false);
+    expect(demo).toEqual([
+      "opened a waiting task",
+      "filtered the sheet by stage",
+      "searched fresh roles",
+      "saved a job to your leads",
+      "opened a lead",
+      "opened a due contact",
+      "asked Pulse what is due next",
+      "copied the agent prompt",
+    ]);
+    const signedIn = tourRecapLines(all, true);
+    expect(signedIn[3]).toBe("peeked at a posting");
+    expect(tourRecapLines(["networking", "dashboard"], false)).toEqual([
+      "opened a waiting task",
+      "opened a due contact",
+    ]);
+    for (const line of demo) {
+      expect(line).not.toContain("—");
+      expect(line[0]).toBe(line[0].toLowerCase());
+    }
+  });
+
+  it("keeps the narration free of badge and achievement words (rewards live in chips, not copy)", () => {
+    const all = TOUR_STEPS.map((s) => `${s.line} ${s.done}`).join(" ");
+    expect(all).not.toContain("badge");
+    expect(all).not.toContain("achievement");
+    expect(all).not.toContain("trophy");
+    expect(all).not.toContain("congratulations");
+    expect(all).not.toContain("Mission");
+  });
+
+  it("persists progress in localStorage under its own key", () => {
+    expect(TOUR_PROGRESS_KEY).toBe("pulsefind-tour-progress");
+    expect(tourHost).toContain("TOUR_PROGRESS_KEY");
+    expect(tourHost).toContain("localStorage.getItem(TOUR_PROGRESS_KEY)");
+    expect(tourHost).toContain("localStorage.setItem(TOUR_PROGRESS_KEY");
+    expect(tourHost).toContain("progressAfterCompletion(progress, step.id)");
+    expect(tourHost).toContain("readTourProgress()");
+    expect(tourHost).toContain("writeTourProgress(next)");
+  });
+
+  it("renders the progress ring, the badge chips, the count, and the recap", () => {
+    expect(tourHost).toContain("tour-progress-ring");
+    expect(tourHost).toContain("tourProgressFraction(progress)");
+    expect(tourHost).toContain("tourRingDash(");
+    expect(tourHost).toContain("tour-badge");
+    expect(tourHost).toContain("tour-badge-pop");
+    expect(tourHost).toContain("Badges earned by doing the tour steps");
+    expect(tourHost).toContain("progress.steps.length}/{TOUR_STEPS.length}");
+    expect(tourHost).toContain("tourRecapLines(progress.steps, signedIn)");
+    expect(tourHost).toContain("you did all of it");
+    expect(tourHost).toContain("here is what you did");
+    expect(tourHost).toContain("badges: {earnedBadges");
+  });
+
+  it("makes the coach unmissable: halo, entrance, and an idle-pulsing ring", () => {
+    expect(tourHost).toContain("tour-crystal-halo");
+    expect(tourHost).toContain("tour-card-enter");
+    const css = read("app/globals.css");
+    expect(css).toContain("@keyframes tour-crystal-halo");
+    expect(css).toContain(".tour-crystal-halo {");
+    expect(css).toContain("@keyframes tour-card-enter");
+    expect(css).toContain(".tour-card-enter {");
+    expect(css).toContain("@keyframes tour-ring-idle");
+    expect(css).toContain("animation: tour-ring-idle 2s ease-in-out infinite;");
+    expect(css).toContain("@keyframes tour-badge-pop");
+    expect(css).toContain(".tour-badge {");
+    expect(css).toContain(".tour-progress-ring-track {");
+    expect(css).toContain(".tour-progress-ring-fill {");
+    // Reduced motion kills the new motion too.
+    expect(css).toContain(".tour-crystal-halo { animation: none; }");
+    expect(css).toContain(".tour-card-enter { animation: none; }");
+    expect(css).toContain(".tour-badge-pop { animation: none; }");
+    expect(css).toContain(".tour-ring { transition: none; animation: none; }");
+  });
+
+  it("scrolls the anchor into view once per step and tracks the ring by direct DOM writes", () => {
+    expect(tourHost).toContain("scrolledForRef");
+    expect(tourHost).toContain("scrollOnce(el)");
+    expect(tourHost).toContain('block: "center"');
+    expect(tourHost).toContain("ringRef");
+    expect(tourHost).toContain("applyRingRect");
+    expect(tourHost).toContain("ring.style.left =");
+    expect(tourHost).toContain("ring.style.top =");
+    expect(tourHost).toContain("SCROLL_SETTLE_MS");
+    // The ring no longer chases the anchor through a CSS transition:
+    // it snaps by direct DOM writes on every scroll frame.
+    const css = read("app/globals.css");
+    expect(css).not.toMatch(/\.tour-ring \{[^}]*transition:\s*left/);
+    expect(css).not.toMatch(/\.tour-ring \{[^}]*transition:\s*top/);
+  });
+
+  it("delegates every completion detector from the document, so a mid-step reload still completes", () => {
+    // The old shape attached listeners to elements found once on
+    // mount, so a reload left the step deaf until the visitor
+    // re-entered it through the dots. Delegation works for targets
+    // that render after the tour mounts.
+    expect(tourHost).toContain('on(document, "click", fn)');
+    expect(tourHost).toContain('on(document, "change", fn)');
+    expect(tourHost).toContain('on(document, "input", fn)');
+    expect(tourHost).toContain("within(e, '[data-tour=\"waiting\"]')");
+    expect(tourHost).toContain("within(e, '[data-tour=\"sheet\"]')");
+    expect(tourHost).toContain("within(e, '[data-tour=\"find-jobs\"]')");
+    expect(tourHost).toContain("within(e, '[data-tour=\"jobs\"]')");
+    expect(tourHost).toContain("within(e, '[data-tour=\"leads\"]')");
+    expect(tourHost).toContain("within(e, '[data-tour=\"networking\"]')");
+    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="waiting"]\')');
+    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="sheet"]\')');
+    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="find-jobs"]\')');
+    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="leads"]\')');
+    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="networking"]\')');
   });
 });
 

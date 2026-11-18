@@ -472,6 +472,7 @@ export function Overview({
                         <p className={cx("mt-1 text-xs", urgent ? "font-medium text-danger" : "text-muted")}>
                           {dueText}
                         </p>
+                        {c.notes && <p className="mt-1 truncate text-xs text-faint">{c.notes}</p>}
                         {userId && (
                           <Link href="/app/networking" className={cx(btn.ghost, "mt-2")}>
                             Open

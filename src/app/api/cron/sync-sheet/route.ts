@@ -7,6 +7,8 @@ import {
   TRACKER_BUCKET,
   TRACKER_NETWORKING_PATH,
   TRACKER_PATH,
+  claimSyncRun,
+  finishSyncRun,
   recordSyncRun,
   syncApplications,
   syncContacts,
@@ -51,7 +53,38 @@ export async function POST(request: Request) {
   let counts = { created: 0, updated: 0, skipped: 0, total: 0 };
   let trackerRows = 0;
   let dismissals = 0;
+  let duplicates = 0;
   let dismissalsSkipped = false;
+  /*
+   * Claim the run up front: the sync-trigger retries the route when its
+   * 55s timeout fires, and the first invocation is still running on
+   * Vercel for up to 60s, so the retry used to plan the same creates and
+   * insert duplicates. A fresh claim makes the retry exit early. If the
+   * claim cannot be written (for example the migration that allows the
+   * "running" status has not been applied yet), the run proceeds
+   * unclaimed and its run is recorded at the end, exactly as before.
+   */
+  let claimId: string | null = null;
+  try {
+    const claim = await claimSyncRun(supabase, owner, startedAt, source);
+    if (claim.alreadyRunning) {
+      return NextResponse.json({
+        ok: true,
+        alreadyRunning: true,
+        trackerRows: 0,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        total: 0,
+        dismissals: 0,
+        duplicates: 0,
+        dismissalsSkipped: false,
+      });
+    }
+    claimId = claim.id;
+  } catch {
+    claimId = null;
+  }
   try {
     const { data, error } = await supabase.storage.from(TRACKER_BUCKET).download(TRACKER_PATH);
     if (error || !data) {
@@ -84,7 +117,11 @@ export async function POST(request: Request) {
     } catch {
       dismissalsSkipped = true;
     }
-    const { writebacks, ...syncCounts } = await syncApplications(supabase, owner, parsed.rows, events);
+    const {
+      writebacks,
+      duplicates: duplicateRows,
+      ...syncCounts
+    } = await syncApplications(supabase, owner, parsed.rows, events);
     counts = syncCounts;
     dismissals = writebacks.length;
     /*
@@ -104,32 +141,66 @@ export async function POST(request: Request) {
     } catch (e) {
       contactsError = e instanceof Error ? e.message.slice(0, 500) : "Contacts sync failed";
     }
-    await recordSyncRun(supabase, {
-      user_id: owner,
-      started_at: startedAt,
-      finished_at: new Date().toISOString(),
-      status: "ok",
-      source,
+    duplicates = duplicateRows.length;
+    const finishedAt = new Date().toISOString();
+    if (claimId) {
+      await finishSyncRun(supabase, claimId, {
+        finished_at: finishedAt,
+        status: "ok",
+        ...counts,
+        error: null,
+      });
+    } else {
+      await recordSyncRun(supabase, {
+        user_id: owner,
+        started_at: startedAt,
+        finished_at: finishedAt,
+        status: "ok",
+        source,
+        ...counts,
+        error: null,
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      trackerRows,
       ...counts,
-      error: null,
+      dismissals,
+      duplicates,
+      dismissalsSkipped,
+      contacts: contactCounts,
+      contacts_error: contactsError,
     });
-    return NextResponse.json({ ok: true, trackerRows, ...counts, dismissals, dismissalsSkipped, contacts: contactCounts, contacts_error: contactsError });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
     // Record the failure too, so a broken run stays visible in the log.
-    const run: SyncRunRecord = {
-      user_id: owner,
-      started_at: startedAt,
-      finished_at: new Date().toISOString(),
-      status: "error",
-      source,
-      ...counts,
-      error: message.slice(0, 500),
-    };
-    try {
-      await recordSyncRun(supabase, run);
-    } catch {
-      // Logging must not hide the original failure.
+    const finishedAt = new Date().toISOString();
+    if (claimId) {
+      try {
+        await finishSyncRun(supabase, claimId, {
+          finished_at: finishedAt,
+          status: "error",
+          ...counts,
+          error: message.slice(0, 500),
+        });
+      } catch {
+        // Logging must not hide the original failure.
+      }
+    } else {
+      const run: SyncRunRecord = {
+        user_id: owner,
+        started_at: startedAt,
+        finished_at: finishedAt,
+        status: "error",
+        source,
+        ...counts,
+        error: message.slice(0, 500),
+      };
+      try {
+        await recordSyncRun(supabase, run);
+      } catch {
+        // Logging must not hide the original failure.
+      }
     }
     return NextResponse.json({ ok: false, error: message, trackerRows, ...counts }, { status: 500 });
   }

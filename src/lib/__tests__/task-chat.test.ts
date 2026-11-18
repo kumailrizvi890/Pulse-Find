@@ -53,6 +53,7 @@ function ctx(over: Partial<TaskChatContext> = {}): TaskChatContext {
     contacts: CONTACTS,
     today: TODAY,
     origin: "https://pulsefind-app.vercel.app",
+        trackerPath: "/app",
     ...over,
   };
 }

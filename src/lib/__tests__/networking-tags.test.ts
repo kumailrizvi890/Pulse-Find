@@ -72,6 +72,7 @@ describe("blank-step contacts in task chat", () => {
     contacts,
     today: TODAY,
     origin: "https://pulsefind-app.vercel.app",
+      trackerPath: "/app",
   });
   const datedBlank: Contact = {
     id: "c-blank",

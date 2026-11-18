@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
+import { readJobPicks, writeJobPicks, type JobPick, type JobPickMark } from "@/lib/job-picks";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import { accountPipelineStore, isAlreadyTracked, leadKey } from "@/lib/pipeline";
 import { accountStore } from "@/lib/store";
@@ -14,32 +15,9 @@ import { IconX } from "@/components/icons";
 import { PulseDot } from "@/components/PulseBrand";
 import { SwipeDeck } from "./SwipeDeck";
 
-type Job = {
-  id: string;
-  company: string;
-  title: string;
-  location: string;
-  remote: boolean;
-  url: string;
-  track: string;
-  tech: boolean;
-  posted_at: string | null;
-};
+type Job = JobPick;
 type TrackFilter = "Internship" | "New Grad" | "all";
-type Mark = "saved" | "applied" | "hidden";
-
-// Signed-out visitors can still swipe; their picks live in this browser only.
-const LOCAL_KEY = "pf_job_picks_v1";
-function readLocal(): { marks: Record<string, Mark>; saved: Record<string, Job> } {
-  try {
-    const v = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "null");
-    if (v && typeof v === "object" && v.marks && v.saved) return v;
-  } catch {}
-  return { marks: {}, saved: {} };
-}
-function writeLocal(marks: Record<string, Mark>, saved: Record<string, Job>) {
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ marks, saved })); } catch {}
-}
+type Mark = JobPickMark;
 
 const PAGE = 40;
 const COLS = "id,company,title,location,remote,url,track,tech,posted_at";
@@ -159,7 +137,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     } else {
       Promise.resolve().then(() => {
         if (!alive) return;
-        const local = readLocal();
+        const local = readJobPicks();
         setMarks(local.marks);
         setSaved(local.saved);
       });
@@ -220,7 +198,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
 
     if (!userId) {
       if (next === "applied") return false;
-      writeLocal(nextMarks, nextSaved);
+      writeJobPicks(nextMarks, nextSaved);
     } else if (supabase) {
       if (next === "applied") {
         const key = leadKey({ company: job.company, role: job.title });

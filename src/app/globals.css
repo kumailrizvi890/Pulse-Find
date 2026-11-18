@@ -449,14 +449,23 @@ in empty editable cells instead of the faint dash. */
   position: fixed;
   z-index: 1;
   pointer-events: none;
-  border: 2px solid var(--accent);
+  border: 3px solid var(--accent);
   border-radius: 14px;
-  box-shadow: 0 0 24px rgb(253 88 93 / 0.35);
-  transition:
-    left 0.25s ease,
-    top 0.25s ease,
-    width 0.25s ease,
-    height 0.25s ease;
+  box-shadow: 0 0 24px rgb(253 88 93 / 0.45);
+  /* No position transition: the ring tracks the anchor by direct DOM
+     writes on every scroll frame, and a transition would lag 250ms
+     behind it (the old shape is what made the glow detach from its
+     target once the visitor scrolled past). The idle pulse below is
+     the only motion, and it is a glow, not a position chase. */
+  animation: tour-ring-idle 2s ease-in-out infinite;
+}
+
+/* The ring breathes gently the whole time it sits on a target, so the
+   "press here" signal is unmissable even before the visitor reads the
+   coach line. */
+@keyframes tour-ring-idle {
+  0%, 100% { box-shadow: 0 0 24px rgb(253 88 93 / 0.45), 0 0 0 0 rgb(253 88 93 / 0.3); }
+  50% { box-shadow: 0 0 34px rgb(253 88 93 / 0.7), 0 0 0 6px rgb(253 88 93 / 0.12); }
 }
 
 /* Tour card: solid surface (the glass .bg-surface override is 86%
@@ -473,11 +482,22 @@ in empty editable cells instead of the faint dash. */
 /* The coach crystal: a faceted PulseCrystal that floats gently and
    glows red, so the coach reads as a character, not a card. On a
    completed action it bursts once (a quick scale-up with a brighter
-   glow) while the ring pulses, then settles back to the float. */
+   glow) while the ring pulses, then settles back to the float. The
+   halo behind it expands and fades on a slow loop, so the coach
+   catches the eye the moment a step lands. */
 .tour-crystal {
   display: inline-flex;
-  filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45));
+  filter: drop-shadow(0 0 12px rgb(248 52 62 / 0.65));
   animation: tour-crystal-float 3.2s ease-in-out infinite;
+}
+.tour-crystal-halo {
+  border: 2px solid rgb(248 52 62 / 0.55);
+  border-radius: 9999px;
+  animation: tour-crystal-halo 2.4s ease-out infinite;
+}
+@keyframes tour-crystal-halo {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.45); opacity: 0; }
 }
 @keyframes tour-crystal-float {
   0%, 100% { transform: translateY(0); }
@@ -525,16 +545,68 @@ in empty editable cells instead of the faint dash. */
   animation: tour-ring-pulse 1.2s ease;
 }
 
+/* The coach slides up and fades in when a step lands, so the eye goes
+   straight to it. The card remounts per step (keyed by step id), so
+   the entrance replays on every step. */
+@keyframes tour-card-enter {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.tour-card-enter {
+  animation: tour-card-enter 0.3s ease-out;
+}
+
+/* The progress ring around the crystal: a faint track and an accent
+   fill whose dash offset is set from the completed-step fraction. */
+.tour-progress-ring-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 3;
+}
+.tour-progress-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+/* A badge chip: small, quiet, earned only by doing the real thing.
+   A newly earned chip pops once. */
+.tour-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgb(253 88 93 / 0.45);
+  border-radius: 9999px;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+@keyframes tour-badge-pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.tour-badge-pop {
+  animation: tour-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-marquee-track { animation: none; }
   .landing-swipe-nudge { animation: none; }
   .landing-sheet-pulse { animation: none; }
   .landing-caret { animation: none; opacity: 1; }
-  .tour-ring { transition: none; }
+  .tour-ring { transition: none; animation: none; }
   .tour-card { transition: none; }
+  .tour-card-enter { animation: none; }
   .tour-ring-pulse { animation: none; }
   .tour-crystal { animation: none; }
+  .tour-crystal-halo { animation: none; }
   .tour-crystal-burst { animation: none; }
+  .tour-badge-pop { animation: none; }
+  .tour-progress-ring-fill { transition: none; }
 }
 
 /*

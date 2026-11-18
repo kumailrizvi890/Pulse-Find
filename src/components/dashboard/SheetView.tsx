@@ -157,7 +157,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">Sheet</h1>
           <p className="mt-1 text-sm text-muted">
-            Your tracker as a spreadsheet — the same columns as your Excel sheet. Click an editable cell to change it; it saves right away.
+            Your tracker as a spreadsheet — the same columns as your Excel sheet. Click an editable cell to change it;{store.kind === "demo" ? " nothing is saved in the demo." : " it saves right away."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

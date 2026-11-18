@@ -2,7 +2,7 @@
 // tracker where Pulse talks and the visitor acts.
 //
 // One step per feature, in the order a new user should meet them:
-// dashboard, sheet, find jobs, swipe board, leads, networking, the Ask
+// dashboard, sheet, leads, find jobs, swipe board, networking, the Ask
 // Pulse chatbot, Connect Agent. The tour is driven by the `tour` search
 // param (?tour=<step-id>), so each step is a plain link and the browser
 // back button walks the tour backwards. All functions here are pure so
@@ -109,6 +109,15 @@ export const TOUR_STEPS: TourStep[] = [
     anchor: "sheet-tools",
   },
   {
+    id: "leads",
+    title: "Leads",
+    line: "tap Edit on the first lead row to see everything you know about that role",
+    done: "that's the whole lead, fit note and all",
+    completion: "lead-edit",
+    route: "/demo/leads",
+    anchor: "lead-edit",
+  },
+  {
     id: "find-jobs",
     title: "Find jobs",
     line: "type a company or a role in the search box at the top of the jobs page and see what shows up",
@@ -128,15 +137,6 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/jobs",
     anchor: "job-save",
     anchorAlt: "job-posting",
-  },
-  {
-    id: "leads",
-    title: "Leads",
-    line: "tap Edit on the first lead row to see everything you know about that role",
-    done: "that's the whole lead, fit note and all",
-    completion: "lead-edit",
-    route: "/demo/leads",
-    anchor: "lead-edit",
   },
   {
     id: "networking",

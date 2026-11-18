@@ -99,7 +99,7 @@ export function Showcase({
                 <li key={g.company} className="flex items-start justify-between gap-3 py-2.5 first:pt-0">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{g.company}</p>
-                    <p className="truncate text-[13px] text-muted">No reply since they applied</p>
+                    <p className="truncate text-[13px] text-muted">No reply since you applied</p>
                   </div>
                   <span className="shrink-0 font-mono text-xs text-danger">quiet {g.quietDays}d</span>
                 </li>

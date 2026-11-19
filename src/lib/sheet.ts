@@ -98,7 +98,7 @@ export interface SheetRow {
 const FLAG_LABEL: Record<Exclude<FollowUp, null>, string> = {
   ghosted: "GHOSTED - follow up",
   soon: "Follow up soon",
-  waiting: "Waiting",
+  waiting: "Awaiting reply",
 };
 
 export function sheetRow(app: Application, today: ISODate, ghostDays: number): SheetRow {

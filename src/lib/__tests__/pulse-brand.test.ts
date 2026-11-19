@@ -153,9 +153,13 @@ describe("pulse brand placements", () => {
   });
 
   it("signs the footer with the mark and wordmark", () => {
+    // The footer is a shared component now (landing + /privacy); the
+    // landing page renders it instead of inlining it.
+    const footer = read("components/SiteFooter.tsx");
+    expect(footer).toContain("<PulseMark className=\"h-4 w-4\" />");
+    expect(footer).toContain("Pulse Find</span>");
     const home = read("app/page.tsx");
-    expect(home).toContain("<PulseMark className=\"h-4 w-4\" />");
-    expect(home).toContain("Pulse Find</span>");
+    expect(home).toContain("<SiteFooter />");
   });
 
   it("lists all 7 capabilities in the landing hero, each led by a pulse dot", () => {

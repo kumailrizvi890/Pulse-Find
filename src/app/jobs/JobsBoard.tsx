@@ -390,7 +390,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           </p>
         </div>
         {!userId && (
-          <Link href="/login?mode=signup&next=/jobs" className={btn.primary}>Sign up to save jobs</Link>
+          <Link href="/login?mode=signup&next=/jobs" className={btn.primary}>Sign up to keep your picks</Link>
         )}
       </div>
 
@@ -447,11 +447,14 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         {/* The count in words, next to the bar, so every view reads the
           same numbers: the bar alone only carries a percentage (2 of
           266 rounds to 1%), and the swipe view used to be the only
-          place the count appeared at all. */}
+          place the count appeared at all. The parenthetical says what
+          counts as reviewed, since a bare number left visitors
+          guessing whether a save, a pass, or just looking counted. */}
           {total !== null && (
           <p className="font-mono text-[11px] text-faint">
-            {reviewed} reviewed · {leftToReview} left of {total}
+            {reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}
           </p>
+          
         )}
       </div>
 
@@ -575,7 +578,19 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                         <button className={btn.ghost} onClick={() => mark(j, "hidden")} aria-label={`Hide ${j.title}`}>Hide</button>
                       </>
                     )
-                  ) : null}
+                  ) : (
+                    // Signed-out visitors can already save and pass from
+                // the deck (their picks live in this browser only),
+                // but the list rows offered nothing at all, so the
+                // List tab was a dead end for saving. Save and Hide
+                // take the same local path as the deck; Lead and
+                // I applied stay signed-in only, since they write
+                // to the account's pipeline and tracker.
+                <>
+                <button className={btn.ghost} onClick={() => mark(j, "saved")} disabled={m === "saved"}>{m === "saved" ? "Saved" : "Save"}</button>
+                <button className={btn.ghost} onClick={() => mark(j, "hidden")} aria-label={`Hide ${j.title}`}>Hide</button>
+                </>
+            )}
                 </div>
               </li>
             );

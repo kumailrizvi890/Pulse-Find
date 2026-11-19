@@ -95,9 +95,15 @@ describe("full operator prompt", () => {
 });
 
 describe("buildAgentHandoffPrompt", () => {
-  it("is the full prompt for an already-connected agent, with no token in it", () => {
+  it("is the full prompt for the handoff, with no token and no assumed connection", () => {
     const p = buildAgentHandoffPrompt({ endpoint: "https://pulsefind-app.vercel.app/api/mcp" });
-    expect(p).toContain("You are already connected to the MCP server");
+    // The connection is conditional, not asserted: the person pasting this
+    // may not have set their agent up yet.
+    expect(p).toContain("Your connection to the MCP server");
+    expect(p).toContain("If you are already connected");
+    expect(p).toContain("If you are not connected yet");
+    expect(p).not.toContain("You are already connected to the MCP server");
+    expect(p).not.toContain("You already have your own access token");
     expect(p).toContain("Do not ask me for a token");
     expect(p).toContain("Set me up first, automatically");
     for (const t of TOOLS) expect(p).toContain(t);

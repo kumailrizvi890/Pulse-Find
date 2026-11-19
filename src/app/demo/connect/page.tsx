@@ -8,11 +8,10 @@ export const metadata: Metadata = { title: "Connect your agent — Live demo" };
 // Connect page's four steps, but demo-safe: the token is a placeholder,
 // no token is created, and nothing reads or writes the api_tokens table.
 // Visitors who want a real token sign up from here.
-export default async function DemoConnectPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
-  const sp = await searchParams;
+export default function DemoConnectPage() {
   return (
     <>
-      <DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefined} />
+      <DemoNav />
       <DemoConnectAgent />
     </>
   );

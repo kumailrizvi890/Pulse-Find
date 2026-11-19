@@ -2,14 +2,14 @@ import Image from "next/image";
 import { IconExternalLink } from "@/components/icons";
 import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
 
-// The About page — the new landing for signed-out visitors (Nov 19
+// The About page: the new landing for signed-out visitors (Nov 19
 // 2026). Ported from the first-visit preview: install section sits
 // above it (see InstallSection), then this main. The tour window
 // overlays it on a first visit; the page underneath is the About
 // page, no lock veil, no navigation needed when the tour closes.
 //
 // TEST_COUNT is the true automated-test count from the final `npm
-// test` run — it shows in the rigor paragraph, the "N tests · CI"
+// test` run: it shows in the rigor paragraph, the "N tests · CI"
 // chip, and the founder number, all three from this one constant.
 // (Preview said 880; the tour + About build moved the count.)
 //
@@ -17,7 +17,7 @@ import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
 // softened where the preview overstated it: the sync engine + MCP
 // handler are integration-tested (sync-sheet, mcp), the Excel export
 // round-trips (xlsx), RLS is enabled on all 11 tables with the public
-// job board the one shared read — but no test covers the refresh-jobs
+// job board the one shared read, but no test covers the refresh-jobs
 // or sync-trigger Edge Functions, the sha-verification of the two-hour
 // sync lives in the external cron script (not this repo), and Vercel
 // has gone Ready on a red CI run before, so "a red test stops the
@@ -34,7 +34,7 @@ export function AboutLanding() {
       <p className="lede">
         Pulse Find is one dashboard for the whole search: fresh roles matched
         to you every morning, every application tracked by stage, the right
-        people lined up to talk to — and an AI agent that can run the busywork
+        people lined up to talk to, and an AI agent that can run the busywork
         for you through MCP.
       </p>
 
@@ -47,7 +47,7 @@ export function AboutLanding() {
           </div>
           <div>
             <h3>One dashboard</h3>
-            <p>Leads, tracker, networking, and files behind a single home — refreshed daily, with anything that needs you floated to the top.</p>
+            <p>Leads, tracker, networking, and files behind a single home, refreshed daily, with anything that needs you floated to the top.</p>
           </div>
           <span className="f-tag">Refreshed daily</span>
         </div>
@@ -60,7 +60,7 @@ export function AboutLanding() {
           </div>
           <div>
             <h3>Leads + the swipe deck</h3>
-            <p>Fresh postings that actually fit your level, newest first — swipe to save and they land straight in your Leads, ready to apply.</p>
+            <p>Fresh postings that actually fit your level, newest first. Swipe to save and they land straight in your Leads, ready to apply.</p>
           </div>
           <span className="f-tag">Newest first</span>
         </div>
@@ -72,7 +72,7 @@ export function AboutLanding() {
           </div>
           <div>
             <h3>Tracker + networking</h3>
-            <p>Every application color-coded by stage — red Applied, amber OA, green Interview — plus the recruiters and alumni behind each posting, and an honestly counted response rate.</p>
+            <p>Every application color-coded by stage: red Applied, amber OA, green Interview, plus the recruiters and alumni behind each posting, and an honestly counted response rate.</p>
           </div>
           <span className="f-tag">Exports to .xlsx</span>
         </div>
@@ -85,7 +85,7 @@ export function AboutLanding() {
           </div>
           <div>
             <h3>Bring your own AI agent</h3>
-            <p>Pulse Find ships an MCP server, so Claude Code, Cursor, or Copilot can read your tracker, add leads, and update stages — set it up once with a single prompt.</p>
+            <p>Pulse Find ships an MCP server, so Claude Code, Cursor, or Copilot can read your tracker, add leads, and update stages. Set it up once with a single prompt.</p>
           </div>
           <span className="f-tag">MCP-native</span>
         </div>
@@ -98,7 +98,7 @@ export function AboutLanding() {
           </div>
           <div>
             <h3>On your phone, one tap away</h3>
-            <p>Add Pulse Find to your home screen — no app store, about 10 seconds. After that it&apos;s an icon tap straight into the same dashboard, full-screen.</p>
+            <p>Add Pulse Find to your home screen. No app store, about 10 seconds. After that it&apos;s an icon tap straight into the same dashboard, full-screen.</p>
           </div>
           <span className="f-tag">
             <a href="#getApp">Get the app ↑</a>
@@ -137,27 +137,27 @@ export function AboutLanding() {
               Built by a student, <em>mid-hunt.</em>
             </h3>
             <p>
-              I&apos;m Kumail — a computer science senior at UW Bothell,
+              I&apos;m Kumail, a computer science senior at UW Bothell,
               graduating December 2027, and the founder of Pulse Find. I built
               it out of my own internship search:{" "}
               <b>hundreds of applications</b>, a spreadsheet that kept falling
               apart, and follow-ups slipping through the cracks. Pulse Find is
-              the system I wanted — so I built it, and now it runs my whole
+              the system I wanted, so I built it, and now it runs my whole
               search.
             </p>
             <p>
               <b>The stack is the fun part.</b> Pulse Find runs on{" "}
-              <b>Next.js 16 and React 19</b> with <b>Supabase</b> — Postgres,
-              Auth, and Storage — deployed on Vercel, but the headline is the{" "}
+              <b>Next.js 16 and React 19</b> with <b>Supabase</b>, Postgres,
+              Auth, and Storage, deployed on Vercel, but the headline is the{" "}
               <b>MCP server</b>: Pulse Find plugs straight into Claude Code,
               Cursor, and Copilot, so an AI agent can read a tracker, add
               leads, and update stages like a teammate. On Agensi&apos;s MCP
-              marketplace it ranks <b>#1 for &quot;internship&quot;</b> — first
+              marketplace it ranks <b>#1 for &quot;internship&quot;</b>, first
               out of 18 listings.
             </p>
             <p>
               <b>And it&apos;s tested like it matters.</b> Pulse Find runs{" "}
-              <b>{TEST_COUNT} automated tests, green in CI on every push</b> —
+              <b>{TEST_COUNT} automated tests, green in CI on every push</b>:
               unit tests across the tracker, leads, and networking logic,
               integration tests against the Supabase sync engine, and
               end-to-end coverage of the MCP server tools over the real MCP
@@ -166,7 +166,7 @@ export function AboutLanding() {
               two-hour tracker sync records every run, row-level security
               locks your tracker, leads, and contacts to your account, and the
               Excel export is round-trip checked so what you download always
-              matches what&apos;s on screen. Nothing ships on a hope — every
+              matches what&apos;s on screen. Nothing ships on a hope. Every
               push runs the full suite in CI, and a red run gets fixed before
               anything else ships.
             </p>

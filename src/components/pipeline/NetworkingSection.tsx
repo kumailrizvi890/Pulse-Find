@@ -8,6 +8,7 @@ import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
 import { dueBucket, isExternalUrl, sortContacts, type DueBucket } from "@/lib/pipeline";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
+import { IconExternalLink } from "@/components/icons";
 
 const BUCKET_LABEL: Record<Exclude<DueBucket, "none">, string> = {
   overdue: "Overdue",
@@ -184,7 +185,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm">
                       {c.linkedin_url && isExternalUrl(c.linkedin_url) ? (
-                        <a className={cx("font-semibold text-accent hover:underline", bucket === "overdue" && "text-danger")} href={c.linkedin_url} target="_blank" rel="noreferrer">{c.person_name}</a>
+                        <a className={cx("inline-flex items-center gap-0.5 font-semibold text-accent hover:underline", bucket === "overdue" && "text-danger")} href={c.linkedin_url} target="_blank" rel="noreferrer">{c.person_name} <IconExternalLink className="h-3 w-3 shrink-0" /></a>
                       ) : (
                         <span className={cx("font-semibold", bucket === "overdue" && "text-danger")}>{c.person_name}</span>
                       )}

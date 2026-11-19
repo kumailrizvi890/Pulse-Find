@@ -26,7 +26,15 @@ import { IconX } from "@/components/icons";
  * 400px panel and its composer); on phones it hides while the chat is
  * open, since the bottom sheet already has its own Close. While the
  * tour is running (?tour= present) or a drawer is open, the button
- * hides so it never stacks on the tour card or covers a form.
+ * hides so it never stacks on the tour card or covers a form. It also
+ * hides while any modal dialog the Dashboard does not own is in the
+ * DOM (lead form, contact form, Settings, Import): those never reach
+ * the Dashboard's overlay state, so the button watches the DOM for
+ * them itself with a MutationObserver, on top of an initial scan. The
+ * chat panel itself is a modal dialog too, so it is excluded by its
+ * pf-chat-panel-3d class, as is the Talk to Agent dialog inside it,
+ * and the button stays visible as the chat's close control while the
+ * chat is open.
  *
  * The 3D look is pure CSS 3D, no WebGL: a faceted crystal SVG with a
  * gradient and white facet lines, a breathing red halo, a soft floor
@@ -79,6 +87,7 @@ export function FloatingPulseButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [waiting, setWaiting] = useState(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const fallbackTimer = useRef<number | null>(null);
@@ -105,6 +114,24 @@ export function FloatingPulseButton() {
       window.removeEventListener("pulsefind:assistant-state", onState);
       if (fallbackTimer.current !== null) window.clearTimeout(fallbackTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    // Modal dialogs the Dashboard does not own (lead form, contact
+    // form, Settings, Import) never reach overlayOpen, so watch the DOM
+    // for them directly. The chat panel itself is role="dialog" too, so
+    // it is excluded by its pf-chat-panel-3d class, as is the Talk to
+    // Agent dialog inside the panel.
+    const scan = () => {
+      const foreign = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some(
+        (el) => !el.closest(".pf-chat-panel-3d")
+      );
+      setDialogOpen(foreign);
+    };
+    scan();
+    const observer = new MutationObserver(scan);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, []);
 
   const onClick = useCallback(() => {
@@ -136,9 +163,10 @@ export function FloatingPulseButton() {
   // tracker to ask about, so the button stays out of the way there.
   const tourActive = searchParams.get("tour") !== null;
   if (tourActive || AUTH_ROUTES.includes(pathname)) return null;
-  // A drawer or task chat owns the corner while open; the button returns
-  // once it closes. The open chat keeps its close control instead.
-  if (overlayOpen && !open) return null;
+  // A drawer or task chat owns the corner while open, and so does any
+  // modal dialog the Dashboard does not own; the button returns once
+  // it closes. The open chat keeps its close control instead.
+  if ((overlayOpen || dialogOpen) && !open) return null;
 
   return (
     <>

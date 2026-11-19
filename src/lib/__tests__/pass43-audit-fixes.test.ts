@@ -125,6 +125,7 @@ describe("Ask Pulse no longer repeats the tracker link", () => {
     contacts: [],
     today: MONDAY,
     origin: "https://pulsefind-app.vercel.app",
+      trackerPath: "/demo" as const,
   };
 
   it("keeps the tracker link out of both greetings", () => {

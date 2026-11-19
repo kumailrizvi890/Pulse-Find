@@ -141,7 +141,7 @@ describe("swipe deck redesign — save flows into leads, tabs, details", () => {
     expect(board).toContain("pinnedId");
   });
 
-  it("keeps the tour anchors the guided tour depends on", () => {
+  it("keeps the tour anchors (now inert hooks, the tour reads none of them)", () => {
     expect(board).toContain('data-tour="jobs"');
     expect(board).not.toContain('data-tour="find-jobs"');
     expect(deck).toContain('data-tour="job-card"');
@@ -149,19 +149,18 @@ describe("swipe deck redesign — save flows into leads, tabs, details", () => {
     expect(deck).not.toContain('data-tour="job-save"');
   });
 
-  it("announces a real swipe on the card, and nothing else announces one", () => {
-    // The deck fires pulsefind:job-swiped only from a pointer drag
-    // past the threshold, so the guided tour can complete on a swipe
-    // without watching pointer math. The Save and Pass buttons and the
-    // arrow keys decide through the same handler without firing it.
-    expect(deck).toContain('import { JOB_SWIPED_EVENT, type JobSwipedDetail } from "@/lib/guided-tour"');
-    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "saved" } })');
-    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "hidden" } })');
+  it("announces no swipe event at all: decisions flow through onDecide", () => {
+    // The old guided tour was the only listener for
+    // pulsefind:job-swiped, and it is gone. A drag past the threshold,
+    // the Save/Pass buttons and the arrow keys all decide through the
+    // same handler now, and the caller (the tour window) counts the
+    // decision through onDecide to gate its Next button.
+    expect(deck).not.toContain("JOB_SWIPED_EVENT");
+    expect(deck).not.toContain("guided-tour");
+    expect(deck).not.toContain("CustomEvent");
+    expect(deck).toContain("onDecide(top, choice)");
     const pointerUp = deck.slice(deck.indexOf("onPointerUp="), deck.indexOf("onPointerCancel"));
-    expect(pointerUp).toContain("JOB_SWIPED_EVENT");
-    const buttons = deck.slice(deck.indexOf('aria-label="Pass"'));
-    expect(buttons).not.toContain("JOB_SWIPED_EVENT");
-    const keys = deck.slice(deck.indexOf("ArrowRight"), deck.indexOf("window.addEventListener(\"keydown\""));
-    expect(keys).not.toContain("JOB_SWIPED_EVENT");
+    expect(pointerUp).toContain('decide("saved")');
+    expect(pointerUp).toContain('decide("hidden")');
   });
 });

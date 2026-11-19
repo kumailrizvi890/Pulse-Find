@@ -20,11 +20,10 @@ const panel = readFileSync(join(root, "components", "dashboard", "TaskChatPanel.
 
 describe("demo navbar Ask Pulse entry", () => {
   it("links to the demo dashboard with the chat trigger", () => {
-    // The link carries the running tour step along when one is present:
-    // a plain ?chat=1 link dropped tour=chat on the tour's chat step
-    // and stranded the tour. With no tour running it is still the
-    // plain ?chat=1 link it always was.
-    expect(demoNav).toContain('href={tour ? `/demo?tour=${tour}&chat=1` : "/demo?chat=1"}');
+    // A plain ?chat=1 link: the tour is an overlay now, not a route,
+    // so there is no tour step to carry along anymore.
+    expect(demoNav).toContain('href="/demo?chat=1"');
+    expect(demoNav).not.toContain("?tour=");
     expect(demoNav).toContain("Ask Pulse");
   });
 
@@ -46,17 +45,15 @@ describe("demo ?chat=1 plumbing", () => {
     expect(demoPage).toContain("searchParams");
     expect(demoPage).toContain('sp.chat === "1"');
     expect(demoPage).toContain('openChat={sp.chat === "1"}');
-    expect(demoPage).toContain('tour={typeof sp.tour === "string" ? sp.tour : undefined}');
+    expect(demoPage).not.toContain("tour");
   });
 
   it("DemoDashboard passes the trigger to the Dashboard and clears it", () => {
     expect(demoDashboard).toContain("openGeneralChat={openChat}");
     // Clearing the trigger keeps the next click a fresh navigation to
-    // ?chat=1 instead of a no-op link to the current URL. The tour
-    // param survives the clear, so the tour's own chat link does not
-    // close the tour the moment the visitor tries the chat.
-    expect(demoDashboard).toContain("`/demo?tour=${tour}`");
-    expect(demoDashboard).toContain('router.replace(tour ?');
+    // ?chat=1 instead of a no-op link to the current URL.
+    expect(demoDashboard).toContain('router.replace("/demo", { scroll: false })');
+    expect(demoDashboard).not.toContain("tour");
   });
 });
 

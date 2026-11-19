@@ -63,8 +63,10 @@ describe("floating Pulse button", () => {
     expect(button).toContain("max-lg:hidden");
   });
 
-  it("hides while the tour runs, on auth pages, and while a drawer owns the corner", () => {
-    expect(button).toContain('searchParams.get("tour")');
+  it("hides while the tour window is open, on auth pages, and while a drawer owns the corner", () => {
+    expect(button).toContain("TOUR_OPEN_EVENT");
+    expect(button).toContain("TOUR_CLOSE_EVENT");
+    expect(button).toContain("if (tourOpen");
     expect(button).toContain('"/login"');
     expect(button).toContain('"/signup"');
     expect(button).toContain('"/forgot-password"');

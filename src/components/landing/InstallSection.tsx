@@ -14,7 +14,7 @@ import {
 // Get the app, one tap away (Nov 19 2026): the install section at the
 // top of the About landing. Ported from the first-visit preview, with
 // the two removals Kumail ordered: no badge, and no step-one line
-// telling the visitor to open the site — they are already here, so
+// telling the visitor to open the site, they are already here, so
 // each platform guide is 3 steps (the <ol> renumbers them).
 // The install prompt itself is the shared capture in
 // src/lib/install-prompt.ts: the button taps .prompt() on tap, never
@@ -42,18 +42,18 @@ export function InstallSection() {
         setLabel("On your home screen ✓");
         setStatus(
           <>
-            <b>Installed.</b> Tap the Pulse Find icon on your home screen — it
+            <b>Installed.</b> Tap the Pulse Find icon on your home screen. It
             opens straight to your dashboard.
           </>,
         );
         return;
       }
-      if (isIOSDevice()) setLabel("Add to Home Screen — show me how");
+      if (isIOSDevice()) setLabel("Add to Home Screen: show me how");
       if (getInstallPrompt()) {
         setLabel("Install Pulse Find");
         setStatus(
           <>
-            <b>Your browser is ready to install it.</b> Tap Install — about 10
+            <b>Your browser is ready to install it.</b> Tap Install. About 10
             seconds, no app store.
           </>,
         );
@@ -77,7 +77,7 @@ export function InstallSection() {
       setLabel("On your home screen ✓");
       setStatus(
         <>
-          <b>Installed.</b> Tap the Pulse Find icon on your home screen — it
+          <b>Installed.</b> Tap the Pulse Find icon on your home screen. It
           opens straight to your dashboard.
         </>,
       );
@@ -85,13 +85,13 @@ export function InstallSection() {
     }
     if (outcome === "dismissed") {
       setStatus(
-        "No worries — you can install anytime from your browser menu. Steps for your phone are right below.",
+        "No worries, you can install anytime from your browser menu. Steps for your phone are right below.",
       );
       showSteps(isIOSDevice() ? "ios" : "android");
       return;
     }
     // No native prompt (iOS Safari, or Chrome hasn't offered one yet):
-    // the honest, real path is the Share / menu steps — surface them.
+    // the honest, real path is the Share / menu steps, surface them.
     if (isIOSDevice()) {
       setStatus(
         <>
@@ -124,8 +124,8 @@ export function InstallSection() {
             have to go find.{" "}
             <b>
               One tap on the icon and you&apos;re straight into your dashboard
-            </b>{" "}
-            — full-screen, no browser bars, no typing a URL, no hunting through
+            </b>
+            , full-screen, no browser bars, no typing a URL, no hunting through
             tabs.
           </p>
           <div className="locked-note">
@@ -134,7 +134,7 @@ export function InstallSection() {
             </svg>
             <p>
               <b>The dashboard itself doesn&apos;t change.</b> The live UI you
-              love stays exactly as it is — same near-black home, red pulse
+              love stays exactly as it is: same near-black home, red pulse
               line, same cards and chips. Installing just puts{" "}
               <b>that exact dashboard</b> one tap away.
             </p>
@@ -174,7 +174,7 @@ export function InstallSection() {
                 <li>
                   Tap <b>Add to Home Screen</b>, then <b>Add</b>
                 </li>
-                <li>Done — the Pulse Find icon is on your home screen</li>
+                <li>Done. The Pulse Find icon is on your home screen</li>
               </ol>
             </div>
             <div
@@ -187,12 +187,12 @@ export function InstallSection() {
               </h4>
               <ol>
                 <li>
-                  Tap <b>Install app</b> when it pops up — or the <b>⋮ menu → Install app</b>
+                  Tap <b>Install app</b> when it pops up, or the <b>⋮ menu → Install app</b>
                 </li>
                 <li>
                   Tap <b>Install</b>
                 </li>
-                <li>Done — it opens full-screen, straight to your dashboard</li>
+                <li>Done. It opens full-screen, straight to your dashboard</li>
               </ol>
             </div>
           </div>
@@ -200,7 +200,7 @@ export function InstallSection() {
             <span>Opens straight to /app</span>
             <span>Full-screen, no browser chrome</span>
             <span>Same login, same data</span>
-            <span>Nothing to update — always latest</span>
+            <span>Nothing to update, always latest</span>
           </div>
         </div>
         <div className="phone-zone">

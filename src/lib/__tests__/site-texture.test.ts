@@ -143,8 +143,13 @@ describe("jobs surfaces get the same background", () => {
     expect(deck.slice(containerStart, containerStart + 80)).not.toContain("pf-glow");
   });
 
-  it("the landing job-finder list is a glass surface on the bare backdrop", () => {
-    expect(home).toContain('divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-panel');
+  it("the new landing has no job-finder list: jobs live at /jobs", () => {
+    // Nov 19 2026: the old landing's job-finder section (live count +
+    // glass list) went away with the hero. Visitors reach jobs from
+    // the nav, on the shared /jobs page over the same backdrop.
+    expect(home).not.toContain("divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-panel");
+    expect(home).not.toContain("tech internships open right now");
+    expect(home).toContain('href="/jobs"');
   });
 
   it("demo visitors reach jobs through the shared /jobs page — there is no separate demo jobs route to leave flat", () => {
@@ -153,11 +158,10 @@ describe("jobs surfaces get the same background", () => {
   });
 });
 
-describe("hero is untouched by the site-wide background", () => {
-  it("the landing hero still renders its own backdrop and keeps its viewport height", () => {
-    expect(home).toContain('import { HeroBackdrop } from "@/components/HeroBackdrop";');
-    expect(home).toContain("<HeroBackdrop />");
-    expect(home).toContain("min-h-[calc(100dvh-69px)]");
+describe("the old hero is gone; the site backdrop is the only one", () => {
+  it("the landing mounts no hero backdrop of its own", () => {
+    expect(home).not.toContain("HeroBackdrop");
+    expect(home).not.toContain("min-h-[calc(100dvh-69px)]");
   });
 
   it("HeroBackdrop itself is unchanged — no site-layer code leaked into it", () => {

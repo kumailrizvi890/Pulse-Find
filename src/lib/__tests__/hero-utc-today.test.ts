@@ -74,9 +74,10 @@ describe("hero preview values do not depend on which day seeds them", () => {
     expect(hero).not.toContain("weekday");
     expect(hero).toContain("daysBetween(today, a.action_due)");
     expect(hero).not.toContain("thisWeek");
-    expect(home).toContain(
-      "<StatsBand total={demoSum.total} oas={demoSum.oas} interviews={demoSum.interviews} actions={demoSum.actions} />",
-    );
+    // The StatsBand that used to render these totals left the landing
+    // with the old hero (Nov 19 2026); the HeroPreview pins above
+    // still guard the component itself.
+    expect(home).not.toContain("<StatsBand");
   });
 
   it("pins the one value that does move, and that the landing never shows it", () => {

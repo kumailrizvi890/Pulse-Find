@@ -30,6 +30,7 @@ const read = (rel: string): string => readFileSync(join(root, ...rel.split("/"))
 const tourWindow = read("components/TourWindow.tsx");
 const tourLib = read("lib/tour-window.ts");
 const layout = read("app/layout.tsx");
+const home = read("app/page.tsx");
 const css = read("app/globals.css");
 
 describe("the 8 steps, verbatim and in order", () => {
@@ -409,6 +410,31 @@ describe("the old tour is fully gone", () => {
     expect(layout).toContain('from "@/components/TourWindow"');
     expect(layout).toContain("<TourWindow />");
     expect(layout).not.toContain("GuidedTour");
+  });
+});
+
+describe("the landing is the About page now, not the old hero", () => {
+  it("keeps the top nav, drops the old hero, and carries no tour param", () => {
+    // Nov 19 2026: the old landing (hero, capabilities, video, Bento,
+    // job finder, MCP section, StatsBand) was replaced by the About
+    // page + Get the app section. The nav stays; the hero is gone.
+    expect(home).toContain('href="/jobs"');
+    expect(home).toContain('href="/demo"');
+    expect(home).toContain('href="/demo/connect"');
+    expect(home).toContain("<InstallSection />");
+    expect(home).toContain("<AboutLanding />");
+    expect(home).toContain("<SiteFooter />");
+    expect(home).not.toContain("Know what&apos;s waiting");
+    expect(home).not.toContain("HERO_CAPABILITIES");
+    expect(home).not.toContain("demo-tour.mp4");
+    expect(home).not.toContain("?tour=");
+    expect(home).not.toContain("revalidate");
+  });
+
+  it("redirects a signed-in visitor to /app, server-side", () => {
+    expect(home).toContain('from "@/lib/supabase/server"');
+    expect(home).toContain("supabase.auth.getUser()");
+    expect(home).toContain('redirect("/app")');
   });
 });
 

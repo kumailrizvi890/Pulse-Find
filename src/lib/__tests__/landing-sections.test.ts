@@ -8,12 +8,15 @@ const srcRoot = join(__dirname, "..", "..");
 const repoRoot = join(srcRoot, "..");
 const read = (p: string) => readFileSync(join(srcRoot, p), "utf8");
 
+const home = read("app/page.tsx");
 const css = read("app/globals.css");
 const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as { dependencies: Record<string, string> };
 const reveal = read("components/landing/Reveal.tsx");
 const marquee = read("components/landing/Marquee.tsx");
 const showcase = read("components/landing/Showcase.tsx");
 const terminal = read("components/landing/TerminalDemo.tsx");
+const about = read("components/landing/AboutLanding.tsx");
+const install = read("components/landing/InstallSection.tsx");
 
 // Nov 19 2026: the old landing (hero, marquee, showcase, bento, MCP
 // section, stats band, video) was replaced by the About page + Get
@@ -159,6 +162,22 @@ describe("demo tour video", () => {
   });
 });
 
+describe("the text walls are gone", () => {
+  it("drops the old paragraphs and the Feature helper", () => {
+    for (const gone of [
+      "Pulled straight from the career pages of 50+ companies every 6 hours, so there are no reposts or stale listings",
+      "Sign up once and the tracker, the job finder and your AI agent all work on the same private data",
+      "Import a CSV from Excel, Google Sheets or Notion",
+      "Your applications are tied to your account and the database enforces it",
+      "Connect Claude, Cursor, Copilot or any MCP client with an access token",
+      "Online assessments with expiry dates, interviews to schedule, portals left half-finished",
+    ]) {
+      expect(home).not.toContain(gone);
+    }
+    expect(home).not.toContain("function Feature(");
+  });
+});
+
 describe("no new animation dependencies, no real data on the public page", () => {
   it("adds no animation library to the bundle", () => {
     for (const dep of ["gsap", "lenis", "framer-motion", "motion"]) {
@@ -166,6 +185,17 @@ describe("no new animation dependencies, no real data on the public page", () =>
     }
   });
 
+  it("keeps the new landing sections on static content — no Supabase client in them", () => {
+    for (const src of [about, install]) {
+      expect(src).not.toContain("@/lib/supabase");
+      expect(src).not.toContain("createClient");
+      expect(src).not.toContain(".from(\"jobs\")");
+    }
+    // The old sections stay Supabase-free too while they sit unused.
+    for (const src of [reveal, marquee, showcase, terminal]) {
+      expect(src).not.toContain("supabase");
+    }
+  });
 });
 
 describe("scroll reveals (restraint-first, reduced-motion safe)", () => {

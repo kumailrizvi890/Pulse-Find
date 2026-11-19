@@ -9,7 +9,7 @@ const home = read("app/page.tsx");
 
 // The landing navbar carries a red "Connect" button (Kumail, Nov 18, 5:02am):
 // strangers should reach the Connect Agent instructions from the navbar
-// itself, not only from the hero or the MCP section further down the page.
+// itself, not only from the About foot further down the page.
 describe("landing navbar Connect button", () => {
     it("shows a Connect button in the top bar that goes to /demo/connect", () => {
         const topBar = home.slice(home.indexOf("<TopBar"), home.indexOf("<main>"));
@@ -44,7 +44,11 @@ describe("landing navbar Connect button", () => {
         expect(topBar).toContain("<GitHubLink />");
     });
 
-    it("does not change the MCP section button, which already points at /demo/connect", () => {
-        expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
+    it("does not change the About foot Connect, which also points at /demo/connect", () => {
+        // The MCP section button is gone with the old landing; the
+        // Connect that remains on the page is the About foot's, kept
+        // at the preview's absolute URL (see OPEN_QUESTIONS.md).
+        const about = read("components/landing/AboutLanding.tsx");
+        expect(about).toContain('href="https://pulsefind-app.vercel.app/demo/connect"');
     });
 });

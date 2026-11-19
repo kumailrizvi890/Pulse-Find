@@ -162,50 +162,46 @@ describe("pulse brand placements", () => {
     expect(home).toContain("<SiteFooter />");
   });
 
-  it("lists all 7 capabilities in the landing hero, each led by a pulse dot", () => {
-    const home = read("app/page.tsx");
-    for (const item of [
-      "Reads your email to track every application and reply, so each stage shows up without you logging it.",
-      "Puts the replies, assessments and forms that need you at the top, with how long you have left.",
-      "Flags the companies that haven't replied in 21 days, so you know when to follow up.",
-      "Sets a weekly application goal and shows how far along you are.",
-      "Finds live internships straight from company career pages.",
-      "Connects to Claude, Cursor and Copilot through MCP, so your agent can read and update your tracker for you.",
-      "Keeps your real application data private, visible only to you.",
+  it("lists the same promises as the About page's five feature cards", () => {
+    // Nov 19 2026: the hero's 7 capability bullets went away with the
+    // hero. The promises moved to the About page's feature list — one
+    // dashboard, leads + swipe, tracker + networking, your agent, and
+    // the phone — each with its icon tile.
+    const about = read("components/landing/AboutLanding.tsx");
+    for (const headline of [
+      "One dashboard",
+      "Leads + the swipe deck",
+      "Tracker + networking",
+      "Bring your own AI agent",
+      "On your phone, one tap away",
     ]) {
-      expect(home).toContain(item);
-      expect(item).not.toContain("—");
+      expect(about).toContain(headline);
+      expect(headline).not.toContain("—");
     }
-    expect(home).toContain("HERO_CAPABILITIES");
-    expect(home).toContain("<PulseDot");
-    expect(home).toContain("sm:grid-cols-2");
+    expect(about).toContain('className="feat-list"');
+    expect(about).toContain('className="f-ico"');
   });
 
-  it("has no intro paragraph under the hero headline: the bullets carry the explanation", () => {
+  it("has no hero headline or hero buttons anymore — the About H2 is the headline", () => {
     const home = read("app/page.tsx");
-    // The old paragraph's two distinctive fragments must be gone entirely.
-    expect(home).not.toContain("puts the assessments, replies and forms that need you at the top");
-    expect(home).not.toContain("went quiet so you know when to follow up");
-    // The headline, the four buttons and the no-sign-up line stay.
-    expect(home).toContain("Know what&apos;s waiting");
-    expect(home).toContain("Try the live demo");
-    expect(home).toContain("Find jobs");
-    expect(home).toContain("Self host");
-    expect(home).toContain("Connect your agents");
-    expect(home).toContain("No sign-up needed for the demo or the job board.");
+    // The old headline, buttons, and no-sign-up line are gone entirely.
+    expect(home).not.toContain("Know what&apos;s waiting");
+    expect(home).not.toContain("Try the live demo");
+    expect(home).not.toContain("No sign-up needed for the demo or the job board.");
+    const about = read("components/landing/AboutLanding.tsx");
+    expect(about).toContain("The internship hunt,");
+    expect(about).toContain("run like a system.");
   });
 
-  it("sends Connect your agent to the demo Connect instructions instead of a dead self-link", () => {
-    const home = read("app/page.tsx");
-    // The button used to link to /app/connect (signed-out visitors hit
-    // the login page), then to #mcp — but it sits inside the #mcp
-    // section itself, so that link went nowhere at all. It now goes to
+  it("sends the About foot Connect to the demo Connect instructions", () => {
+    const about = read("components/landing/AboutLanding.tsx");
+    // The MCP section is gone with the old landing; the Connect that
+    // remains on the landing is the About foot's, and it still goes to
     // the demo Connect page, where a visitor can read the four steps
     // and copy the token and agent prompt without signing in.
-    expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
-    expect(home).toContain('<section id="mcp" className="border-t border-line bg-surface">');
-    expect(home).toContain("Let your own AI agent keep it current");
-    expect(home).toContain("MCP server");
+    expect(about).toContain('href="https://pulsefind-app.vercel.app/demo/connect"');
+    expect(about).toContain("Bring your own AI agent");
+    expect(about).toContain("MCP server");
   });
 
   it("keeps red hovers on nav links and tabs", () => {

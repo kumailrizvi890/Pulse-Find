@@ -2,16 +2,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// The hero's pulse line used to sit in a div BELOW the hero section, and
-// the section itself was taller than the viewport (pt-20 + content +
-// pb-16), so on load the line was cropped at the bottom edge and you had
-// to scroll to see it whole. The section is now exactly viewport height
-// (the sticky header's 69px accounted for), the line lives inside it as
-// the last grid row, and lg:content-between pins it to the bottom edge.
-// The hero also gets a textured 3D backdrop, and the line now beats:
-// a glowing head travels it in a double beat (lub-dub) on a slow loop,
-// with the halo thumping in time. Same treatment on the auth pages.
-// Pin all of it so it cannot silently regress.
+// The old hero's pulse line used to sit in a div BELOW the hero
+// section, and the section itself was taller than the viewport, so on
+// load the line was cropped at the bottom edge. That hero is gone
+// (Nov 19 2026: the landing is the About page now) — the pulse line
+// survives in the sticky top bar, and the textured 3D backdrop, the
+// beating trace, and the auth-page treatment are unchanged. The
+// viewport-fit pins below now guard the removal: no hero section, no
+// HeroBackdrop on the landing. The backdrop/heartbeat pins guard the
+// surviving components so they cannot silently regress.
 
 const root = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -22,38 +21,29 @@ const trace = read("components/PulseTrace.tsx");
 const backdrop = read("components/HeroBackdrop.tsx");
 const newCss = css.slice(css.indexOf("HERO 3D + HEARTBEAT"), css.indexOf("SITE-WIDE TEXTURED 3D BACKGROUND"));
 
-describe("hero pulse line fits the viewport on load", () => {
-  it("the hero section is viewport height minus the sticky header", () => {
-    // Header is 69px tall (12px trace + 56px nav + 1px border), measured.
-    expect(home).toContain("min-h-[calc(100dvh-69px)]");
+describe("the old hero is gone; the pulse line lives in the top bar", () => {
+  it("the landing has no viewport-height hero section anymore", () => {
+    expect(home).not.toContain("min-h-[calc(100dvh-69px)]");
+    expect(home).not.toContain("<HeroBackdrop />");
+    expect(home).not.toContain("HeroBackdrop");
+    expect(home).not.toContain("<HeroPreview />");
   });
 
-  it("the pulse line lives inside the hero section as the last grid row", () => {
-    const sectionStart = home.indexOf("<section");
-    const sectionEnd = home.indexOf("</section>");
-    const section = home.slice(sectionStart, sectionEnd);
-    expect(section).toContain('<PulseTrace className="h-10 w-full" />');
-    expect(section).toContain('lg:col-span-2');
-    // The old standalone div below the section is gone.
-    expect(home).not.toContain('className="gutter mx-auto w-full max-w-[1180px] pb-4"');
-  });
-
-  it("the free space goes between the content and the line on wide screens", () => {
-    expect(home).toContain("lg:content-between");
+  it("the pulse line still shows on the landing, in the sticky header", () => {
+    const topBar = read("components/TopBar.tsx");
+    expect(topBar).toContain('<PulseTrace className="block h-[12px] w-full" glow />');
+    expect(home).toContain("<TopBar");
   });
 });
 
 describe("hero 3D backdrop", () => {
-  it("the hero renders the shared backdrop behind the content", () => {
-    expect(home).toContain('import { HeroBackdrop } from "@/components/HeroBackdrop";');
-    expect(home).toContain("<HeroBackdrop />");
-    const sectionStart = home.indexOf("<section");
-    expect(home.indexOf("<HeroBackdrop />")).toBeGreaterThan(sectionStart);
-    expect(home.indexOf("<HeroBackdrop />")).toBeLessThan(home.indexOf("</section>"));
-    // Content paints above the backdrop: the column and the trace row
-    // are positioned, the preview already is.
-    expect(home).toContain('<div className="relative min-w-0">');
-    expect(home).toContain('<div className="relative lg:col-span-2"');
+  it("the landing renders no hero backdrop of its own", () => {
+    // The site-wide SiteBackdrop in the root layout is the only
+    // backdrop now (see site-texture.test.ts); the hero's own
+    // backdrop component stays in the repo unused, flagged for
+    // cleanup with the other old landing components.
+    expect(home).not.toContain("HeroBackdrop");
+    expect(home).not.toContain('<div className="relative min-w-0">');
   });
 
   it("the backdrop has three depth layers, grain and a vignette", () => {

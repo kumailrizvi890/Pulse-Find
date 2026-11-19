@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -109,18 +109,19 @@ describe("finding #9b: lead locations are not truncated", () => {
   });
 });
 
-describe("finding #11a: the landing video has controls", () => {
+describe("finding #11a: the landing video is gone with the old landing", () => {
   const home = read("app/page.tsx");
-  const video = home.slice(home.indexOf("<video"), home.indexOf("/>", home.indexOf("<video")));
 
-  it("offers native controls while keeping autoplay muted, looping and inline", () => {
-    expect(video).toContain("controls");
-    expect(video).toContain("autoPlay");
-    expect(video).toContain("muted");
-    expect(video).toContain("loop");
-    expect(video).toContain("playsInline");
-    expect(video).toContain('src="/landing/demo-tour.mp4"');
-    expect(video).toContain('poster="/landing/demo-tour-poster.jpg"');
+  it("embeds no video on the new landing", () => {
+    // Nov 19 2026: the "Watch it work" section left with the old
+    // hero, so #11a (no controls on the clip) and #11c (stale stats
+    // baked into the recording) are moot on the landing. The clip
+    // file itself stays in public/ for now, flagged for cleanup in
+    // OPEN_QUESTIONS.md.
+    expect(home).not.toContain("<video");
+    expect(home).not.toContain("demo-tour.mp4");
+    expect(home).not.toContain("Watch it work");
+    expect(existsSync(join(__dirname, "..", "..", "..", "public", "landing", "demo-tour.mp4"))).toBe(true);
   });
 });
 

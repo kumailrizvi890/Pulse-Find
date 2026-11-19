@@ -17,8 +17,12 @@ import { describe, expect, it } from "vitest";
 // icon-free. It is a headline-style link, and the same row already has
 // an icon'd "Open posting" button; an arrow after every title would
 // clutter the list. Everything else that opens a new tab carries the
-// icon, including the landing "Self host" buttons, the footer links and
-// the top-bar GitHub link.
+// icon, including the About page founder links and Connect button, the
+// footer links and the top-bar GitHub link.
+//
+// The old landing's "Self host" buttons are gone (the About page
+// replaced the landing, Nov 19 2026) — the test below pins that
+// removal instead of the arrow they used to carry.
 const src = (...parts: string[]) =>
   readFileSync(join(__dirname, "..", "..", ...parts), "utf8");
 
@@ -31,6 +35,7 @@ const networking = src("components", "pipeline", "NetworkingSection.tsx");
 const leads = src("components", "pipeline", "LeadsSection.tsx");
 const openings = src("components", "dashboard", "NewOpenings.tsx");
 const home = src("app", "page.tsx");
+const about = src("components", "landing", "AboutLanding.tsx");
 const footer = src("components", "SiteFooter.tsx");
 const topBar = src("components", "TopBar.tsx");
 
@@ -97,9 +102,13 @@ describe("links that had no affordance now carry the icon", () => {
     expect(openings).toContain('Open <IconExternalLink className="h-3.5 w-3.5 shrink-0" />');
   });
 
-  it("landing Self host buttons gain the arrow", () => {
-    expect(home).toContain('Self host <IconExternalLink className="h-4 w-4 shrink-0" />');
-    expect(home).toContain('Self-host it <IconExternalLink className="h-4 w-4 shrink-0" />');
+  it("About page links gain the arrow; the old Self host section is gone", () => {
+    expect(home).not.toContain("Self host");
+    expect(home).not.toContain("Self-host it");
+    expect(about).toContain('LinkedIn <IconExternalLink className="h-3 w-3 shrink-0" />');
+    expect(about).toContain('GitHub <IconExternalLink className="h-3 w-3 shrink-0" />');
+    expect(about).toContain('Portfolio <IconExternalLink className="h-3 w-3 shrink-0" />');
+    expect(about).toContain('Connect <IconExternalLink className="h-4 w-4 shrink-0" />');
   });
 
   it("footer portfolio and GitHub links gain the arrow", () => {
@@ -114,7 +123,7 @@ describe("links that had no affordance now carry the icon", () => {
 
 describe("every changed file uses the shared icon", () => {
   it("imports IconExternalLink from the shared icons module", () => {
-    for (const file of [details, board, deck, chat, networking, leads, openings, home]) {
+    for (const file of [details, board, deck, chat, networking, leads, openings, about]) {
       expect(file).toContain("IconExternalLink");
       expect(file).toContain('from "@/components/icons"');
     }

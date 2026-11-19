@@ -115,15 +115,20 @@ describe("service worker registration", () => {
 
 describe("install prompt", () => {
   const prompt = readSrc("components/InstallAppPrompt.tsx");
+  const capture = readSrc("lib/install-prompt.ts");
 
-  it("captures beforeinstallprompt and offers a plain Install button", () => {
+  it("captures beforeinstallprompt once in the shared module and offers a plain Install button", () => {
+    // The capture lives in @/lib/install-prompt, shared with the tour
+    // window's Get the app row, so prompt() is called at most once and
+    // the two surfaces never race each other for the same event.
+    expect(capture).toContain('"beforeinstallprompt"');
+    expect(capture).toContain("preventDefault()");
+    expect(capture).toContain(".prompt()");
+    expect(capture).toContain("userChoice");
     expect(prompt).toContain('"use client"');
-    expect(prompt).toContain('"beforeinstallprompt"');
-    expect(prompt).toContain("preventDefault()");
+    expect(prompt).toContain('from "@/lib/install-prompt"');
     expect(prompt).toContain("Install app");
     expect(prompt).toContain("Get the app. Your tracker, one tap away.");
-    expect(prompt).toContain(".prompt()");
-    expect(prompt).toContain("userChoice");
   });
 
   it("shows the Add to Home Screen steps on iPhones and iPads", () => {
@@ -133,18 +138,24 @@ describe("install prompt", () => {
     expect(prompt).toContain("Got it");
   });
 
-  it("is a quiet pill, never a blocking modal, and stays dismissed", () => {
+  it("is a quiet pill, never a blocking modal, and a miss never loses the install path", () => {
+    // Dismissing hides the pill for the session only: a missed pill
+    // comes back on the next visit instead of being lost forever. Once
+    // installed it never shows again (localStorage, permanent).
     expect(prompt).not.toContain("fixed inset-0");
     expect(prompt).toContain("fixed bottom-5 left-5");
     expect(prompt).toContain("pulse-find-install-dismissed");
+    expect(prompt).toContain("sessionStorage");
+    expect(prompt).toContain("pulse-find-install-done");
     expect(prompt).toContain("localStorage");
     expect(prompt).toContain('aria-label="Dismiss"');
   });
 
-  it("hides itself once installed, during the tour, and on auth pages", () => {
-    expect(prompt).toContain("display-mode: standalone");
+  it("hides itself once installed, while the tour is open, and on auth pages", () => {
+    expect(capture).toContain("display-mode: standalone");
     expect(prompt).toContain('"appinstalled"');
-    expect(prompt).toContain('searchParams.get("tour")');
+    expect(prompt).toContain("TOUR_OPEN_EVENT");
+    expect(prompt).toContain("TOUR_CLOSE_EVENT");
     expect(prompt).toContain('"/login"');
   });
 

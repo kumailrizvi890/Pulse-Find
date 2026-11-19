@@ -1,6 +1,6 @@
 "use client";
 
-import { IconX } from "@/components/icons";
+import { IconExternalLink, IconX } from "@/components/icons";
 import { bannerStyle, initials, type DeckJob } from "./SwipeDeck";
 
 function ago(iso: string | null) {
@@ -75,9 +75,9 @@ export function JobDetails({
           href={job.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-accent to-danger text-base font-bold text-white shadow-panel transition hover:opacity-90"
+          className="flex h-[52px] w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-accent to-danger text-base font-bold text-white shadow-panel transition hover:opacity-90"
         >
-          Apply Now ↗
+          Apply Now <IconExternalLink className="h-4 w-4 shrink-0" />
         </a>
       ) : (
         <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-muted">

@@ -7,11 +7,10 @@ export const metadata: Metadata = { title: "Networking — Live demo" };
 
 // Public demo route for the Networking tracker. Renders the same
 // NetworkingSection as the signed-in app, with fictional sample data only.
-export default async function DemoNetworkingPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
-  const sp = await searchParams;
+export default function DemoNetworkingPage() {
   return (
     <>
-      <DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefined} />
+      <DemoNav />
       <Suspense fallback={null}>
         <DemoNetworkingClient />
       </Suspense>

@@ -21,6 +21,8 @@ import {
   type TaskChatContext,
 } from "@/lib/task-chat";
 import { btn, cx, fmtDate } from "./ui";
+import { IconExternalLink } from "@/components/icons";
+
 import { PulseCrystal, PulseDot } from "@/components/PulseBrand";
 
 /**
@@ -353,9 +355,9 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
                           href={l.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent transition hover:brightness-110"
+                          className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent transition hover:brightness-110"
                         >
-                          {l.label} ↗
+                          {l.label} <IconExternalLink className="h-3 w-3 shrink-0" />
                         </a>
                       ))}
                     </div>

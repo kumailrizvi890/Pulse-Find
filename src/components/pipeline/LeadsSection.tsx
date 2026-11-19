@@ -9,6 +9,7 @@ import type { PipelineStore } from "@/lib/pipeline";
 import { canPromoteLead, isAlreadyTracked, leadKey } from "@/lib/pipeline";
 import type { TrackerStore } from "@/lib/store";
 import { Panel, Tag, btn, cx, field, fmtDate, useToast } from "@/components/dashboard/ui";
+import { IconExternalLink } from "@/components/icons";
 import { WaitingSignal } from "@/components/PulseBrand";
 
 const STATUS_TONE: Record<LeadStatus, string> = {
@@ -338,7 +339,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {l.url && (
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting <IconExternalLink className="h-3.5 w-3.5 shrink-0" /></a>
                   )}
                   {l.status === "Applied" ? (
                     <Tag tone="muted">In tracker</Tag>

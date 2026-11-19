@@ -370,7 +370,9 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                                 {/* Zero-count statuses stay listed but disabled, so the
                     status list stays discoverable while picking one can no
-                    longer land on the empty state. */}
+                    longer land on the empty state. While the tracker is
+                    still loading the counts are unknown, so the options
+                    show no count instead of (0). */}
                 <select
                   className={cx(field, "w-full sm:w-44")}
                   value={status}
@@ -379,7 +381,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
                 >
                   <option value="All">All statuses</option>
                   {STATUSES.map((s) => (
-                    <option key={s} value={s} disabled={(statusCounts[s] ?? 0) === 0}>{s} ({statusCounts[s] ?? 0})</option>
+                    <option key={s} value={s} disabled={(statusCounts[s] ?? 0) === 0}>{loading ? s : `${s} (${statusCounts[s] ?? 0})`}</option>
                   ))}
                 </select>
                 <input
@@ -404,7 +406,14 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
                     filter === f.id ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink",
                   )}
                 >
-                  {f.label} <span className="tnum opacity-70">{counts[f.id] ?? 0}</span>
+                  {f.label}{" "}
+                  {loading ? (
+                    // The counts come from the tracker data, so while it is
+                    // still loading the chip shows a skeleton tick, not a 0.
+                    <span className="inline-block h-3 w-4 animate-pulse rounded bg-surface-2" aria-hidden="true" />
+                  ) : (
+                    <span className="tnum opacity-70">{counts[f.id] ?? 0}</span>
+                  )}
                 </button>
               ))}
             </div>

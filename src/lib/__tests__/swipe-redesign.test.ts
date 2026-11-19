@@ -142,9 +142,26 @@ describe("swipe deck redesign — save flows into leads, tabs, details", () => {
   });
 
   it("keeps the tour anchors the guided tour depends on", () => {
-    expect(board).toContain('data-tour="find-jobs"');
     expect(board).toContain('data-tour="jobs"');
-    expect(deck).toContain('data-tour="job-save"');
+    expect(board).not.toContain('data-tour="find-jobs"');
+    expect(deck).toContain('data-tour="job-card"');
     expect(deck).toContain('data-tour="job-posting"');
+    expect(deck).not.toContain('data-tour="job-save"');
+  });
+
+  it("announces a real swipe on the card, and nothing else announces one", () => {
+    // The deck fires pulsefind:job-swiped only from a pointer drag
+    // past the threshold, so the guided tour can complete on a swipe
+    // without watching pointer math. The Save and Pass buttons and the
+    // arrow keys decide through the same handler without firing it.
+    expect(deck).toContain('import { JOB_SWIPED_EVENT, type JobSwipedDetail } from "@/lib/guided-tour"');
+    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "saved" } })');
+    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "hidden" } })');
+    const pointerUp = deck.slice(deck.indexOf("onPointerUp="), deck.indexOf("onPointerCancel"));
+    expect(pointerUp).toContain("JOB_SWIPED_EVENT");
+    const buttons = deck.slice(deck.indexOf('aria-label="Pass"'));
+    expect(buttons).not.toContain("JOB_SWIPED_EVENT");
+    const keys = deck.slice(deck.indexOf("ArrowRight"), deck.indexOf("window.addEventListener(\"keydown\""));
+    expect(keys).not.toContain("JOB_SWIPED_EVENT");
   });
 });

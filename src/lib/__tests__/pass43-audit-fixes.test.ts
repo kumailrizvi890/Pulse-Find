@@ -145,7 +145,7 @@ describe("Ask Pulse no longer repeats the tracker link", () => {
 describe("verify-first: sheet Company column is sticky in code", () => {
   it("freezes the Company header and body cells", () => {
     expect(sheet).toContain('ci === 0 && "left-0 z-20 border-r"');
-    expect(sheet).toContain('ci === 0 && "sticky left-0 z-[5] border-r border-line bg-surface font-semibold"');
+    expect(sheet).toContain('ci === 0 && "sticky left-0 z-[5] border-r border-line sheet-sticky font-semibold"');
   });
 });
 

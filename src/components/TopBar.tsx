@@ -16,6 +16,11 @@ export function TopBar({ right, home = "/" }: { right?: ReactNode; home?: string
 }
 
 export const navLink = "rounded-lg px-2.5 py-1.5 font-medium text-muted transition hover:bg-surface hover:text-accent";
+// Compact red button for the top bar: same accent treatment as the page
+// CTAs, sized to read as a button, not a plain link. Shared by the landing
+// page and /privacy so the public nav matches everywhere.
+export const navButton =
+  "ml-1 inline-flex items-center justify-center rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-panel transition hover:brightness-110";
 
 export function GitHubLink() {
   return (

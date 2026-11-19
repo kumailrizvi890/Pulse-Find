@@ -13,7 +13,7 @@ import { TerminalDemo } from "@/components/landing/TerminalDemo";
 import { StatsBand } from "@/components/landing/StatsBand";
 import { Reveal } from "@/components/landing/Reveal";
 import { demoApplications } from "@/lib/demo-data";
-import { actionQueue, calendarWeekPace, daysBetween, followUp, funnel, summarize, todayISO } from "@/lib/metrics";
+import { actionQueue, daysBetween, followUp, funnel, rollingWeekPace, summarize, todayISO } from "@/lib/metrics";
 import { env } from "@/lib/env";
 
 const primary =
@@ -70,9 +70,10 @@ export default async function Home() {
     .filter((a) => followUp(a, today, 21) === "ghosted")
     .sort((a, b) => (b.last_contact ?? "").localeCompare(a.last_contact ?? ""));
   const demoSteps = funnel(demoApps);
-  // The landing week is the Mon-Sun calendar week, computed by the one
-  // shared helper the Showcase also calls in the browser after mount.
-  const { days: paceDays, total: paceTotal, change: paceChange } = calendarWeekPace(demoApps, today);
+  // The landing pace is the rolling last 7 days — the same window the
+  // dashboard's 7-day chart counts — computed by the one shared helper
+  // the Showcase also calls in the browser after mount.
+  const { days: paceDays, total: paceTotal, change: paceChange } = rollingWeekPace(demoApps, today);
   const showcaseQueue = demoQueue.slice(0, 3).map((a) => {
     const d = a.action_due ? daysBetween(today, a.action_due) : null;
     return {

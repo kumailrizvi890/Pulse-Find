@@ -21,7 +21,9 @@ describe("tracker status filter", () => {
     expect(dashboard).toContain('aria-label="Filter by status"');
     expect(dashboard).toContain("All statuses");
     expect(dashboard).toContain("STATUSES.map((s)");
-    expect(dashboard).toContain("{s} ({statusCounts[s] ?? 0})");
+    // Options show their counts once the tracker has loaded; while it is
+    // still loading they show the plain name instead of (0).
+    expect(dashboard).toContain("{loading ? s : `${s} (${statusCounts[s] ?? 0})`}");
   });
 
   it("passes the selected status into applyFilter alongside the chip filter and search", () => {

@@ -162,6 +162,15 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
     el.focus({ preventScroll: true });
   }, []);
 
+  // "View all waiting items" scrolls down to this list, but the jump is a
+  // scroll, not a navigation, so the browser back button does not bring
+  // the visitor back. The button at the bottom of the list is the way back.
+  const scrollToTop = useCallback(() => {
+    const reduceMotion =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  }, []);
+
   // A general chat requested while the tracker is still loading waits for
   // the load (see above). This is the React "adjusting state during
   // render" pattern: when a pending request and the ready state meet
@@ -359,6 +368,9 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
             hint="Red tag marks a tech role. Red company names have something waiting on you."
             action={
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                                {/* Zero-count statuses stay listed but disabled, so the
+                    status list stays discoverable while picking one can no
+                    longer land on the empty state. */}
                 <select
                   className={cx(field, "w-full sm:w-44")}
                   value={status}
@@ -367,7 +379,7 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
                 >
                   <option value="All">All statuses</option>
                   {STATUSES.map((s) => (
-                    <option key={s} value={s}>{s} ({statusCounts[s] ?? 0})</option>
+                    <option key={s} value={s} disabled={(statusCounts[s] ?? 0) === 0}>{s} ({statusCounts[s] ?? 0})</option>
                   ))}
                 </select>
                 <input
@@ -427,6 +439,11 @@ export function Dashboard({ store, banner, headerActions, extras, userId, openGe
               </div>
             ) : (
               <AppList rows={rows} today={today} ghostDays={settings.ghost_days} onOpen={openTask} />
+            )}
+            {!loading && rows.length > 0 && (
+              <button className={cx(btn.ghost, "mt-4")} onClick={scrollToTop}>
+                ↑ Back to top
+              </button>
             )}
           </Panel>
           </div>
@@ -572,7 +589,8 @@ function AppList({ rows, today, ghostDays, onOpen }: { rows: Application[]; toda
                   <td className="tnum whitespace-nowrap py-2.5 pr-3 font-mono text-xs">{fmtDate(a.date_applied)}</td>
                   <td className="tnum whitespace-nowrap py-2.5 pr-3 font-mono text-xs">
                     {fmtDate(a.last_contact)}
-                    {quiet !== null && <span className="ml-1 text-faint">{quiet}d</span>}
+                    {/* Same-day contact reads "today": "0d" looked like a broken counter. */}
+                    {quiet !== null && <span className="ml-1 text-faint">{quiet === 0 ? "today" : `${quiet}d`}</span>}
                   </td>
                   <td className="py-2.5 pr-3">
                     <span className="flex flex-wrap gap-1">

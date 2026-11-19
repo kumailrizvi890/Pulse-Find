@@ -61,6 +61,7 @@ export const reachedOA = (a: Application) => a.oa_received || OA_STAGE.includes(
 /** An application that actually received an assessment — the tracker's "OA". Unlike reachedOA, this does not fold interview-stage applications in, so the OA count on the dashboard matches the tracker's OA Received column. */
 export const hasOA = (a: Application) => a.oa_received || OA_STAGE.includes(a.status);
 export const hasAction = (a: Application) => a.action_needed.trim().length > 0;
+
 /**
  * Response rate, one definition everywhere. An application counts as
  * responded once its status moved forward from the starting state — any

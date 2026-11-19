@@ -293,7 +293,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
             Company
-            <input className={field} maxLength={200} value={v.company} onChange={(e) => set("company", e.target.value)} placeholder={`Connected — thanked ${fmtDate(addDays(todayISO(), -12))}`} />
+            <input className={field} maxLength={200} value={v.company} onChange={(e) => set("company", e.target.value)} />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Status

@@ -81,7 +81,7 @@ describe("sheet frozen Company column (pinned, already working)", () => {
   });
 
   it("keeps the Company body cells frozen at the left edge with an opaque background", () => {
-    expect(sheet).toContain('ci === 0 && "sticky left-0 z-[5] border-r border-line bg-surface font-semibold"');
+    expect(sheet).toContain('ci === 0 && "sticky left-0 z-[5] border-r border-line sheet-sticky font-semibold"');
   });
 
   it("keeps Company the first column, so the frozen column is the Company column", () => {

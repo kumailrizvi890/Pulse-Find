@@ -178,7 +178,7 @@ describe("3D chat panel restyle", () => {
 
   it("gives the crystal avatar a halo and the bubbles depth", () => {
     expect(panel).toContain("pf-crystal-halo");
-    expect(panel).toContain("radial-gradient(circle, rgba(248, 52, 62, 38)");
+    expect(panel).toContain("radial-gradient(circle, rgba(248, 52, 62, 0.38)");
     expect(panel).toContain("pf-chat-bubble-user-3d");
     expect(panel).toContain("pf-chat-bubble-ai-3d");
     expect(panel).toContain("linear-gradient(160deg, #fb7185, #f43f5e 55%, #e11d48)");

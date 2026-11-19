@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest";
 import { demoApplications } from "@/lib/demo-data";
 import {
   actionQueue,
-  calendarWeekPace,
   daysBetween,
   followUp,
   funnel,
+  rollingWeekPace,
   summarize,
 } from "@/lib/metrics";
 
@@ -89,12 +89,15 @@ describe("hero preview values do not depend on which day seeds them", () => {
   });
 });
 
-describe("showcase pace follows the visitor week across the boundary", () => {
-  it("reads the Nov 9-15 week for a Sunday visitor, not the server Monday week", () => {
-    const pace = calendarWeekPace(demoApplications("2026-11-15"), "2026-11-15");
+describe("showcase pace follows the visitor day across the boundary", () => {
+  it("reads the Nov 9-15 window for a Sunday visitor, not the server Monday window", () => {
+    // The rolling window ends on the visitor's day, so a Sunday visitor
+    // sees Nov 9-15 while the server's Monday would start a day later.
+    const pace = rollingWeekPace(demoApplications("2026-11-15"), "2026-11-15");
     expect(pace.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
     expect(pace.total).toBe(6);
     expect(pace.days[0].sub).toBe("Nov 9");
+    expect(rollingWeekPace(demoApplications("2026-11-16"), "2026-11-16").days[0].sub).toBe("Nov 10");
   });
 });
 

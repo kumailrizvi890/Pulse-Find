@@ -312,7 +312,10 @@ export function SheetView({ store }: { store: TrackerStore }) {
                                   value={draft}
                                   onChange={(e) => setDraft(e.target.value)}
                                   onBlur={() => commitEdit(a)}
-                                  onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") (e.target as HTMLSelectElement).blur();
+                                    if (e.key === "Escape") setEditing(null);
+                                  }}
                                 >
                                   {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                                 </select>
@@ -323,7 +326,10 @@ export function SheetView({ store }: { store: TrackerStore }) {
                                   value={draft}
                                   onChange={(e) => setDraft(e.target.value)}
                                   onBlur={() => commitEdit(a)}
-                                  onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") (e.target as HTMLSelectElement).blur();
+                                    if (e.key === "Escape") setEditing(null);
+                                  }}
                                 >
                                   <option value="Y">Y</option>
                                   <option value="N">N</option>
@@ -344,6 +350,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
                                   }}
                                 />
                               )}
+                              <p className="mt-1 whitespace-nowrap text-[11px] text-faint">Enter to save · Esc to cancel</p>
                             </td>
                           );
                         }

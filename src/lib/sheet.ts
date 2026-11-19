@@ -39,6 +39,53 @@ export const SHEET_COLUMNS: SheetColumn[] = [
   { key: "tech", header: "Tech Role", editable: null },
 ];
 
+/**
+ * Fixed-layout widths for the sheet table (percent of the table width).
+ * They sum to 100 across all sixteen columns, so the table fills the page
+ * at desktop width instead of sizing each column to its longest cell and
+ * forcing a horizontal scroll on a 1920px screen. The visible columns are
+ * renormalized to 100 by sheetColumnWidths when some are hidden.
+ */
+export const SHEET_COLUMN_WIDTH_PCT: Record<SheetKey, number> = {
+  company: 7,
+  role: 8,
+  track: 6,
+  date_applied: 5,
+  status: 6,
+  last_contact: 5,
+  days_quiet: 6,
+  flag: 9,
+  oa_received: 4,
+  interviews_done: 4,
+  latest_update: 8,
+  email: 7,
+  notes: 7,
+  action_needed: 9,
+  action_due: 5,
+  tech: 4,
+};
+
+/**
+ * Columns that carry anything in the rows on screen. A column whose cells
+ * are all empty in the current filtered rows (the demo's Email column: no
+ * seed has a link) is hidden instead of sitting there as a blank stripe;
+ * it comes back the moment any visible row has a value.
+ */
+export function visibleSheetColumns(rows: SheetRow[]): SheetColumn[] {
+  return SHEET_COLUMNS.filter((col) => rows.some((r) => r.values[col.key] !== ""));
+}
+
+/**
+ * Column widths for the visible columns, renormalized so they always sum
+ * to 100 and the table fills its container exactly, even when a column
+ * (or several) is hidden.
+ */
+export function sheetColumnWidths(columns: SheetColumn[]): { key: SheetKey; pct: number }[] {
+  const total = columns.reduce((n, c) => n + SHEET_COLUMN_WIDTH_PCT[c.key], 0);
+  if (total === 0) return [];
+  return columns.map((c) => ({ key: c.key, pct: (SHEET_COLUMN_WIDTH_PCT[c.key] / total) * 100 }));
+}
+
 export interface SheetRow {
   app: Application;
   days_quiet: number | null;
@@ -97,7 +144,7 @@ export function sortSheet(rows: SheetRow[], key: SheetKey, dir: SortDir): SheetR
   return [...rows].sort((a, b) => {
     if (NUMERIC_KEYS.has(key)) {
       const av = a.values[key] === "" ? null : Number(a.values[key]);
-      const bv = b.values[key] === "" ? null : Number(b.values[key]);
+      const bv = b.values[key] === "" ? null : Number(a.values[key]);
       if (av === null && bv === null) return a.app.company.localeCompare(b.app.company);
       if (av === null) return 1; // blanks last either way
       if (bv === null) return -1;

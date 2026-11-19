@@ -107,7 +107,7 @@ describe("sheet text editor fits long values", () => {
 describe("first paint shows no zeros before the data loads", () => {
   it("sheet summary chips are skeleton pills while loading, not zeros", () => {
     expect(sheet).toContain('className="h-8 w-28 animate-pulse rounded-lg bg-surface-2"');
-    const chips = sheet.slice(sheet.indexOf('data-tour="sheet-tools"'), sheet.indexOf('className="ml-auto"'));
+    const chips = sheet.slice(sheet.indexOf('data-tour="sheet-tools"'), sheet.indexOf('className="ml-auto'));
     expect(chips).toContain('{state === "loading" ? (');
     expect(chips).toContain("<b>{sum.total}</b> applications");
   });

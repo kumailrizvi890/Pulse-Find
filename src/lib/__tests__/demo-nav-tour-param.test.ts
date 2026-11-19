@@ -28,7 +28,7 @@ const TOUR_PROP = '<DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefi
 
 describe("demo navbar Ask Pulse link keeps the tour alive", () => {
   it("carries the running tour step on the Ask Pulse link when one is present", () => {
-    expect(demoNav).toContain("export function DemoNav({ tour }: { tour?: string })");
+    expect(demoNav).toContain('export function DemoNav({ tour, badge = "Fictional sample data" }: { tour?: string; badge?: string })');
     expect(demoNav).toContain('href={tour ? `/demo?tour=${tour}&chat=1` : "/demo?chat=1"}');
   });
 

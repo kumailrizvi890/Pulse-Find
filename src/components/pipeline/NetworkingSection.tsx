@@ -154,8 +154,11 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
             {dueCount > 0 && <> <b className="text-danger">{dueCount} step{dueCount === 1 ? " is" : "s are"} due or overdue.</b></>}
           </p>
           {state === "ready" && contacts.length > 0 && (
-            <p className="mt-1 text-sm text-muted">
-              {responseRate.responded} of {responseRate.total} responded · {Math.round(responseRate.rate * 100)}% response rate
+            <p
+              className="mt-1 text-sm text-muted"
+              title="A contact counts as responded once their status moves forward — connected, replied, met, or referred. Still waiting on a first reply does not count."
+            >
+              {responseRate.responded} of {responseRate.total} people responded · {Math.round(responseRate.rate * 100)}% response rate
             </p>
           )}
         </div>

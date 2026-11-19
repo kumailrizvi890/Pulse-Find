@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Application, ApplicationInput, Settings, Status } from "@/lib/types";
 import { DEFAULT_SETTINGS, STATUSES } from "@/lib/types";
-import { dedupeImport, filterSheet, sheetRows, sortSheet, SHEET_COLUMNS, type SheetKey, type SortDir } from "@/lib/sheet";
+import { dedupeImport, filterSheet, sheetColumnWidths, sheetRows, sortSheet, SHEET_COLUMNS, visibleSheetColumns, type SheetKey, type SortDir } from "@/lib/sheet";
 import { hasAction, summarize, todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { TrackerStore } from "@/lib/store";
@@ -46,6 +46,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
   const [sort, setSort] = useState<{ key: SheetKey; dir: SortDir }>({ key: "last_contact", dir: "desc" });
   const [editing, setEditing] = useState<Editing>(null);
   const [draft, setDraft] = useState("");
+  const [showEmpty, setShowEmpty] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const { toast, toastNode } = useToast();
   const today = todayISO();
@@ -82,6 +83,19 @@ export function SheetView({ store }: { store: TrackerStore }) {
     () => sortSheet(filterSheet(sheetRows(apps, today, settings.ghost_days), query, onlyActions, status), sort.key, sort.dir),
     [apps, today, settings.ghost_days, query, onlyActions, status, sort],
   );
+
+  // Columns with nothing in any visible row (the demo's Email column: no
+  // seed has a link) are hidden instead of sitting there as blank stripes.
+  // The footer offers them back, so the first value in a hidden column is
+  // never unreachable from the sheet.
+  const { visibleColumns, hiddenCount } = useMemo(() => {
+    const shown = visibleSheetColumns(rows);
+    return {
+      visibleColumns: showEmpty ? SHEET_COLUMNS : shown,
+      hiddenCount: SHEET_COLUMNS.length - shown.length,
+    };
+  }, [rows, showEmpty]);
+  const colWidths = useMemo(() => sheetColumnWidths(visibleColumns), [visibleColumns]);
 
   function toggleSort(key: SheetKey) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "date_applied" || key === "last_contact" || key === "action_due" ? "desc" : "asc" }));
@@ -142,7 +156,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
 
   if (state === "error") {
     return (
-      <main className="gutter mx-auto w-full max-w-[1180px] pb-16 pt-6">
+      <main className="gutter mx-auto w-full max-w-none pb-16 pt-6">
         <Panel title="Your sheet didn't load">
           <p className="text-sm text-muted">{loadError}</p>
           <button className={cx(btn.primary, "mt-4")} onClick={retry}>Try again</button>
@@ -152,7 +166,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
   }
 
   return (
-    <main className="gutter rise mx-auto flex w-full max-w-[1180px] flex-col gap-4 pb-16 pt-6" data-tour="sheet">
+    <main className="gutter rise mx-auto flex w-full max-w-none flex-col gap-4 pb-16 pt-6" data-tour="sheet">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">Sheet</h1>
@@ -240,16 +254,21 @@ export function SheetView({ store }: { store: TrackerStore }) {
           </div>
         ) : (
           <div className="max-h-[70dvh] overflow-auto">
-            <table className="w-full min-w-[1240px] border-collapse text-[13px]">
+            <table className="w-full min-w-[1240px] table-fixed border-collapse text-[13px]">
+              <colgroup>
+                {colWidths.map((c) => (
+                  <col key={c.key} style={{ width: `${c.pct}%` }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
-                  {SHEET_COLUMNS.map((col, ci) => (
+                  {visibleColumns.map((col, ci) => (
                     <th
                       key={col.key}
                       scope="col"
                       aria-sort={sort.key === col.key ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
                       className={cx(
-                        "sticky top-0 z-10 whitespace-nowrap border-b border-line bg-surface px-3 py-2.5 text-left font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint",
+                        "sheet-sticky sticky top-0 z-10 border-b border-line px-3 py-2.5 text-left font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint",
                         ci === 0 && "left-0 z-20 border-r",
                       )}
                     >
@@ -267,11 +286,11 @@ export function SheetView({ store }: { store: TrackerStore }) {
                   const actionRow = hasAction(a);
                   return (
                     <tr key={a.id} className={cx("border-b border-line last:border-0 hover:bg-accent-soft/40", ri % 2 === 1 && "bg-surface-2/60")}>
-                      {SHEET_COLUMNS.map((col, ci) => {
+                      {visibleColumns.map((col, ci) => {
                         const isEditing = editing?.id === a.id && editing.key === col.key;
                         const base = cx(
-                          "max-w-[260px] px-3 py-2 align-top",
-                          ci === 0 && "sticky left-0 z-[5] border-r border-line bg-surface font-semibold",
+                          "px-3 py-2 align-top",
+                          ci === 0 && "sticky left-0 z-[5] border-r border-line sheet-sticky font-semibold",
                           col.numeric && "tnum text-right font-mono text-xs",
                           col.editable && "group",
                           col.editable && !isEditing && "cursor-text",
@@ -366,6 +385,16 @@ export function SheetView({ store }: { store: TrackerStore }) {
         )}
         <p className="border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint">
           Showing {rows.length} of {apps.length} rows · Days Since Contact and Follow-Up Flag are worked out from Last Contact ({settings.ghost_days}+ quiet days = ghosted) · click a header to sort
+          {hiddenCount > 0 && (
+            <>
+              {" · "}
+              <button type="button" className="underline underline-offset-2 hover:text-ink" onClick={() => setShowEmpty((v) => !v)}>
+                {showEmpty
+                  ? "Hide empty columns"
+                  : `${hiddenCount} empty column${hiddenCount === 1 ? "" : "s"} hidden · Show all`}
+              </button>
+            </>
+          )}
         </p>
       </section>
 

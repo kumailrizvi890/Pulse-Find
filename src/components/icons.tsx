@@ -1,24 +1,28 @@
-// Small stroke icons for the buttons that used to be bare Unicode glyphs
-// (Nov 16, 2026).
+// Small stroke icons for the buttons and links that used to be bare
+// Unicode glyphs (Nov 16, 2026).
 //
-// The swipe-deck Pass / Undo / Save buttons, the saved-list remove button
-// and the landing terminal Replay button rendered as ✕ (U+2715), ↺
-// (U+21BA) and ✓ (U+2713). Those live in the Dingbats / Arrows blocks,
-// which Geist does not cover, so they only appeared via a system fallback
-// font — and on minimal font setups (the cloud browser among them) they
-// showed up missing entirely. An inline SVG renders identically on every
-// device, with no font dependency. The paths are plain geometry
-// (Feather-style rotate-ccw / x / check), drawn in currentColor so the
-// buttons keep their existing colours.
+// The swipe-deck Pass / Undo / Save buttons, the saved-list remove button,
+// the landing terminal Replay button and the external-link affordance
+// rendered as ✕ (U+2715), ↺ (U+21BA), ✓ (U+2713) and ↗ (U+2197). Those
+// live in the Dingbats / Arrows blocks, which Geist does not cover, so
+// they only appeared via a system fallback font — and on minimal font
+// setups (the cloud browser among them) they showed up missing entirely.
+// An inline SVG renders identically on every device, with no font
+// dependency. The paths are plain geometry (Feather-style rotate-ccw / x /
+// check / arrow-up-right), drawn in currentColor so the buttons and links
+// keep their existing colours.
 
 type IconProps = {
   className?: string;
+  /** Optional stable marker for tests that query the rendered icon. */
+  testId?: string;
 };
 
-function IconBase({ className, children }: IconProps & { children: React.ReactNode }) {
+function IconBase({ className, testId, children }: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       className={className}
+      data-testid={testId}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -54,6 +58,16 @@ export function IconUndo({ className }: IconProps) {
     <IconBase className={className}>
       <polyline points="1 4 1 10 7 10" />
       <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </IconBase>
+  );
+}
+
+/** External-link arrow (Feather arrow-up-right) for links that open a new tab. */
+export function IconExternalLink({ className }: IconProps) {
+  return (
+    <IconBase className={className} testId="external-link-icon">
+      <line x1="7" y1="17" x2="17" y2="7" />
+      <polyline points="7 7 17 7 17 17" />
     </IconBase>
   );
 }

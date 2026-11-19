@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { demoApplications } from "@/lib/demo-data";
-import { actionQueue, addDays, calendarWeekPace, daysBetween, followUp, summarize, todayISO, weekStart } from "@/lib/metrics";
+import { actionQueue, daysBetween, followUp, rollingWeekPace, summarize, todayISO } from "@/lib/metrics";
 
 const srcRoot = join(__dirname, "..", "..");
 const repoRoot = join(srcRoot, "..");
@@ -78,50 +78,52 @@ describe("demo numbers the sections render (fictional seed data)", () => {
     expect(ghosted.map((a) => daysBetween(a.last_contact!, today))).toEqual([24, 26, 30, 40, 61]);
   });
 
-  it("pins the pace week the showcase chart shows", () => {
-    // The seed dates are relative to today, so the week's shape depends on
-    // the weekday: the two most recent applications (0 and 1 days ago) both
-    // land in the current week once today is past Monday, and the pinned
-    // [1, 0, 0, 0, 0, 0, 0] only holds on a Monday (CI went red on exactly
-    // this test the morning UTC rolled to Tuesday Nov 17). Pin a Monday so
-    // the expectation holds on every run, whatever day CI runs on.
+  it("pins the rolling 7-day pace the showcase chart shows", () => {
+    // The seed dates are relative to today, so the rolling window is
+    // always the same six applications: applied 0-6 days ago, with the
+    // 5-days-ago slot empty. The previous 7 days hold the three applied
+    // 9, 11 and 12 days ago, so the change reads +100%. Seeded on a
+    // Monday so the expectation holds on every run, whatever day CI
+    // runs on — the old calendar-week version changed shape with the
+    // weekday and went red the morning UTC rolled to Tuesday Nov 17.
     const today = "2026-11-16"; // a Monday
-    const apps = demoApplications(today);
-    const monday = weekStart(today);
-    const days = Array.from({ length: 7 }, (_, i) => apps.filter((a) => a.date_applied === addDays(monday, i)).length);
-    expect(days).toEqual([1, 0, 0, 0, 0, 0, 0]);
-    const prevStart = addDays(monday, -7);
-    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
-    expect(prevTotal).toBe(5);
+    const pace = rollingWeekPace(demoApplications(today), today);
+    expect(pace.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
+    expect(pace.total).toBe(6);
+    expect(pace.change).toBe(100);
+    expect(pace.days[0].sub).toBe("Nov 10");
   });
 
-  it("pins the same week one day later, when the second recent application joins it", () => {
-    // Tuesday Nov 17: the application from 1 day ago now lands on Monday
-    // and today's lands on Tuesday, so the week reads [1, 1, 0, 0, 0, 0, 0]
-    // and the previous week drops to 4. This is the shape CI saw fail.
+  it("reads the same rolling window one day later, when the calendar week would have changed", () => {
+    // Tuesday Nov 17: the Mon-Sun week gains its second application and
+    // the old test read [1, 1, 0, 0, 0, 0, 0]. The rolling window ends
+    // on today either way, so the shape, total and change are identical.
     const today = "2026-11-17"; // a Tuesday
-    const apps = demoApplications(today);
-    const monday = weekStart(today);
-    const days = Array.from({ length: 7 }, (_, i) => apps.filter((a) => a.date_applied === addDays(monday, i)).length);
-    expect(days).toEqual([1, 1, 0, 0, 0, 0, 0]);
-    const prevStart = addDays(monday, -7);
-    const prevTotal = apps.filter((a) => a.date_applied && a.date_applied >= prevStart && a.date_applied < monday).length;
-    expect(prevTotal).toBe(4);
+    const pace = rollingWeekPace(demoApplications(today), today);
+    expect(pace.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
+    expect(pace.total).toBe(6);
+    expect(pace.change).toBe(100);
+    expect(pace.days[0].sub).toBe("Nov 11");
   });
 
-  it("calendarWeekPace is the single source for the showcase week", () => {
-    // The same Monday/Tuesday shapes as above, through the helper the
-    // landing page and the Showcase both call — including the change
-    // against the previous Mon-Sun week (Monday: 1 vs 5, down 80%;
-    // Tuesday: 2 vs 4, down 50%, the "down 50%" the landing showed).
-    const monday = calendarWeekPace(demoApplications("2026-11-16"), "2026-11-16");
-    expect(monday.days.map((d) => d.value)).toEqual([1, 0, 0, 0, 0, 0, 0]);
-    expect(monday.total).toBe(1);
-    expect(monday.change).toBe(-80);
-    const tuesday = calendarWeekPace(demoApplications("2026-11-17"), "2026-11-17");
-    expect(tuesday.days.map((d) => d.value)).toEqual([1, 1, 0, 0, 0, 0, 0]);
-    expect(tuesday.total).toBe(2);
-    expect(tuesday.change).toBe(-50);
+  it("rollingWeekPace is the single source for the showcase pace", () => {
+    // The same rolling shape through the helper the landing page and
+    // the Showcase both call — including a Sunday seed, the weekday the
+    // old calendar week turned over on. The change is against the
+    // previous 7 days (6 vs 3, up 100%, the "up 100%" the landing shows).
+    const monday = rollingWeekPace(demoApplications("2026-11-16"), "2026-11-16");
+    expect(monday.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
+    expect(monday.total).toBe(6);
+    expect(monday.change).toBe(100);
+    const tuesday = rollingWeekPace(demoApplications("2026-11-17"), "2026-11-17");
+    expect(tuesday.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
+    expect(tuesday.total).toBe(6);
+    expect(tuesday.change).toBe(100);
+    const sunday = rollingWeekPace(demoApplications("2026-11-15"), "2026-11-15");
+    expect(sunday.days.map((d) => d.value)).toEqual([1, 0, 1, 1, 1, 1, 1]);
+    expect(sunday.total).toBe(6);
+    expect(sunday.change).toBe(100);
+    expect(sunday.days[0].sub).toBe("Nov 9");
   });
 });
 
@@ -155,24 +157,24 @@ describe("showcase widgets (live demo data, not screenshots)", () => {
     expect(showcase).toContain("Who went quiet");
     expect(showcase).toContain("This week&apos;s pace");
     expect(showcase).toContain("days={pace.days}");
-    expect(showcase).toContain('totalLabel="Total this week (Mon-Sun)"');
-    expect(showcase).toContain('prevLabel="last week (Mon-Sun)"');
-    expect(showcase).toContain('ariaLabel="Applications per day, this week (Monday to Sunday)"');
+    expect(showcase).toContain('totalLabel="Total in the last 7 days"');
+    expect(showcase).toContain('prevLabel="previous 7 days"');
+    expect(showcase).toContain('ariaLabel="Applications per day, last 7 days"');
     expect(showcase).toContain("Open the demo →");
   });
 
-  it("labels the pace window as the Mon-Sun calendar week and recomputes it in the browser", () => {
-    // The dashboard counts a trailing 7 days; the landing counts the
-    // Mon-Sun calendar week, so the card says so outright instead of
+  it("labels the pace window as the rolling last 7 days and recomputes it in the browser", () => {
+    // The dashboard counts a trailing 7 days and the landing now counts
+    // the same rolling window, so the card says so outright instead of
     // letting the two totals look contradictory.
-    expect(showcase).toContain("Monday to Sunday, compared with last week.");
+    expect(showcase).toContain("Last 7 days, compared with the 7 days before.");
     // The server renders on UTC, so a server-rendered "today" is already
     // tomorrow for a visitor west of UTC once midnight UTC passes. The
-    // Showcase recomputes the week in the browser after mount, the same
+    // Showcase recomputes the window in the browser after mount, the same
     // pattern as ChatBeat, from the same shared helper the page uses.
-    expect(showcase).toContain("calendarWeekPace(demoApplications(today), today)");
+    expect(showcase).toContain("rollingWeekPace(demoApplications(today), today)");
     expect(showcase).toContain("todayISO()");
-    expect(home).toContain("calendarWeekPace(demoApps, today)");
+    expect(home).toContain("rollingWeekPace(demoApps, today)");
   });
 
   it("tilts only on fine pointers and never under reduced motion", () => {

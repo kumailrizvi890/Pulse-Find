@@ -574,18 +574,18 @@ export function GuidedTour() {
         break;
       }
       case "connect-signup": {
-        // Start a free account: tap "Create an account" under the
-        // sign-in form, the toggle that switches the form to sign-up
-        // mode. The form itself is never submitted by the tour, and
-        // no token is copied: a signed-out visitor has none to copy.
-        // A visitor who lands with ?mode=signup already set is
-        // already on the sign-up form (the name field only renders
-        // there), so the step completes on arrival. The arrival check
-        // runs in a promise chain, so the setState lands in an async
+        // Last stop: arriving at /login is the win. The step
+        // completes on arrival, no tap needed, so the celebration
+        // fires the moment the visitor gets here. The tap on
+        // "Create an account" stays as a fallback for starting
+        // the real sign-up, and the form itself is never submitted
+        // by the tour, and no token is copied: a signed-out
+        // visitor has none to copy. The arrival check runs in a
+        // promise chain, so the setState lands in an async
         // callback, never synchronously in this effect.
         let cancelled = false;
         Promise.resolve().then(() => {
-          if (!cancelled && document.querySelector("#l-name")) complete();
+          if (!cancelled) complete();
         });
         cleanups.push(() => {
           cancelled = true;

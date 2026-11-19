@@ -113,6 +113,30 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
     }
   }
 
+  // One way to mark a lead Applied, whichever control the tap comes from.
+  // The "I applied - track it" button and the status dropdown used to be
+  // two different paths: the button created the tracker application, the
+  // dropdown only flipped the lead's status, so the row then read
+  // "In tracker" with no application in the tracker and no way back to
+  // the button. Now picking Applied anywhere lands here: it promotes
+  // (creates the application), unless the application is already there,
+  // in which case the status flip alone is the truth.
+  async function markApplied(l: Lead) {
+    if (isAlreadyTracked(trackedApps, l)) {
+      await setStatus(l, "Applied");
+      return;
+    }
+    await promote(l);
+  }
+
+  async function changeStatus(l: Lead, status: LeadStatus) {
+    if (status === "Applied" && l.status !== "Applied") {
+      await markApplied(l);
+      return;
+    }
+    await setStatus(l, status);
+  }
+
   async function promote(l: Lead) {
     try {
       if (isAlreadyTracked(trackedApps, l)) {
@@ -163,19 +187,38 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
   async function save(input: LeadInput) {
     try {
       if (form.editing) {
-        const next = await pipeline.updateLead(form.editing.id, input);
+        // The form's own status pick goes through the same single path:
+        // save the field edits first, then mark the saved lead Applied
+        // (which creates the tracker application). Saving Applied
+        // directly would leave an "In tracker" lead with no application.
+        const flippingToApplied = input.status === "Applied" && form.editing.status !== "Applied";
+        const toSave = flippingToApplied ? { ...input, status: form.editing.status } : input;
+        const next = await pipeline.updateLead(form.editing.id, toSave);
         setLeads((p) => p.map((x) => (x.id === next.id ? next : x)));
-        toast("Lead saved");
+        setForm({ open: false, editing: null });
+        if (flippingToApplied) {
+          await markApplied(next);
+        } else {
+          toast("Lead saved");
+        }
       } else {
         if (leads.some((l) => leadKey(l) === leadKey(input))) {
           toast("That company + role is already in your leads.", "error");
           return;
         }
-        const made = await pipeline.createLead(input);
+        // A brand-new lead saved as Applied takes the same path: create
+        // it as New, then mark it Applied so the tracker application is
+        // created with it instead of an orphan Applied lead.
+        const toCreate = input.status === "Applied" ? { ...input, status: "New" as const } : input;
+        const made = await pipeline.createLead(toCreate);
         setLeads((p) => [made, ...p]);
-        toast(`Added ${made.company} to your leads`);
+        setForm({ open: false, editing: null });
+        if (input.status === "Applied") {
+          await markApplied(made);
+        } else {
+          toast(`Added ${made.company} to your leads`);
+        }
       }
-      setForm({ open: false, editing: null });
     } catch (e) {
       toast(e instanceof Error ? e.message : "Couldn't save that lead.", "error");
     }
@@ -281,7 +324,11 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                     {l.track && <Tag tone="muted">{l.track}</Tag>}
                     <span className="tnum font-mono text-xs text-faint">Found {fmtDate(l.date_found)}</span>
                   </p>
-                  <p className="mt-0.5 truncate text-sm text-muted">
+                  {/* No truncate here: the whole role, location, pay and
+                    source line used to cut off at one line, so long
+                    locations read mid-word ("Washington, Distric…"). It
+                    wraps now, so the full location reads. */}
+                  <p className="mt-0.5 text-sm text-muted">
                     {l.role || "Role not set"}
                     {l.location && <> · {l.location}</>}
                     {l.pay && <> · {l.pay}</>}
@@ -304,7 +351,7 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                     aria-label={`Status for ${l.company}`}
                     className="rounded-lg border border-line bg-surface px-2 py-2 text-sm text-ink"
                     value={l.status}
-                    onChange={(e) => setStatus(l, e.target.value as LeadStatus)}
+                    onChange={(e) => changeStatus(l, e.target.value as LeadStatus)}
                   >
                     {LEAD_STATUSES.map((s) => (
                       <option key={s} value={s}>{s}</option>

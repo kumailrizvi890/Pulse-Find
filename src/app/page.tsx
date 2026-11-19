@@ -167,6 +167,7 @@ export default async function Home() {
               muted
               loop
               playsInline
+              controls
               preload="metadata"
               aria-label="A short screen recording of the Pulse Find demo tracker"
             />

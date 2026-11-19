@@ -511,7 +511,8 @@ export function answerGeneralQuestion(question: string, ctx: GeneralChatContext)
  * so far, and what the user is trying to do, followed by the FULL operator
  * prompt (every capability, the automatic setup, and the rules), so the
  * agent can pick the task up and set everything up on its own. It contains
- * no token: the agent already has its own access from the Connect page.
+ * no token: a connected agent already has its own access from the Connect
+ * page, and the prompt says so only for an agent that is already connected.
  */
 export function buildTaskAgentHandoff(args: {
   ctx: TaskChatContext;

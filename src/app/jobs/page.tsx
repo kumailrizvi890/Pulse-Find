@@ -11,8 +11,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default async function JobsPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
-  const sp = await searchParams;
+export default async function JobsPage() {
   let user: { id: string; email?: string } | null = null;
   if (isConfigured()) {
     const supabase = await createClient();
@@ -43,7 +42,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   }
   return (
     <>
-      <DemoNav badge="Live openings" tour={typeof sp.tour === "string" ? sp.tour : undefined} />
+      <DemoNav badge="Live openings" />
       <JobsBoard userId={null} />
     </>
   );

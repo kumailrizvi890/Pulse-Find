@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
 import { IconCheck, IconDetails, IconExternalLink, IconUndo, IconX } from "@/components/icons";
 import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
-import { JOB_SWIPED_EVENT, type JobSwipedDetail } from "@/lib/guided-tour";
 
 export type DeckJob = {
   id: string;
@@ -170,19 +169,15 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
               onPointerMove={(e) => { if (dragging) setDx(e.clientX - start.current); }}
               onPointerUp={() => {
                 setDragging(false);
-                // A real drag past the threshold announces itself, so
-                // the guided tour can complete on a swipe without
-                // watching pointer math. The buttons, the arrow keys
-                // and the save toast never fire this event.
+                // A real drag past the threshold decides the card, the
+                // same as the Save and Pass buttons and the arrow keys:
+                // the caller counts the decision through onDecide (the
+                // tour window gates its Next button on all three being
+                // decided). No event is announced: the old guided tour
+                // was the only listener, and it is gone.
                 if (dx > THRESHOLD) {
-                  window.dispatchEvent(
-                    new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "saved" } }),
-                  );
                   decide("saved");
                 } else if (dx < -THRESHOLD) {
-                  window.dispatchEvent(
-                    new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "hidden" } }),
-                  );
                   decide("hidden");
                 } else setDx(0);
               }}

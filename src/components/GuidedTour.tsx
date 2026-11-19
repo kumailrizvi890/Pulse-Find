@@ -420,10 +420,8 @@ export function GuidedTour() {
   // A step is done when the visitor does the real thing. The crystal
   // bursts, the ring pulses, and Pulse says the done line. The advance
   // itself lives in the effect below, so it can wait for a dialog to
-  // close first. The last step has no next step, so it
-  // waits for Done instead. A dot jump or a browser Back clears the
-  // pending timer through the cleanup, and the guard below is the
-  // belt-and-braces for a timer that already fired.
+  // close first. The step and its badge (when it earns one) are
+  // recorded in localStorage, so a replay shows what was earned.
   const complete = useCallback(() => {
     if (!step || doneStep === step.id) return;
     setDoneStep(step.id);

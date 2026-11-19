@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { SiteBackdrop } from "@/components/SiteBackdrop";
-import { GuidedTour } from "@/components/GuidedTour";
+import { TourWindow } from "@/components/TourWindow";
 import { FloatingPulseButton } from "@/components/FloatingPulseButton";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -74,7 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <InstallAppPrompt />
         </Suspense>
         <Suspense fallback={null}>
-          <GuidedTour />
+          <TourWindow />
         </Suspense>
         <Suspense fallback={null}>
           <FloatingPulseButton />

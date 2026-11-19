@@ -436,178 +436,6 @@ in empty editable cells instead of the faint dash. */
   animation: landing-caret-blink 1s step-end infinite;
 }
 
-/* Guided tour spotlight ring: the red outline around the feature the
-   current step is about. There is no dim backdrop: the quest coach is
-   a small bottom sheet and the page stays visible and tappable
-   underneath, so the ring is only an outline plus a soft glow. The
-   ring follows the anchor with a short transition; under reduced
-   motion it snaps instead. Stacking: the tour wrapper is z-80 and
-   passes pointer events through, the ring sits at z-1 inside it, and
-   the tour card sits at z-2 with a solid background, so the page under
-   the tour stays clickable. */
-.tour-ring {
-  position: fixed;
-  z-index: 1;
-  pointer-events: none;
-  border: 3px solid var(--accent);
-  border-radius: 14px;
-  box-shadow: 0 0 24px rgb(253 88 93 / 0.45);
-  /* No position transition: the ring tracks the anchor by direct DOM
-     writes on every scroll frame, and a transition would lag 250ms
-     behind it (the old shape is what made the glow detach from its
-     target once the visitor scrolled past). The idle pulse below is
-     the only motion, and it is a glow, not a position chase. */
-  animation: tour-ring-idle 2s ease-in-out infinite;
-}
-
-/* The ring breathes gently the whole time it sits on a target, so the
-   "press here" signal is unmissable even before the visitor reads the
-   coach line. */
-@keyframes tour-ring-idle {
-  0%, 100% { box-shadow: 0 0 24px rgb(253 88 93 / 0.45), 0 0 0 0 rgb(253 88 93 / 0.3); }
-  50% { box-shadow: 0 0 34px rgb(253 88 93 / 0.7), 0 0 0 6px rgb(253 88 93 / 0.12); }
-}
-
-/* Tour card: solid surface (the glass .bg-surface override is 86%
-   translucent, which let background text bleed through the card), and
-   it glides to its new spot when the step changes. */
-.tour-card {
-  z-index: 2;
-  background-color: var(--surface);
-  transition:
-    left 0.25s ease,
-    top 0.25s ease;
-}
-
-/* The coach crystal: a faceted PulseCrystal that floats gently and
-   glows red, so the coach reads as a character, not a card. On a
-   completed action it bursts once (a quick scale-up with a brighter
-   glow) while the ring pulses, then settles back to the float. The
-   halo behind it expands and fades on a slow loop, so the coach
-   catches the eye the moment a step lands. */
-.tour-crystal {
-  display: inline-flex;
-  filter: drop-shadow(0 0 12px rgb(248 52 62 / 0.65));
-  animation: tour-crystal-float 3.2s ease-in-out infinite;
-}
-.tour-crystal-halo {
-  border: 2px solid rgb(248 52 62 / 0.55);
-  border-radius: 9999px;
-  animation: tour-crystal-halo 2.4s ease-out infinite;
-}
-@keyframes tour-crystal-halo {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(1.45); opacity: 0; }
-}
-@keyframes tour-crystal-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-.tour-crystal-burst {
-  animation: tour-crystal-burst 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes tour-crystal-burst {
-  0% { transform: scale(1); filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45)); }
-  40% { transform: scale(1.22); filter: drop-shadow(0 0 18px rgb(248 52 62 / 0.8)); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 8px rgb(248 52 62 / 0.45)); }
-}
-
-/* The coach speech bubble: a surface-2 bubble beside the crystal,
-   with a small tail pointing at it. */
-.tour-bubble {
-  position: relative;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  border-top-left-radius: 4px;
-  background-color: var(--surface-2);
-  padding: 10px 12px;
-}
-.tour-bubble::before {
-  content: "";
-  position: absolute;
-  left: -6px;
-  top: 16px;
-  width: 11px;
-  height: 11px;
-  background-color: var(--surface-2);
-  border-left: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  transform: rotate(45deg);
-}
-
-/* One short ring pulse when the visitor does the real thing, so the
-   feature they just used flashes once as the tour moves on. */
-@keyframes tour-ring-pulse {
-  0%, 100% { box-shadow: 0 0 24px rgb(253 88 93 / 0.35); }
-  50% { box-shadow: 0 0 40px rgb(253 88 93 / 0.8); }
-}
-.tour-ring-pulse {
-  animation: tour-ring-pulse 1.2s ease;
-}
-
-/* The coach slides up and fades in when a step lands, so the eye goes
-   straight to it. The card remounts per step (keyed by step id), so
-   the entrance replays on every step. */
-@keyframes tour-card-enter {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.tour-card-enter {
-  animation: tour-card-enter 0.3s ease-out;
-}
-
-/* The progress ring around the crystal: a faint track and an accent
-   fill whose dash offset is set from the completed-step fraction. */
-.tour-progress-ring-track {
-  fill: none;
-  stroke: var(--line);
-  stroke-width: 3;
-}
-.tour-progress-ring-fill {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.4s ease;
-}
-
-/* A badge chip: small, quiet, earned only by doing the real thing.
-   A newly earned chip pops once. */
-.tour-badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid rgb(253 88 93 / 0.45);
-  border-radius: 9999px;
-  background-color: var(--accent-soft);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-}
-@keyframes tour-badge-pop {
-  0% { transform: scale(0.7); opacity: 0; }
-  60% { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-.tour-badge-pop {
-  animation: tour-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-marquee-track { animation: none; }
-  .landing-swipe-nudge { animation: none; }
-  .landing-sheet-pulse { animation: none; }
-  .landing-caret { animation: none; opacity: 1; }
-  .tour-ring { transition: none; animation: none; }
-  .tour-card { transition: none; }
-  .tour-card-enter { animation: none; }
-  .tour-ring-pulse { animation: none; }
-  .tour-crystal { animation: none; }
-  .tour-crystal-halo { animation: none; }
-  .tour-crystal-burst { animation: none; }
-  .tour-badge-pop { animation: none; }
-  .tour-progress-ring-fill { transition: none; }
-}
 
 /*
   SITE-WIDE TEXTURED 3D BACKGROUND (Nov 16 2026) — the dark textured
@@ -656,7 +484,8 @@ body {
 
 /* Sheet sticky cells: solid surface, not the glass .bg-surface (86%
    translucent), so scrolled row text cannot bleed through the sticky
-   header or the frozen Company column. Same reason as .tour-card. */
+   header or the frozen Company column. Same reason as the tour
+   window's solid surface. */
 .sheet-sticky {
   background-color: var(--surface);
 }
@@ -712,6 +541,436 @@ body {
 .pf-site-float-a { animation: pf-site-float 11s ease-in-out infinite alternate; }
 .pf-site-float-b { animation: pf-site-float 14s ease-in-out infinite alternate-reverse; }
 .pf-site-float-c { animation: pf-site-float 9s ease-in-out infinite alternate; }
+
+/* Guided tour window (Nov 19 2026 redesign): one small draggable
+   window with Pulse guiding from a speech bubble, 8 tap-to-advance
+   stops, and the real swipe deck on the jobs stop. The window is the
+   only new surface: these classes are used by TourWindow only, and
+   nothing else on the page is restyled. The old quest tour's
+   spotlight ring + coach card classes are gone with it. */
+
+.pf-tour-window {
+  background: linear-gradient(180deg, #17171f, #101016);
+  border: 1.5px solid #34344a;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 0 6px rgba(255, 46, 66, 0.06), 0 30px 70px rgba(0, 0, 0, 0.65), 0 0 60px rgba(255, 46, 66, 0.13);
+  will-change: transform;
+}
+.pf-tour-winpop {
+  animation: pf-tour-winpop 0.65s cubic-bezier(0.2, 1.35, 0.35, 1) both 0.1s;
+}
+@keyframes pf-tour-winpop {
+  from { opacity: 0; transform: scale(0.86) translateY(26px) rotate(-1.2deg); }
+  to { opacity: 1; transform: scale(1) translateY(0) rotate(0); }
+}
+.pf-tour-dragging {
+  animation: none;
+  transition: none !important;
+  box-shadow: 0 0 0 6px rgba(255, 46, 66, 0.1), 0 44px 90px rgba(0, 0, 0, 0.75), 0 0 80px rgba(255, 46, 66, 0.22);
+}
+
+/* Title bar: traffic-light dots, the window name, a drag hint (hidden
+   on narrow phones), the LIVE TOUR badge, and the close button. */
+@media (max-width: 560px) {
+  .pf-tour-drag-hint { display: none; }
+}
+.pf-tour-live-dot {
+  animation: pf-tour-blink 1.3s ease-in-out infinite;
+}
+@keyframes pf-tour-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(255, 46, 66, 0.5); }
+  50% { opacity: 0.35; box-shadow: none; }
+}
+
+/* The crystal: a glowing bob, a spin + sparkle burst on tap. */
+.pf-tour-crystal-glow {
+  background: radial-gradient(circle, rgba(255, 46, 66, 0.5), transparent 70%);
+  animation: pf-tour-glowp 2.2s ease-in-out infinite;
+}
+@keyframes pf-tour-glowp {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.pf-tour-bob {
+  animation: pf-tour-bob 3.4s ease-in-out infinite;
+}
+@keyframes pf-tour-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+}
+.pf-tour-bob.pf-tour-spin {
+  animation: pf-tour-spin 0.6s cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+@keyframes pf-tour-spin {
+  to { transform: rotate(360deg) scale(1.15); }
+}
+.pf-tour-spark {
+  position: absolute;
+  font-size: 13px;
+  color: #f5a623;
+  pointer-events: none;
+  animation: pf-tour-sparkfly 0.7s ease-out forwards;
+  z-index: 5;
+}
+@keyframes pf-tour-sparkfly {
+  from { opacity: 1; transform: translate(0, 0) scale(0.6); }
+  to { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(1.3) rotate(90deg); }
+}
+
+/* Speech bubble: swaps in on every step, with a tail pointing at Pulse. */
+.pf-tour-bubble {
+  position: relative;
+  background-color: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  border-top-left-radius: 4px;
+  padding: 12px 14px;
+  animation: pf-tour-swapin 0.35s ease;
+}
+.pf-tour-bubble::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 16px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--surface-2);
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+@keyframes pf-tour-swapin {
+  from { opacity: 0; transform: translateY(7px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Hint pill under the bubble, with a rare wiggle. */
+.pf-tour-hint {
+  animation: pf-tour-wiggle 3.6s ease-in-out infinite;
+}
+@keyframes pf-tour-wiggle {
+  0%, 88%, 100% { transform: rotate(0); }
+  91% { transform: rotate(-1.6deg); }
+  94% { transform: rotate(1.6deg); }
+  97% { transform: rotate(-1deg); }
+}
+
+/* Game-block progress: the current block pulses. */
+.pf-tour-xp-now {
+  animation: pf-tour-xpulse 1.2s ease-in-out infinite;
+}
+@keyframes pf-tour-xpulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+/* ECG line, drawing itself on a loop. */
+.pf-tour-ecg path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 620;
+  stroke-dashoffset: 620;
+  animation: pf-tour-ecgdraw 3.2s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(255, 46, 66, 0.5));
+}
+@keyframes pf-tour-ecgdraw {
+  to { stroke-dashoffset: -620; }
+}
+
+/* Stage panel: pops on every step change. */
+.pf-tour-stage {
+  animation: pf-tour-stagepop 0.38s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+@keyframes pf-tour-stagepop {
+  from { opacity: 0.4; transform: scale(0.975) translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Finale badges pop in one after another (delays are inline). */
+.pf-tour-badge {
+  animation: pf-tour-badgepop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+@keyframes pf-tour-badgepop {
+  from { opacity: 0; transform: scale(0.6) rotate(-4deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Finale confetti. */
+.pf-tour-confetti i {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  animation: pf-tour-fall linear forwards;
+}
+@keyframes pf-tour-fall {
+  to { transform: translateY(430px) rotate(560deg); opacity: 0; }
+}
+
+/* Next button glow, only while it is enabled. */
+.pf-tour-next-glow {
+  animation: pf-tour-nextglow 2.4s ease-in-out infinite;
+}
+@keyframes pf-tour-nextglow {
+  0%, 100% { box-shadow: 0 6px 22px rgba(255, 46, 66, 0.35); }
+  50% { box-shadow: 0 6px 30px rgba(255, 46, 66, 0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-marquee-track { animation: none; }
+  .landing-swipe-nudge { animation: none; }
+  .landing-sheet-pulse { animation: none; }
+  .landing-caret { animation: none; opacity: 1; }
+  .pf-tour-window { transition: none; }
+  .pf-tour-winpop { animation: none; }
+  .pf-tour-dragging { transition: none; }
+  .pf-tour-live-dot { animation: none; }
+  .pf-tour-crystal-glow { animation: none; }
+  .pf-tour-bob { animation: none; }
+  .pf-tour-bob.pf-tour-spin { animation: none; }
+  .pf-tour-spark { animation: none; }
+  .pf-tour-bubble { animation: none; }
+  .pf-tour-hint { animation: none; }
+  .pf-tour-xp-now { animation: none; }
+  .pf-tour-ecg path { animation: none; }
+  .pf-tour-stage { animation: none; }
+  .pf-tour-badge { animation: none; }
+  .pf-tour-confetti i { animation: none; }
+  .pf-tour-next-glow { animation: none; }
+}
+
+/* About landing + Get the app (Nov 19 2026, first-visit preview
+   port). The old landing's sections are gone from page.tsx; these
+   styles are the new front door. Type maps onto the repo's faces:
+   the preview's Sora headings use --font-display (Bricolage), its
+   Manrope body is the inherited --font-sans (Geist). The preview's
+   "Real app · No app store needed" badge and the KR monogram are
+   NOT ported — the badge was removed, and the founder photo is the
+   real headshot at /founder/kumail-rizvi.webp. */
+
+/* Shared red CTA, used by the install "Open the dashboard first"
+   link, the About foot Connect link, and the Replay the tour button. */
+.cta2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ff2e42;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14.5px;
+  padding: 0 20px;
+  min-height: 46px;
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(255, 46, 66, 0.35);
+  border: none;
+  cursor: pointer;
+}
+.cta2.ghost {
+  background: transparent;
+  border: 1px solid #2a2a3a;
+  color: #f5f5f8;
+  box-shadow: none;
+}
+
+/* Get the app: one tap away. */
+.install { position: relative; z-index: 2; max-width: 1060px; margin: 0 auto; padding: 8px 16px 6px; }
+.install-card {
+  background: linear-gradient(180deg, #17171f, #0d0d13);
+  border: 1.5px solid #34344a;
+  border-radius: 22px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 28px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(255, 46, 66, 0.08);
+}
+.install-card::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  left: -60px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 46, 66, 0.16), transparent 70%);
+  pointer-events: none;
+}
+@media (max-width: 820px) { .install-card { grid-template-columns: 1fr; padding: 22px; } }
+.install h2 {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4.4vw, 38px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin: 14px 0 10px;
+}
+.install h2 em { font-style: normal; color: #ff2e42; text-shadow: 0 0 24px rgba(255, 46, 66, 0.5); }
+.install .lede2 { color: #bcbccb; font-size: 15.5px; margin: 0 0 6px; max-width: 520px; }
+.install .lede2 b { color: #fff; }
+.locked-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #0d0d13;
+  border: 1px solid #1e1e2b;
+  border-radius: 13px;
+  padding: 12px 14px;
+  margin: 16px 0;
+}
+.locked-note p { margin: 0; color: #bcbccb; font-size: 13.5px; }
+.locked-note p b { color: #fff; }
+.install-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.btn-install {
+  background: #ff2e42;
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  font-weight: 800;
+  font-size: 15.5px;
+  padding: 0 22px;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  box-shadow: 0 8px 26px rgba(255, 46, 66, 0.4);
+  transition: transform 0.15s;
+}
+.btn-install:hover { transform: translateY(-1px) scale(1.015); }
+.btn-install:active { transform: scale(0.97); }
+.btn-install.installed { background: #1b1b26; color: #6fe3a5; border: 1px solid rgba(47, 191, 113, 0.5); box-shadow: none; cursor: default; }
+.install-status { font-size: 13px; font-weight: 700; color: #8a8aa0; min-height: 19px; margin-top: 10px; }
+.install-status b { color: #6fe3a5; }
+.platform-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-top: 16px; }
+@media (max-width: 560px) { .platform-steps { grid-template-columns: 1fr; } }
+.p-step { background: #0d0d13; border: 1px solid #1e1e2b; border-radius: 14px; padding: 14px; }
+.p-step.hl {
+  border-color: rgba(255, 46, 66, 0.55);
+  background: linear-gradient(180deg, rgba(255, 46, 66, 0.08), #0d0d13);
+  box-shadow: 0 0 0 3px rgba(255, 46, 66, 0.08);
+}
+.p-step h4 { font-family: var(--font-display); margin: 0 0 8px; font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
+.p-step h4 .os-tag { font-size: 10.5px; letter-spacing: 0.08em; background: #1b1b26; border: 1px solid #2a2a3a; color: #8a8aa0; padding: 3px 8px; border-radius: 99px; }
+.p-step ol { margin: 0; padding-left: 19px; color: #bcbccb; font-size: 13.5px; }
+.p-step ol li { margin-bottom: 5px; }
+.p-step ol li:last-child { margin-bottom: 0; }
+.p-step ol b { color: #fff; }
+.perks { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 16px; }
+.perks span { font-size: 12px; font-weight: 800; color: #bcbccb; background: #1b1b26; border: 1px solid #2a2a3a; padding: 6px 11px; border-radius: 99px; }
+
+/* Phone mock: the Pulse Find icon is the repo's real app icon. */
+.phone-zone { display: flex; justify-content: center; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.phone { width: 218px; flex: none; background: #050506; border: 1.5px solid #3a3a4f; border-radius: 34px; padding: 10px; box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6); }
+.phone-screen { background: linear-gradient(165deg, #1a1030, #070709 55%, #2a0a12); border-radius: 26px; padding: 16px 12px 14px; min-height: 380px; position: relative; overflow: hidden; }
+.phone-notch { width: 74px; height: 19px; background: #050506; border-radius: 99px; margin: 0 auto 13px; }
+.phone-time { font-family: var(--font-display); font-weight: 800; font-size: 21px; text-align: center; }
+.phone-date { text-align: center; color: rgba(255, 255, 255, 0.65); font-size: 11.5px; font-weight: 700; margin-bottom: 16px; }
+.app-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px 8px; }
+.app-ic { text-align: center; }
+.app-ic .ic { width: 42px; height: 42px; margin: 0 auto 4px; border-radius: 11px; display: grid; place-items: center; font-size: 16px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.12); }
+.app-ic span { display: block; font-size: 9.5px; font-weight: 700; color: rgba(255, 255, 255, 0.85); white-space: nowrap; overflow: hidden; }
+.app-ic.pulse .ic { background: #14141c; border: 1.5px solid #ff2e42; box-shadow: 0 0 0 4px rgba(255, 46, 66, 0.18), 0 0 22px rgba(255, 46, 66, 0.55); padding: 0; overflow: hidden; animation: pf-about-iconpulse 2.2s ease-in-out infinite; }
+@keyframes pf-about-iconpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+.app-ic.pulse .ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.app-ic.pulse span { color: #fff; }
+.pulse-callout { position: absolute; left: 10px; right: 10px; bottom: 12px; background: rgba(10, 10, 16, 0.92); border: 1px solid rgba(255, 46, 66, 0.5); border-radius: 13px; padding: 9px 11px; font-size: 11.5px; font-weight: 700; color: #bcbccb; text-align: center; backdrop-filter: blur(4px); }
+.pulse-callout b { color: #fff; }
+.phone-cap { text-align: center; color: #8a8aa0; font-size: 12.5px; font-weight: 700; margin-top: 11px; max-width: 218px; }
+.phone-cap b { color: #bcbccb; }
+
+/* About page (the new landing, after the tour). */
+.about { position: relative; z-index: 2; max-width: 1060px; margin: 0 auto; padding: 56px 16px 70px; }
+.about-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff97a3;
+  background: rgba(255, 46, 66, 0.14);
+  border: 1px solid rgba(255, 46, 66, 0.35);
+  padding: 6px 13px;
+  border-radius: 99px;
+}
+.about h2.big { font-family: var(--font-display); font-size: clamp(30px, 5.4vw, 46px); line-height: 1.08; letter-spacing: -0.025em; margin: 18px 0 12px; max-width: 720px; }
+.about h2.big em { font-style: normal; color: #ff2e42; text-shadow: 0 0 26px rgba(255, 46, 66, 0.5); }
+.about .lede { color: #bcbccb; font-size: 16.5px; max-width: 640px; margin: 0; }
+.feat-list { margin-top: 34px; border-top: 1px solid #1e1e2b; }
+.feat { display: grid; grid-template-columns: 52px 1fr auto; gap: 16px; align-items: center; padding: 18px 4px; border-bottom: 1px solid #1e1e2b; }
+.feat .f-ico { width: 46px; height: 46px; border-radius: 13px; background: #1b1b26; border: 1px solid #2a2a3a; display: grid; place-items: center; }
+.feat h3 { font-family: var(--font-display); margin: 0 0 3px; font-size: 16.5px; }
+.feat p { margin: 0; color: #8a8aa0; font-size: 14px; max-width: 560px; }
+.feat .f-tag { font-size: 12px; font-weight: 800; color: #8a8aa0; white-space: nowrap; }
+.feat .f-tag a { color: #ff97a3; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 560px) { .feat { grid-template-columns: 46px 1fr; } .feat .f-tag { display: none; } }
+
+/* Founder. The photo is Kumail's real headshot (public/founder/
+   kumail-rizvi.webp, 600px WebP), cropped to the ring with
+   object-fit: cover — the head is centered, so the crop only takes
+   background at the sides. */
+.founder {
+  margin-top: 52px;
+  background: linear-gradient(180deg, #14141c, #0d0d13);
+  border: 1px solid #2a2a3a;
+  border-radius: 22px;
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+}
+.founder::before {
+  content: "";
+  position: absolute;
+  top: -70px;
+  right: -70px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 46, 66, 0.18), transparent 70%);
+  pointer-events: none;
+}
+.founder-grid { display: grid; grid-template-columns: 190px 1fr; gap: 28px; position: relative; }
+@media (max-width: 640px) { .founder-grid { grid-template-columns: 1fr; } .founder { padding: 22px; } }
+.founder-photo { text-align: center; }
+.photo-ring {
+  width: 168px;
+  height: 168px;
+  margin: 0 auto;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(from 210deg, #ff2e42, #ff8a96, #f5a623, #ff2e42);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 34px rgba(255, 46, 66, 0.25);
+}
+.photo-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center 20%; display: block; border: 3px solid #0b0b10; }
+.founder-photo .fp-name { font-family: var(--font-display); font-weight: 800; font-size: 16.5px; margin-top: 14px; }
+.founder-photo .fp-role { color: #ff97a3; font-weight: 800; font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; margin-top: 3px; }
+.founder-links { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.founder-links a { color: #bcbccb; border: 1px solid #2a2a3a; background: #1b1b26; text-decoration: none; font-size: 12.5px; font-weight: 800; padding: 8px 13px; border-radius: 99px; display: inline-flex; align-items: center; min-height: 36px; }
+.founder-links a:hover { color: #fff; border-color: rgba(255, 46, 66, 0.55); }
+.founder-body h3 { font-family: var(--font-display); font-size: clamp(21px, 3.4vw, 27px); margin: 2px 0 10px; letter-spacing: -0.015em; }
+.founder-body h3 em { font-style: normal; color: #ff2e42; }
+.founder-body p { color: #bcbccb; font-size: 15px; margin: 0 0 13px; }
+.founder-body p b { color: #fff; }
+.stack-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 15px; }
+.stack-chips span { font-size: 12.5px; font-weight: 800; color: #bcbccb; background: #1b1b26; border: 1px solid #2a2a3a; padding: 6px 12px; border-radius: 99px; }
+.stack-chips span.hot { color: #ff97a3; border-color: rgba(255, 46, 66, 0.45); background: rgba(255, 46, 66, 0.14); }
+.founder-nums { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 6px; }
+.founder-nums div b { font-family: var(--font-display); font-size: 23px; display: block; line-height: 1.1; }
+.founder-nums div span { color: #8a8aa0; font-size: 12px; font-weight: 700; }
+.about-foot { margin-top: 44px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; border-top: 1px solid #1e1e2b; padding-top: 22px; }
+.about-foot p { color: #8a8aa0; font-size: 13.5px; margin: 0; flex: 1; min-width: 220px; }
+.about-foot p b { color: #bcbccb; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-ic.pulse .ic { animation: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .pf-site-float-a, .pf-site-float-b, .pf-site-float-c { animation: none; }

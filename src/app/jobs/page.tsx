@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { TopBar, navLink } from "@/components/TopBar";
 import { AppShell, shellNavLink } from "@/components/AppShell";
 import { createClient } from "@/lib/supabase/server";
 import { isConfigured } from "@/lib/env";
+import { DemoNav } from "../demo/DemoNav";
 import { JobsBoard } from "./JobsBoard";
 
 export const metadata: Metadata = {
@@ -12,15 +11,19 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default async function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
+  const sp = await searchParams;
   let user: { id: string; email?: string } | null = null;
   if (isConfigured()) {
     const supabase = await createClient();
     user = (await supabase.auth.getUser()).data.user ?? null;
   }
   // Signed-in users get the tracker shell with its tab bar, so the navbar
-  // stays put when they open Find jobs; signed-out visitors keep the
-  // public TopBar with its Sign in link.
+  // stays put when they open Find jobs; signed-out visitors get the demo
+  // nav, so a demo visitor who follows Jobs out of the demo can still
+  // reach every demo section (and Ask Pulse) instead of landing on a
+  // bare page with only Demo and Sign in. The badge says Live openings:
+  // the board lists real openings, not the demo's fictional sample data.
   if (user) {
     return (
       <AppShell
@@ -40,19 +43,7 @@ export default async function JobsPage() {
   }
   return (
     <>
-      <TopBar
-        home="/"
-        right={
-          <>
-            <Link href="/demo" className={navLink}>
-              Demo
-            </Link>
-            <Link href="/login" className={navLink}>
-              Sign in
-            </Link>
-          </>
-        }
-      />
+      <DemoNav badge="Live openings" tour={typeof sp.tour === "string" ? sp.tour : undefined} />
       <JobsBoard userId={null} />
     </>
   );

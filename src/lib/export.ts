@@ -32,7 +32,7 @@ const COLUMNS = [
   { header: "Tech Role", key: "tech", width: 10 },
 ] as const;
 
-const FLAG_LABEL = { ghosted: "GHOSTED - follow up", soon: "Follow up soon", waiting: "Waiting" } as const;
+const FLAG_LABEL = { ghosted: "GHOSTED - follow up", soon: "Follow up soon", waiting: "Awaiting reply" } as const;
 
 const toDate = (s: ISODate | null) => {
   if (!s) return null;

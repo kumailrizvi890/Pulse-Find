@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
-import { IconCheck, IconDetails, IconUndo, IconX } from "@/components/icons";
+import { IconCheck, IconDetails, IconExternalLink, IconUndo, IconX } from "@/components/icons";
 import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 import { JOB_SWIPED_EVENT, type JobSwipedDetail } from "@/lib/guided-tour";
 
@@ -223,10 +223,10 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
                       target="_blank"
                       rel="noopener noreferrer"
                       data-tour="job-posting"
-                      className="font-semibold text-accent hover:underline"
+                      className="inline-flex items-center gap-0.5 font-semibold text-accent hover:underline"
                       onPointerDown={(e) => e.stopPropagation()}
                     >
-                      View posting ↗
+                      View posting <IconExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   ) : (
                     <span className="text-faint">No posting link listed</span>

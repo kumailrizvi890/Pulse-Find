@@ -198,7 +198,9 @@ describe("OA and Interview sections", () => {
     // with no OA and rejected ones (demo Kestrel Fintech was rejected
     // after its recruiter screen), so "N at interview stage" overstates
     // it. The counting is unchanged, only the hint wording.
-    expect(overview).toContain("`${interviewList.length} reached interview stage`");
+    expect(overview).toContain(
+      "`${interviewList.length} reached interview stage · ${activeInterviews} active`",
+    );
     expect(overview).not.toContain("at interview stage");
     expect(DEMO.filter(reachedInterview).map((a) => a.company)).toContain("Kestrel Fintech");
   });

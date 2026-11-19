@@ -276,6 +276,9 @@ export function Overview({
     return bucket === "overdue" || bucket === "today";
   }).length;
   const shownContacts = orderedContacts.slice(0, 3);
+  // Where a follow-up card lands: the Networking page, deep-linked to
+  // that contact (?contact=<id> opens their edit form on arrival).
+  const networkingHref = userId ? "/app/networking" : "/demo/networking";
   const shownWaiting = queue.slice(0, 3);
 
   if (loading) {
@@ -486,34 +489,36 @@ export function Overview({
                           : date;
                   const urgent = bucket === "overdue" || bucket === "today";
                   return (
-                    <li key={c.id} className="flex items-start gap-3 rounded-xl border border-line p-3">
-                      <span
-                        className={cx(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                          AVATAR_TONES[i % AVATAR_TONES.length],
-                        )}
-                        aria-hidden="true"
+                    <li key={c.id} className="rounded-xl border border-line">
+                      <Link
+                        href={`${networkingHref}?contact=${encodeURIComponent(c.id)}`}
+                        aria-label={`Open ${c.person_name} on the Networking page`}
+                        className="flex items-start gap-3 rounded-xl p-3 transition hover:border-accent/40 hover:bg-surface-2"
                       >
-                        {initials(c.person_name)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {c.next_step.trim() || `Follow up with ${c.person_name}`}
-                        </p>
-                        <p className="truncate text-xs text-muted">
-                          {c.person_name}
-                          {c.company ? ` · ${c.company}` : ""}
-                        </p>
-                        <p className={cx("mt-1 text-xs", urgent ? "font-medium text-danger" : "text-muted")}>
-                          {dueText}
-                        </p>
-                        {c.notes && <p className="mt-1 truncate text-xs text-faint">{c.notes}</p>}
-                        {userId && (
-                          <Link href="/app/networking" className={cx(btn.ghost, "mt-2")}>
-                            Open
-                          </Link>
-                        )}
-                      </div>
+                        <span
+                          className={cx(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                            AVATAR_TONES[i % AVATAR_TONES.length],
+                          )}
+                          aria-hidden="true"
+                        >
+                          {initials(c.person_name)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">
+                            {c.next_step.trim() || `Follow up with ${c.person_name}`}
+                          </span>
+                          <span className="block truncate text-xs text-muted">
+                            {c.person_name}
+                            {c.company ? ` · ${c.company}` : ""}
+                          </span>
+                          <span className={cx("mt-1 block text-xs", urgent ? "font-medium text-danger" : "text-muted")}>
+                            {dueText}
+                          </span>
+                          {c.notes && <span className="mt-1 block truncate text-xs text-faint">{c.notes}</span>}
+                          <span className="mt-2 inline-flex text-xs font-medium text-accent">Open →</span>
+                        </span>
+                      </Link>
                     </li>
                   );
                 })}

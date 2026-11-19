@@ -184,7 +184,7 @@ export function LoginForm({ initialMode }: { initialMode?: "signin" | "signup" }
         </button>
         <p className="mt-4 text-center text-sm text-muted">
           {mode === "signup" ? "Already have an account?" : "New here?"}{" "}
-          <button type="button" className="font-semibold text-accent" onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setError(""); setAlreadyHaveAccount(false); }}>
+          <button type="button" data-tour="connect-signup" className="font-semibold text-accent" onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setError(""); setAlreadyHaveAccount(false); }}>
             {mode === "signup" ? "Sign in" : "Create an account"}
           </button>
         </p>

@@ -593,20 +593,31 @@ function AppList({ rows, today, ghostDays, onOpen }: { rows: Application[]; toda
 
 function ExportMenu({ onXlsx, onCsv, disabled }: { onXlsx: () => void; onCsv: () => void; disabled: boolean }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
   return (
     <div className="relative">
       <button className={btn.secondary} onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-haspopup="menu">
         Export
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-line bg-surface p-1 shadow-panel" onMouseLeave={() => setOpen(false)}>
-          <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => { setOpen(false); onXlsx(); }}>
-            Excel (.xlsx) with colors
-          </button>
-          <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => { setOpen(false); onCsv(); }}>
-            CSV
-          </button>
-        </div>
+        <>
+          <button aria-label="Close export menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
+          <div role="menu" className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-line bg-surface p-1 shadow-panel" onMouseLeave={() => setOpen(false)}>
+            <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => { setOpen(false); onXlsx(); }}>
+              Excel (.xlsx) with colors
+            </button>
+            <button role="menuitem" className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => { setOpen(false); onCsv(); }}>
+              CSV
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

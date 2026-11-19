@@ -180,6 +180,16 @@ export function deckDecideBubble(choice: "saved" | "hidden", remaining: number):
       };
 }
 
+/** The tour deck is always exactly TOUR_DECK_SIZE cards: live jobs
+    first, topped up with the fictional fallbacks when the feed returns
+    fewer (or none), so "Clear all 3" is always true and Next can
+    always unlock. */
+export function buildTourQueue(live: DeckJob[]): DeckJob[] {
+  const seen = new Set(live.map((j) => j.id));
+  const topUp = TOUR_FALLBACK_JOBS.filter((j) => !seen.has(j.id));
+  return [...live, ...topUp].slice(0, TOUR_DECK_SIZE);
+}
+
 /** Columns for the tour's jobs fetch: the same shape as the jobs
     board's query (active, Internship track, tech, newest first). */
 export const TOUR_JOBS_COLS = "id,company,title,location,remote,url,track,tech,posted_at";

@@ -43,7 +43,7 @@ describe("jobs reviewed count agrees across Swipe, List and Saved", () => {
   });
 
   it("shows the count in words beside the bar, in every view", () => {
-    expect(board).toContain("{reviewed} reviewed · {leftToReview} left of {total}");
+    expect(board).toContain("{reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}");
   });
 });
 

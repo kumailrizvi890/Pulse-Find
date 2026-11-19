@@ -454,7 +454,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           <p className="font-mono text-[11px] text-faint">
             {reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}
           </p>
-        
+
         )}
       </div>
 

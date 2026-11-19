@@ -428,10 +428,12 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     expect(tourHost).toContain(`on(window, JOB_SWIPED_EVENT, fn)`);
     expect(tourHost).not.toContain('[data-tour="job-save"]');
     expect(tourHost).not.toContain('startsWith("Saved")');
-    // The final step completes on the sign-up toggle, never a copy.
+    // The final step completes on arriving at /login, never a copy.
+    // The sign-up toggle stays as a fallback for the real sign-up.
     expect(tourHost).toContain('[data-tour="connect-signup"]');
     expect(tourHost).toContain('"Create an account"');
-    expect(tourHost).toContain('document.querySelector("#l-name")');
+    expect(tourHost).toContain("if (!cancelled) complete();");
+    expect(tourHost).not.toContain("#l-name");
     expect(tourHost).not.toContain('startsWith("Copy")');
     expect(tourHost).not.toContain('case "connect-copy"');
     expect(tourHost).not.toContain('case "jobs-search"');
@@ -444,6 +446,22 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     expect(tourHost).toContain("tourHref(next)");
     expect(tourHost).toContain("if (overlayOpen) return;");
     expect(tourHost).toContain("Do the thing and the tour moves on");
+  });
+
+  it("celebrates on arrival at /login, no tap needed", () => {
+    // The final step completes the moment the tour reaches /login:
+    // the arrival check fires complete() with no condition on the
+    // sign-up form, so there is no #l-name check and no ?mode=signup
+    // requirement. A visitor who lands with ?mode=signup already set
+    // completes the same way, by arrival. The tap on the sign-up
+    // toggle still completes the step too, for the real sign-up.
+    expect(tourHost).toContain('case "connect-signup":');
+    expect(tourHost).toContain("Promise.resolve().then(() => {");
+    expect(tourHost).toContain("if (!cancelled) complete();");
+    expect(tourHost).not.toContain("#l-name");
+    expect(tourHost).not.toContain("mode=signup");
+    expect(tourHost).toContain('[data-tour="connect-signup"]');
+    expect(tourHost).toContain('"Create an account"');
   });
 
   it("bursts the crystal and pulses the ring when the action lands", () => {

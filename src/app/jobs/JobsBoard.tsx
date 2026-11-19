@@ -394,7 +394,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 shadow-panel sm:flex-row sm:items-center" data-tour="find-jobs">
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3 shadow-panel sm:flex-row sm:items-center">
         <input
           id="job-search"
           type="search"

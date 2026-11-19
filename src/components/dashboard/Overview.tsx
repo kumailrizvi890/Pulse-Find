@@ -542,17 +542,29 @@ export function Overview({
           ) : (
             <>
               <ul className="divide-y divide-line">
-                {oaList.slice(0, 6).map((a) => (
-                  <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
-                    <button onClick={() => onOpen(a)} className="block w-full text-left">
-                      <span className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className="font-semibold">{a.company}</span>
-                        <StatusPill status={a.status} />
-                      </span>
-                      <span className="mt-0.5 block truncate text-sm text-muted">{a.role || "Role not set"}</span>
-                    </button>
-                  </li>
-                ))}
+                {oaList.slice(0, 6).map((a) => {
+                  // Finished assessments read as closed, not active: the
+                  // hint already says "5 active" out of 6, but the list
+                  // itself showed the rejected row exactly like the live
+                  // ones. Muted + Closed, matching the Interviews panel.
+                  const finished = a.status === "Rejected" || a.status === "Withdrawn" || a.status === "Accepted";
+                  return (
+                    <li key={a.id} className={cx("py-2.5 first:pt-0 last:pb-0", finished && "opacity-60")}>
+                      <button onClick={() => onOpen(a)} className="block w-full text-left">
+                        <span className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="font-semibold">{a.company}</span>
+                          <StatusPill status={a.status} />
+                          {finished ? (
+                            <Tag tone="muted">Closed</Tag>
+                          ) : (
+                            <span className="text-xs font-medium text-good">Active</span>
+                          )}
+                        </span>
+                        <span className="mt-0.5 block truncate text-sm text-muted">{a.role || "Role not set"}</span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
               {oaList.length > 6 && (
                 <p className="mt-3 text-xs text-muted">And {oaList.length - 6} more in the list below.</p>
@@ -560,7 +572,10 @@ export function Overview({
             </>
           )}
         </Panel>
-        <Panel title="Interviews" hint={`${interviewList.length} reached interview stage`}>
+        <Panel
+          title="Interviews"
+          hint={`${interviewList.length} reached interview stage · ${activeInterviews} active`}
+        >
           {interviewList.length === 0 ? (
             <p className="text-sm text-muted">No interviews yet. When a company moves you forward, it shows up here.</p>
           ) : (
@@ -570,16 +585,22 @@ export function Overview({
                   const ghosted = followUp(a, today, ghostDays) === "ghosted";
                   const finished = a.status === "Rejected" || a.status === "Withdrawn" || a.status === "Accepted";
                   return (
-                    <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+                    // Finished rows sit muted with a Closed tag, so a
+                    // rejection no longer reads as a live interview at a
+                    // glance. Closed wins over Ghosted: the outcome is
+                    // known, the silence no longer matters.
+                    <li key={a.id} className={cx("py-2.5 first:pt-0 last:pb-0", finished && "opacity-60")}>
                       <button onClick={() => onOpen(a)} className="block w-full text-left">
                         <span className="flex flex-wrap items-center gap-2 text-sm">
                           <span className="font-semibold">{a.company}</span>
                           <StatusPill status={a.status} />
-                          {ghosted ? (
+                          {finished ? (
+                            <Tag tone="muted">Closed</Tag>
+                          ) : ghosted ? (
                             <Tag tone="danger">Ghosted</Tag>
-                          ) : !finished ? (
+                          ) : (
                             <span className="text-xs font-medium text-good">Active</span>
-                          ) : undefined}
+                          )}
                         </span>
                         <span className="mt-0.5 block truncate text-sm text-muted">{a.role || "Role not set"}</span>
                       </button>

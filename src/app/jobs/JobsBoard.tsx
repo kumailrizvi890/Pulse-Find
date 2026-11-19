@@ -32,6 +32,17 @@ function ago(iso: string | null) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
+/** "Last refresh" reads better with a time when the refresh was today:
+ * "today at 2:35 pm" instead of a bare "today". The timestamp is already
+ * in meta.refreshed, so no new data source is needed. */
+export function refreshLabel(iso: string | null) {
+  if (!iso) return "";
+  const label = ago(iso);
+  if (label !== "today") return label;
+  const time = new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  return `today at ${time}`;
+}
+
 export function JobsBoard({ userId }: { userId: string | null }) {
   const supabase = useMemo(() => (isConfigured() ? createClient() : null), []);
   const [track, setTrack] = useState<TrackFilter>("Internship");
@@ -48,6 +59,9 @@ export function JobsBoard({ userId }: { userId: string | null }) {
   const [saved, setSaved] = useState<Record<string, Job>>({});
   const [history, setHistory] = useState<{ job: Job; prev: Mark | undefined }[]>([]);
   const [view, setView] = useState<"swipe" | "list" | "saved">("swipe");
+  // A saved job whose title is expanded in place, so the full title is
+  // readable without leaving the Saved tab.
+  const [expandedSavedTitle, setExpandedSavedTitle] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ companies: number; refreshed: string | null }>({ companies: 0, refreshed: null });
   const [leadKeys, setLeadKeys] = useState<ReadonlySet<string>>(new Set());
   // which of these jobs are already in the user's tracker (company + role)
@@ -386,7 +400,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Find openings</h1>
           <p className="mt-1 max-w-[62ch] text-sm text-muted">
             Straight from the career pages of {meta.companies || "50+"} companies, refreshed every 6 hours.
-            {meta.refreshed && <> Last refresh {ago(meta.refreshed)}.</>}
+            {meta.refreshed && <> Last refresh {refreshLabel(meta.refreshed)}.</>}
           </p>
         </div>
         {!userId && (
@@ -521,8 +535,12 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                     {initials(j.company)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{j.title}</p>
-                    <p className="truncate text-xs text-muted">{j.company} · {j.location || "Location not listed"}</p>
+                    <SavedJobTitle
+                      title={j.title}
+                      expanded={expandedSavedTitle === j.id}
+                      onToggle={() => setExpandedSavedTitle(expandedSavedTitle === j.id ? null : j.id)}
+                    />
+                    <p className="truncate text-xs text-muted" title={`${j.company} · ${j.location || "Location not listed"}`}>{j.company} · {j.location || "Location not listed"}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {j.url ? (
@@ -608,5 +626,35 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       </p>
       {toastNode}
     </main>
+  );
+}
+
+const SAVED_TITLE_LIMIT = 40;
+
+/** A saved job's title truncates in the narrow row, so the full title
+ * carries a hover tooltip and long titles get the same Show more toggle
+ * the sheet's TruncatedCellText uses, past the same 40 characters. The
+ * toggle stops the click, so it never jumps to the job in the deck. */
+export function SavedJobTitle({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
+  const long = title.length > SAVED_TITLE_LIMIT;
+  return (
+    <>
+      <p className={cx("text-sm font-semibold", expanded ? "whitespace-normal break-words" : "truncate")} title={title}>
+        {title}
+      </p>
+      {long && (
+        <button
+          type="button"
+          className="mt-0.5 text-xs font-medium text-accent hover:underline"
+          aria-expanded={expanded}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </>
   );
 }

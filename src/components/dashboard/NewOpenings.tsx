@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Panel, btn } from "./ui";
+import { IconExternalLink } from "@/components/icons";
 
 type Job = { id: string; company: string; title: string; location: string; url: string; posted_at: string | null };
 
@@ -56,7 +57,7 @@ export function NewOpenings() {
                   {j.company} · {j.location || "Location not listed"} {j.posted_at && <span className="text-faint">· {ago(j.posted_at)}</span>}
                 </p>
               </div>
-              <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open</a>
+              <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.ghost}>Open <IconExternalLink className="h-3.5 w-3.5 shrink-0" /></a>
             </li>
           ))}
         </ul>

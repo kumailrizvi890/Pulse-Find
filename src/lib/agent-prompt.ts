@@ -6,9 +6,12 @@
 //
 // buildAgentPrompt is the full prompt for an agent being connected for the
 // first time (it carries the endpoint and the token). buildAgentHandoffPrompt
-// is the same full prompt for an agent that is already connected (no token
-// in it, because the agent already has its own access from the Connect page).
-// Both share buildOperatorBody, the jobs and rules, so they can never drift.
+// is the same full prompt for the Talk to Agent handoff (no token in it,
+// because a connected agent already has its own access from the Connect
+// page). Its connection lines are conditional, not asserted: the person
+// pasting it may not have set their agent up yet, so it must never claim
+// an agent is already connected. Both share buildOperatorBody, the jobs
+// and rules, so they can never drift.
 
 export const MCP_PATH = "/api/mcp";
 
@@ -74,9 +77,11 @@ ${buildOperatorBody()}`;
 }
 
 /**
- * The full prompt for an agent that is already connected, as used by Talk
- * to Agent. Same jobs and rules as buildAgentPrompt, but there is no token
- * in it: the agent already has its own access from the Connect page.
+ * The full prompt for the Talk to Agent handoff. Same jobs and rules as
+ * buildAgentPrompt, but there is no token in it: a connected agent already
+ * has its own access from the Connect page. The connection lines are
+ * conditional, not asserted, because the person pasting this may not have
+ * set their agent up yet.
  */
 export function buildAgentHandoffPrompt(args: { endpoint: string }): string {
   const { endpoint } = args;
@@ -84,9 +89,9 @@ export function buildAgentHandoffPrompt(args: { endpoint: string }): string {
 
 Pulse Find is my single source of truth for job applications: one row per company + role, with status, dates, contacts, interviews, offers, and follow-ups. You keep it current through its MCP server. You never open the web app yourself and you never send email or apply anywhere.
 
-You are already connected to the MCP server
+Your connection to the MCP server
 - MCP endpoint (HTTP, streamable HTTP): ${endpoint}
-- You already have your own access token from my Connect page. Do not ask me for a token, and never print it in chat.
+- If you are already connected, you already have your own access token from my Connect page. Do not ask me for a token, and never print it in chat. If you are not connected yet, say so plainly and tell me to connect you from the Connect page first.
 - Tools you can call: ${TOOL_LIST}. Prompts you can run: ${PROMPT_LIST}.
 - Start with get_summary to see the current state of my tracker.
 

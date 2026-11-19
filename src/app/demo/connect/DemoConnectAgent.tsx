@@ -31,7 +31,8 @@ function snippet(client: ClientName, url: string, token: string) {
   const auth = `Bearer ${token}`;
   switch (client) {
     case "Claude Code":
-      return `claude mcp add --transport http pulse-find ${url} \\\n  --header "Authorization: ${auth}"`;
+      return `claude mcp add --transport http pulse-find ${url} \
+  --header "Authorization: ${auth}"`;
     case "Cursor":
       return JSON.stringify({ mcpServers: { "pulse-find": { url, headers: { Authorization: auth } } } }, null, 2);
     case "VS Code":
@@ -43,7 +44,9 @@ function snippet(client: ClientName, url: string, token: string) {
         2,
       );
     default:
-      return `URL:        ${url}\nTransport:  Streamable HTTP\nHeader:     Authorization: ${auth}`;
+      return `URL:        ${url}
+Transport:  Streamable HTTP
+Header:     Authorization: ${auth}`;
   }
 }
 
@@ -82,7 +85,7 @@ export function DemoConnectAgent() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-10" data-tour="connect">
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:py-10">
       <header>
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Connect your AI agent</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
@@ -162,7 +165,7 @@ export function DemoConnectAgent() {
           scan), and the rules. Paste it into your agent and it sets everything up, so you can hop back into the
           dashboard and start using it with nothing else to do.
         </p>
-        <div className="mb-2 mt-3 flex justify-end" data-tour="connect-copy">
+        <div className="mb-2 mt-3 flex justify-end">
           <button className={btn.ghost} onClick={() => void copy(prompt, setPromptCopied)}>
             {promptCopied ? "Copied" : "Copy full prompt"}
           </button>

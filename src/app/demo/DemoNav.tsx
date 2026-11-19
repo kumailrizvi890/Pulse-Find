@@ -14,7 +14,12 @@ import { PulseDot } from "@/components/PulseBrand";
 // it, and the chat-clear in DemoDashboard then replaced the URL with
 // plain /demo, stranding the tour with no coach and no ring. The clear
 // already preserves tour; this link is the half that was missing.
-export function DemoNav({ tour }: { tour?: string }) {
+//
+// badge labels what the page shows: the demo pages show fictional sample
+// data, but the shared /jobs board shows live openings from company
+// career pages, so it passes "Live openings" instead of the sample-data
+// label — the badge must never claim live jobs are fictional.
+export function DemoNav({ tour, badge = "Fictional sample data" }: { tour?: string; badge?: string }) {
   return (
     <>
       <TopBar
@@ -42,7 +47,7 @@ export function DemoNav({ tour }: { tour?: string }) {
       <nav aria-label="Demo sections" className="border-b border-line bg-surface">
         <div className="gutter mx-auto flex w-full max-w-[1180px] items-center gap-1 overflow-x-auto py-2 text-sm">
           <Link href="/demo?tour=dashboard" className={navLink} aria-label="Take the guided tour of the demo">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <PulseDot />
               Take the tour
             </span>
@@ -63,7 +68,7 @@ export function DemoNav({ tour }: { tour?: string }) {
             Connect
           </Link>
           <span className="ml-auto hidden shrink-0 rounded-full border border-line bg-bg px-2.5 py-1 text-xs text-muted sm:inline">
-            Fictional sample data
+            {badge}
           </span>
         </div>
       </nav>

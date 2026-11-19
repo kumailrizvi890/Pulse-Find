@@ -25,8 +25,9 @@
 // open, preview or copy. The jobs step is the one place the mode
 // matters: a signed-out visitor swipes a demo card, a signed-in
 // visitor only opens a posting to peek at it, never saves a real job.
-// The last step only ever asks for the sign-up toggle on the sign-in
-// page; the tour never submits the form or creates an account.
+// The last step completes the moment the visitor arrives at the
+// sign-in page; the sign-up toggle stays as the way to start the
+// account, and the tour never submits the form or creates an account.
 
 export type TourStepId =
   | "dashboard"

@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Two small gaps from the pass-45 desktop audit (Nov 18, 4:22-5:25pm PT):
-// (3) The guided tour's step counter read "0/8" on step 1 (a completed
-//     count) while the dots row said "Step 1 of 8", and the tour chrome
+// (3) The guided tour's step counter read "0/7" on step 1 (a completed
+//     count) while the dots row said "Step 1 of 7", and the tour chrome
 //     (recap heading, badges line, footer hint) was lowercase. The
 //     counter now shows the current step, and the chrome is capitalized.
 //     Pulse's own step lines stay lowercase on purpose: the TourStep

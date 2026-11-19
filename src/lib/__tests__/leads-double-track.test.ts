@@ -134,9 +134,13 @@ describe("LeadsSection double-track guard (source pins)", () => {
     expect(section).toContain("setTrackedApps(apps)");
   });
 
-  it("shows Already tracked instead of the promote button for a tracked lead", () => {
+  it("shows In tracker instead of the promote button for a tracked lead", () => {
     expect(section).toContain("isAlreadyTracked(trackedApps, l) ? (");
-    expect(section).toContain('<Tag tone="muted">Already tracked</Tag>');
+    expect(section).toContain('<Tag tone="muted">In tracker</Tag>');
+    // One label for the same state: a Queued lead that is already tracked
+    // used to read "Already tracked" while an Applied lead read
+    // "In tracker". Both now read "In tracker".
+    expect(section).not.toContain("Already tracked");
   });
 
   it("gates the promote button on New or Queued leads that are not tracked", () => {

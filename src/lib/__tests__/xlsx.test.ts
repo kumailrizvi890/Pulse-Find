@@ -74,7 +74,7 @@ describe("xlsx import of a user's own tracker sheet", () => {
     ]);
     ws.addRow([
       "Databricks", "Software Engineer, New Grad", "New Grad", new Date(Date.UTC(2026, 10, 11)), "Applied",
-      new Date(Date.UTC(2026, 10, 11)), 0, "Waiting", "N", 0, "Submitted via Greenhouse",
+      new Date(Date.UTC(2026, 10, 11)), 0, "Awaiting reply", "N", 0, "Submitted via Greenhouse",
       "recruiting@databricks.example", "", "", null, "Tech",
     ]);
     ws.addRow([

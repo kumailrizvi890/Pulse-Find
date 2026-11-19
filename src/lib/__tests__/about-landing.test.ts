@@ -191,7 +191,7 @@ describe("the install section, minus the two removals", () => {
     expect(install).toContain("Opens straight to /app");
     expect(install).toContain("Full-screen, no browser chrome");
     expect(install).toContain("Same login, same data");
-    expect(install).toContain("Nothing to update — always latest");
+    expect(install).toContain("Nothing to update, always latest");
   });
 
   it("wires the shared install-prompt capture, never auto-firing", () => {
@@ -208,7 +208,7 @@ describe("the install section, minus the two removals", () => {
   });
 
   it("shows the iOS Add to Home Screen guidance with the exact steps", () => {
-    expect(install).toContain("Add to Home Screen — show me how");
+    expect(install).toContain("Add to Home Screen: show me how");
     expect(install).toContain("Share → Add to Home");
     expect(install).toContain("Screen → Add");
   });

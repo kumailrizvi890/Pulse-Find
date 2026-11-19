@@ -182,6 +182,81 @@ describe("tour steps (Pulse-guided quest)", () => {
   });
 });
 
+describe("the tour teaches one real action per stop", () => {
+  const byId = (id: TourStepId) => TOUR_STEPS.find((s) => s.id === id)!;
+
+  it("orients on home in step 1", () => {
+    expect(byId("dashboard").line).toContain("this is home");
+  });
+
+  it("names the one action to try in every line", () => {
+    expect(byId("dashboard").line).toContain("tap Open on the first waiting task");
+    expect(byId("sheet").line).toContain("Status dropdown in the toolbar above the sheet");
+    expect(byId("find-jobs").line).toContain("type a company or a role in the search box at the top of the jobs page");
+    expect(byId("jobs").line).toContain("tap the green check button under the card");
+    expect(byId("leads").line).toContain("tap Edit on the first lead row");
+    expect(byId("networking").line).toContain("tap Edit on the first contact row");
+    expect(byId("chat").line).toContain("tap Ask Pulse in the top bar");
+    expect(byId("chat").line).toContain("i never guess");
+    expect(byId("connect").line).toContain("tap Copy full prompt under step 4");
+    expect(byId("connect").line).toContain("claude, cursor or copilot");
+  });
+
+  it("closes the Connect step with where to start and the replay link", () => {
+    const done = byId("connect").done;
+    expect(done).toContain("start with one application");
+    expect(done).toContain("one saved job");
+    expect(done).toContain("ask me what's due next");
+    expect(done).toContain("replay anytime from take the tour in the demo nav");
+  });
+});
+
+describe("card placement (never covers the anchor)", () => {
+  it("sits right of a narrow anchor on a wide viewport", () => {
+    const p = placeTourCard({ x: 100, y: 100, width: 300, height: 200 }, { width: 1280, height: 800 }, 300);
+    expect(p).toEqual({ left: 416, top: 100 });
+  });
+
+  it("sits left when the right side has no room", () => {
+    const p = placeTourCard({ x: 900, y: 100, width: 300, height: 200 }, { width: 1280, height: 800 }, 300);
+    expect(p).toEqual({ left: 504, top: 100 });
+  });
+
+  it("sits below a wide anchor when neither side fits", () => {
+    const p = placeTourCard({ x: 100, y: 100, width: 1000, height: 200 }, { width: 1280, height: 800 }, 300);
+    expect(p).toEqual({ left: 100, top: 316 });
+  });
+
+  it("sits above when below runs off the viewport", () => {
+    const p = placeTourCard({ x: 100, y: 500, width: 1000, height: 200 }, { width: 1280, height: 800 }, 300);
+    expect(p).toEqual({ left: 100, top: 184 });
+  });
+
+  it("falls back to the bottom dock for a full-viewport anchor", () => {
+    const p = placeTourCard({ x: 0, y: 0, width: 1280, height: 800 }, { width: 1280, height: 800 }, 300);
+    expect(p).toBeNull();
+  });
+
+  it("never overlaps the anchor on any placement", () => {
+    const cases = [
+      [{ x: 100, y: 100, width: 300, height: 200 }, { width: 1280, height: 800 }],
+      [{ x: 900, y: 100, width: 300, height: 200 }, { width: 1280, height: 800 }],
+      [{ x: 100, y: 100, width: 1000, height: 200 }, { width: 1280, height: 800 }],
+      [{ x: 100, y: 500, width: 1000, height: 200 }, { width: 1280, height: 800 }],
+    ] as const;
+    for (const [anchor, viewport] of cases) {
+      const p = placeTourCard(anchor, viewport, 300);
+      expect(p).not.toBeNull();
+      const overlaps =
+        p!.left < anchor.x + anchor.width &&
+        p!.left + 380 > anchor.x &&
+        p!.top < anchor.y + anchor.height &&
+        p!.top + 300 > anchor.y;
+      expect(overlaps).toBe(false);
+    }
+  });
+});
+
 describe("the chat answer itself (used by the real chat panel, not the tour coach)", () => {
   it("answers the follow-ups question from the demo data (Marcus then Priya)", () => {
     const today = todayISO();

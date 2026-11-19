@@ -71,7 +71,11 @@ describe("sheet empty cells", () => {
   it("still renders values in non-empty cells and keeps click-to-edit working", () => {
     expect(sheet).toContain('onClick={col.editable ? () => startEdit(a, col.key) : undefined}');
     expect(sheet).toContain("<StatusPill status={a.status} />");
-    expect(sheet).toContain('<span className="block truncate">{r.values[col.key]}</span>');
+        // Values render through TruncatedCellText now: the full text as a
+    // hover tooltip plus a Show more toggle for long values, instead of
+    // the bare truncated span.
+    expect(sheet).toContain("<TruncatedCellText");
+    expect(sheet).toContain("value={r.values[col.key]}");
   });
 });
 

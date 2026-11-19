@@ -858,7 +858,8 @@ describe("hero CTAs (demo tour, jobs, self host, agents)", () => {
     expect(home).toContain('href="/jobs"');
     expect(home).toContain(">Find jobs<");
     expect(home).toContain('href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally"');
-    expect(home).toContain(">Self host<");
+    expect(home).toContain("Self host");
+    expect(home).toContain('<IconExternalLink className="h-4 w-4 shrink-0" />');
     expect(home).toContain('href="/#mcp"');
     expect(home).toContain(">Connect your agents<");
   });

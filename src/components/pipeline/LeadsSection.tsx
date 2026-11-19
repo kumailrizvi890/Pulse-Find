@@ -30,7 +30,7 @@ export function LeadPill({ status }: { status: LeadStatus }) {
  * statuses as the Excel tracker's Leads tab. Promoting a lead creates the
  * application in the tracker — a human tap, here in the UI; Pulse Find
  * itself never applies to anything. A lead whose company + role is already
- * in the tracker shows Already tracked instead of the promote button, so
+ * in the tracker shows In tracker instead of the promote button, so
  * the same application can never be created twice; Problem, Not eligible
  * and Closed leads offer no promote button at all.
  */
@@ -341,10 +341,8 @@ export function LeadsSection({ pipeline, tracker }: { pipeline: PipelineStore; t
                   {l.url && (
                     <a href={l.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting <IconExternalLink className="h-3.5 w-3.5 shrink-0" /></a>
                   )}
-                  {l.status === "Applied" ? (
+                  {l.status === "Applied" || isAlreadyTracked(trackedApps, l) ? (
                     <Tag tone="muted">In tracker</Tag>
-                  ) : isAlreadyTracked(trackedApps, l) ? (
-                    <Tag tone="muted">Already tracked</Tag>
                   ) : canPromoteLead(l, trackedApps) ? (
                     <button className={btn.primary} onClick={() => promote(l)}>I applied - track it</button>
                   ) : null}

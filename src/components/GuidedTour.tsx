@@ -18,6 +18,7 @@ import {
   tourRecapLines,
   tourRingDash,
   tourStartHref,
+  JOB_SWIPED_EVENT,
   TOUR_ADVANCE_MS,
   TOUR_ADVANCE_MS_REDUCED,
   TOUR_DISMISSED_KEY,
@@ -37,8 +38,9 @@ import { isConfigured } from "@/lib/env";
 // This is a quest, not a modal: the coach is a small bottom sheet with
 // the crystal and one line from Pulse, and it has no action buttons.
 // Each step advances only when the visitor does the real thing in the
-// real UI (open a waiting task, pick a stage in the sheet filter, save
-// a job, ask the chat a question, copy the prompt). The coach only
+// real UI (open a waiting task, pick a stage in the sheet filter, swipe
+// a job card, ask the chat a question, tap Create an account to start
+// a free account). The coach only
 // talks and spotlights the target with a pulsing ring, so the page
 // stays visible and tappable underneath. There is no dim overlay. The
 // only coach controls are the progress dots (revisit a step), Skip on
@@ -59,19 +61,22 @@ import { isConfigured } from "@/lib/env";
 // ring around the crystal fills as steps complete, a small chip
 // appears for each badge earned by doing the real action (Explorer,
 // Inbox Zero, Networker), and the last step shows a short recap of
-// what the visitor just did. Earned steps and badges persist in
+// what the visitor just did, plus the 2 easy steps to a free account
+// and a token. Earned steps and badges persist in
 // localStorage, so a replay shows what was earned. Badges are never
 // earned by tapping through: there is no Next button, and advance is
 // on real actions only.
 //
 // Safety: the tour never performs an action itself, it only watches
 // for one. Every completion action is non-destructive. On the demo the
-// same actions may write sample data only (save a demo job, edit a
+// same actions may write sample data only (swipe a demo card, edit a
 // demo cell). On signed-in pages the tour only ever asks for focus,
 // open, preview or copy. The jobs step is the one place the mode
-// matters: a signed-out visitor saves a demo card (localStorage or
+// matters: a signed-out visitor swipes a demo card (localStorage or
 // demo sample data), a signed-in visitor only opens a posting to peek
-// at it, never saves a real job. The mode is read once from the
+// at it, never saves a real job. The last step only ever asks for the
+// sign-up toggle on the sign-in page; the tour never submits the form
+// or creates an account. The mode is read once from the
 // Supabase session on mount; when the session cannot be read, the
 // safe signed-in mode wins.
 //
@@ -95,10 +100,7 @@ import { isConfigured } from "@/lib/env";
 // so the tour coach never sits over the open chat panel. The tour still
 // starts by hand afterwards, from "Take the tour" in the demo nav.
 
-const TOUR_ROUTES = ["/demo", "/demo/sheet", "/demo/leads", "/demo/networking", "/demo/connect", "/jobs"];
-
-/** Buttons whose text is one of the Jobs track filters. */
-const JOB_TRACK_FILTERS = ["Internships", "New grad", "All roles"];
+const TOUR_ROUTES = ["/demo", "/demo/sheet", "/demo/leads", "/demo/networking", "/demo/connect", "/jobs", "/login"];
 
 /** How long after the last scroll event the coach placement settles. */
 const SCROLL_SETTLE_MS = 200;
@@ -420,8 +422,10 @@ export function GuidedTour() {
   // A step is done when the visitor does the real thing. The crystal
   // bursts, the ring pulses, and Pulse says the done line. The advance
   // itself lives in the effect below, so it can wait for a dialog to
-  // close first. The step and its badge (when it earns one) are
-  // recorded in localStorage, so a replay shows what was earned.
+  // close first. The last step has no next step, so it
+  // waits for Done instead. A dot jump or a browser Back clears the
+  // pending timer through the cleanup, and the guard below is the
+  // belt-and-braces for a timer that already fired.
   const complete = useCallback(() => {
     if (!step || doneStep === step.id) return;
     setDoneStep(step.id);
@@ -514,25 +518,7 @@ export function GuidedTour() {
         on(document, "change", fn);
         break;
       }
-      case "jobs-search": {
-        // Type in the search box, toggle a filter, or pick a track.
-        const fn = (e: Event) => {
-          if (!within(e, '[data-tour="find-jobs"]')) return;
-          const t = e.target as HTMLElement | null;
-          if (!t) return;
-          if (e.type === "input" && t.id === "job-search") complete();
-          else if (e.type === "change" && (t.tagName === "INPUT" || t.tagName === "SELECT")) complete();
-          else if (e.type === "click") {
-            const text = buttonText(closest(e, "button"));
-            if (JOB_TRACK_FILTERS.includes(text)) complete();
-          }
-        };
-        on(document, "input", fn);
-        on(document, "change", fn);
-        on(document, "click", fn);
-        break;
-      }
-      case "jobs-save": {
+      case "jobs-swipe": {
         if (signedIn) {
           // Signed in: only ever open a posting to peek at it. The
           // deck's "View posting" link and the list view's "Open
@@ -543,23 +529,13 @@ export function GuidedTour() {
           };
           on(document, "click", fn);
         } else {
-          // Demo: tap the heart, swipe right, or press ArrowRight.
-          // The save button click is the direct signal; the toast is
-          // the catch-all for the swipe and keyboard paths, which
-          // save through the same handler. The toast text is "Saved"
-          // or "Saved <company> to your Leads".
-          const fn = (e: Event) => {
-            if (closest(e, '[data-tour="job-save"]')) complete();
-          };
-          on(document, "click", fn);
-          const checkToast = () => {
-            const toast = document.querySelector('[role="status"]');
-            if (toast && (toast.textContent ?? "").trim().startsWith("Saved")) complete();
-          };
-          const obs = new MutationObserver(checkToast);
-          obs.observe(document.body, { childList: true, subtree: true });
-          cleanups.push(() => obs.disconnect());
-          checkToast();
+          // Demo: a real swipe on the top card, left or right. The
+          // deck fires JOB_SWIPED_EVENT only when a pointer drag on
+          // the card passes the swipe threshold, so the Save and Pass
+          // buttons, the arrow keys, and the save toast never complete
+          // this step: the visitor has to drag the card itself.
+          const fn = () => complete();
+          on(window, JOB_SWIPED_EVENT, fn);
         }
         break;
       }
@@ -597,11 +573,26 @@ export function GuidedTour() {
         check();
         break;
       }
-      case "connect-copy": {
-        // Copy the prompt (or the token or the snippet): copy is safe.
+      case "connect-signup": {
+        // Start a free account: tap "Create an account" under the
+        // sign-in form, the toggle that switches the form to sign-up
+        // mode. The form itself is never submitted by the tour, and
+        // no token is copied: a signed-out visitor has none to copy.
+        // A visitor who lands with ?mode=signup already set is
+        // already on the sign-up form (the name field only renders
+        // there), so the step completes on arrival. The arrival check
+        // runs in a promise chain, so the setState lands in an async
+        // callback, never synchronously in this effect.
+        let cancelled = false;
+        Promise.resolve().then(() => {
+          if (!cancelled && document.querySelector("#l-name")) complete();
+        });
+        cleanups.push(() => {
+          cancelled = true;
+        });
         const fn = (e: Event) => {
-          const b = closest(e, "button");
-          if (b && buttonText(b).startsWith("Copy")) complete();
+          const b = closest(e, '[data-tour="connect-signup"]');
+          if (b && buttonText(b) === "Create an account") complete();
         };
         on(document, "click", fn);
         break;
@@ -712,6 +703,9 @@ export function GuidedTour() {
           <div className="mt-3 rounded-xl border border-line bg-surface-2 p-3">
             <p className="text-xs font-semibold text-ink">
               {progress.steps.length === TOUR_STEPS.length ? "You did all of it" : "Here is what you did"}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Tour complete. Your token is 2 steps away: finish the free account, then grab it from Connect.
             </p>
             <ul className="mt-1.5 space-y-1">
               {recap.map((r) => (

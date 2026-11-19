@@ -7,11 +7,10 @@ export const metadata: Metadata = { title: "Leads — Live demo" };
 
 // Public demo route for the Leads pipeline. Renders the same LeadsSection
 // as the signed-in app, with fictional sample data only.
-export default async function DemoLeadsPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
-  const sp = await searchParams;
+export default function DemoLeadsPage() {
   return (
     <>
-      <DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefined} />
+      <DemoNav />
       <Suspense fallback={null}>
         <DemoLeadsClient />
       </Suspense>

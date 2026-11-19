@@ -6,7 +6,13 @@ import { PulseTrace } from "./PulseTrace";
 
 export function TopBar({ right, home = "/" }: { right?: ReactNode; home?: string }) {
   return (
-    <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 border-b border-line bg-bg/85 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-line bg-bg pt-[env(safe-area-inset-top,0px)]">
+      {/*
+       * Same solid-header fix as the signed-in shell (Nov 19 PWA fix):
+       * solid background, top-0 with the safe-area inset as padding,
+       * so scrolled content never shows through the top or the bar on
+       * the installed app. Desktop is unchanged: the inset is 0 there.
+       */}
       <PulseTrace className="block h-[12px] w-full" glow />
       <div className="gutter mx-auto flex h-14 w-full max-w-[1180px] items-center justify-between gap-3">
         <Logo href={home} />

@@ -46,6 +46,17 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
         if (!alive) return;
         setContacts(d);
         setState("ready");
+        // A ?contact=<id> deep link (from a dashboard follow-up card)
+        // opens that contact's edit form once the list is in. Read from
+        // window.location here, inside the load callback, so the page
+        // needs no search-param plumbing to prerender.
+        try {
+          const id = new URLSearchParams(window.location.search).get("contact");
+          const match = id ? d.find((c) => c.id === id) : undefined;
+          if (match) setForm({ open: true, editing: match });
+        } catch {
+          // No usable deep link: the list still renders.
+        }
       })
       .catch((e: unknown) => {
         if (!alive) return;
@@ -282,7 +293,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
             Company
-            <input className={field} maxLength={200} value={v.company} onChange={(e) => set("company", e.target.value)} />
+            <input className={field} maxLength={200} value={v.company} onChange={(e) => set("company", e.target.value)} placeholder={`Connected — thanked ${fmtDate(addDays(todayISO(), -12))}`} />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Status

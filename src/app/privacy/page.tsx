@@ -1,14 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TopBar } from "@/components/TopBar";
+import { GitHubLink, TopBar, navButton, navLink } from "@/components/TopBar";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = { title: "Privacy" };
 
 export default function Privacy() {
   return (
-    <>
-      <TopBar />
-      <main className="gutter mx-auto w-full max-w-[680px] pb-20 pt-10">
+    <div className="flex min-h-dvh flex-col">
+      <TopBar
+        right={
+          <>
+            <Link href="/jobs" className={navLink}>Jobs</Link>
+            <Link href="/demo" className={navLink}>Demo</Link>
+            <span className="hidden sm:inline">
+              <GitHubLink />
+            </span>
+            <Link href="/login" className={navLink}>Sign in</Link>
+            <Link href="/demo/connect" className={navButton}>Connect</Link>
+          </>
+        }
+      />
+      <main className="gutter mx-auto w-full max-w-[680px] flex-1 pb-20 pt-10">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Privacy</h1>
         <p className="mt-2 text-sm text-faint">Last updated November 5, 2026</p>
         <div className="mt-8 flex flex-col gap-6 text-[15px] leading-relaxed text-muted [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-ink">
@@ -47,6 +60,7 @@ export default function Privacy() {
           </section>
         </div>
       </main>
-    </>
+      <SiteFooter />
+    </div>
   );
 }

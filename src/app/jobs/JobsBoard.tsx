@@ -454,7 +454,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           <p className="font-mono text-[11px] text-faint">
             {reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}
           </p>
-          
+        
         )}
       </div>
 
@@ -580,17 +580,17 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                     )
                   ) : (
                     // Signed-out visitors can already save and pass from
-                // the deck (their picks live in this browser only),
-                // but the list rows offered nothing at all, so the
-                // List tab was a dead end for saving. Save and Hide
-                // take the same local path as the deck; Lead and
-                // I applied stay signed-in only, since they write
-                // to the account's pipeline and tracker.
-                <>
-                <button className={btn.ghost} onClick={() => mark(j, "saved")} disabled={m === "saved"}>{m === "saved" ? "Saved" : "Save"}</button>
-                <button className={btn.ghost} onClick={() => mark(j, "hidden")} aria-label={`Hide ${j.title}`}>Hide</button>
-                </>
-            )}
+                        // the deck (their picks live in this browser only),
+                        // but the list rows offered nothing at all, so the
+                        // List tab was a dead end for saving. Save and Hide
+                    // take the same local path as the deck; Lead and
+                    // I applied stay signed-in only, since they write
+                    // to the account's pipeline and tracker.
+                    <>
+                      <button className={btn.ghost} onClick={() => mark(j, "saved")} disabled={m === "saved"}>{m === "saved" ? "Saved" : "Save"}</button>
+                      <button className={btn.ghost} onClick={() => mark(j, "hidden")} aria-label={`Hide ${j.title}`}>Hide</button>
+                    </>
+                  )}
                 </div>
               </li>
             );

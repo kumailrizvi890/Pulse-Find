@@ -155,7 +155,7 @@ describe("both views read the shared helpers", () => {
 
   it("the networking page renders the shared contact rate", () => {
     expect(networking).toContain("contactResponseRate(contacts)");
-    expect(networking).toContain("{responseRate.responded} of {responseRate.total} responded");
+    expect(networking).toContain("{responseRate.responded} of {responseRate.total} people responded");
     expect(networking).toContain("Math.round(responseRate.rate * 100)}% response rate");
   });
 });

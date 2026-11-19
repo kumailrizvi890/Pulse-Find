@@ -237,6 +237,9 @@ export function Overview({
   // so "10 replies" sits next to a 45% rate instead of the old date rule's
   // "11 replies". The average still measures applied-to-last-contact days,
   // over the responded rows that have both dates; it is null when none do.
+  // The rate's sub shows the responded count, not the rejected count: a
+  // rejection IS a response under hasResponded, so "2 rejected" under the
+  // rate read as if the rejections were the ones who never replied.
   const response = useMemo(() => {
     const responded = apps.filter(hasResponded);
     if (responded.length === 0) return null;
@@ -607,7 +610,7 @@ export function Overview({
         <OverviewStat
           label="Response Rate"
           value={`${Math.round(sum.responseRate * 100)}%`}
-          sub={`${sum.rejected} rejected`}
+          sub={response ? `${response.count} of ${sum.total} responded` : "No replies yet"}
         />
       </div>
     </div>

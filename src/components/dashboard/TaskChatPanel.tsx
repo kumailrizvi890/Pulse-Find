@@ -457,7 +457,7 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
               <p className="text-sm leading-relaxed text-muted">
                 Here is everything your agent needs: this task and your chat, plus the full operator prompt with every
                 capability and the automatic setup, so it can pick up right where we left off and set everything up.
-                Your agent already has your tracker access through Pulse Find, so there is no token in here.
+                There is no token in here: an agent that is already connected has its own access from the Connect page.
               </p>
               <pre className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">
                 {handoff}

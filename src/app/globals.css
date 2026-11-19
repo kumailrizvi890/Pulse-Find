@@ -654,6 +654,13 @@ body {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
+/* Sheet sticky cells: solid surface, not the glass .bg-surface (86%
+   translucent), so scrolled row text cannot bleed through the sticky
+   header or the frozen Company column. Same reason as .tour-card. */
+.sheet-sticky {
+    background-color: var(--surface);
+}
+
 /* Site backdrop glows (SiteBackdrop.tsx). */
 .pf-site-glow-far {
   background: radial-gradient(closest-side, rgb(253 88 93 / 0.14), rgb(253 88 93 / 0.04) 55%, transparent 72%);

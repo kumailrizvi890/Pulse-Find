@@ -83,12 +83,12 @@ function demoLeads(today: ISODate): Lead[] {
     return { ...rest, id: `demo-lead-${i + 1}`, date_found: addDays(today, -found) };
   };
   return [
-    mk(0, { company: "Westfield Labs", role: "Software Engineer Intern", track: "Internship", location: "Seattle, WA", pay: "$48/hr", url: "", source: "Job board", status: "Queued", fit_note: "Strong match: TypeScript + product team", found: 1 }),
-    mk(1, { company: "Copperline", role: "Machine Learning Intern", track: "Internship", location: "Remote", pay: "", url: "", source: "Agent scan", status: "New", fit_note: "Python ML stack, small team", found: 0 }),
-    mk(2, { company: "Brightwater Health", role: "Frontend Engineer, New Grad", track: "New Grad", location: "Austin, TX", pay: "$95k", url: "", source: "Job board", status: "New", fit_note: "React role; healthcare data product", found: 2 }),
-    mk(3, { company: "Atlas Robotics", role: "Software Intern, Perception", track: "Internship", location: "Pittsburgh, PA", pay: "", url: "", source: "Referral", status: "Problem", fit_note: "Posting closed early — watch for the spring repost", found: 6 }),
-    mk(4, { company: "Fernhill Capital", role: "Quant Developer Intern", track: "Internship", location: "New York, NY", pay: "$60/hr", url: "", source: "Job board", status: "Not eligible", fit_note: "Requires a master's degree", found: 9 }),
-    mk(5, { company: "Tidewater Cloud", role: "SRE Intern", track: "Internship", location: "Remote", pay: "$44/hr", url: "", source: "Agent scan", status: "Applied", fit_note: `Applied from this lead on ${shortDate(addDays(today, -8))}`, found: 12 }),
+    mk(0, { company: "Westfield Labs", role: "Software Engineer Intern", track: "Internship", location: "Seattle, WA", pay: "$48/hr", url: "https://westfieldlabs.com/careers/software-engineer-intern", source: "Job board", status: "Queued", fit_note: "Strong match: TypeScript + product team", found: 1 }),
+    mk(1, { company: "Copperline", role: "Machine Learning Intern", track: "Internship", location: "Remote", pay: "", url: "https://copperline.com/careers/machine-learning-intern", source: "Agent scan", status: "New", fit_note: "Python ML stack, small team", found: 0 }),
+    mk(2, { company: "Brightwater Health", role: "Frontend Engineer, New Grad", track: "New Grad", location: "Austin, TX", pay: "$95k", url: "https://brightwaterhealth.com/careers/frontend-engineer-new-grad", source: "Job board", status: "New", fit_note: "React role; healthcare data product", found: 2 }),
+    mk(3, { company: "Atlas Robotics", role: "Software Intern, Perception", track: "Internship", location: "Pittsburgh, PA", pay: "", url: "https://atlasrobotics.com/careers/software-intern-perception", source: "Referral", status: "Problem", fit_note: "Posting closed early — watch for the spring repost", found: 6 }),
+    mk(4, { company: "Fernhill Capital", role: "Quant Developer Intern", track: "Internship", location: "New York, NY", pay: "$60/hr", url: "https://fernhillcapital.com/careers/quant-developer-intern", source: "Job board", status: "Not eligible", fit_note: "Requires a master's degree", found: 9 }),
+    mk(5, { company: "Tidewater Cloud", role: "SRE Intern", track: "Internship", location: "Remote", pay: "$44/hr", url: "https://tidewatercloud.com/careers/sre-intern", source: "Agent scan", status: "Applied", fit_note: `Applied from this lead on ${shortDate(addDays(today, -8))}`, found: 12 }),
   ];
 }
 

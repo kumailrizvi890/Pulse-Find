@@ -19,8 +19,11 @@ describe("landing navbar Connect button", () => {
     it("styles the button with the red accent treatment, sized for the top bar", () => {
         // The style lives in TopBar.tsx now, shared with /privacy so the
         // public nav matches on both pages; the landing page imports it.
+        // Pass 54 sits the button 2px tighter below sm (px-3, back to
+        // px-3.5 from sm up) so the public nav fits on one line at 430px.
         const topBar = read("components/TopBar.tsx");
-        expect(topBar).toContain("bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink");
+        expect(topBar).toContain("bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink");
+        expect(topBar).toContain("sm:px-3.5");
         expect(topBar).toContain("export const navButton");
         expect(home).toContain("navButton");
     });

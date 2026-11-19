@@ -44,7 +44,9 @@ function snippet(client: ClientName, url: string, token: string) {
         2,
       );
     default:
-      return `URL:        ${url}\nTransport:  Streamable HTTP\nHeader:     Authorization: ${auth}`;
+      return `URL:        ${url}
+Transport:  Streamable HTTP
+Header:     Authorization: ${auth}`;
   }
 }
 
@@ -56,6 +58,31 @@ const WHERE: Record<ClientName, string> = {
   Other: "Any MCP client that supports Streamable HTTP and custom headers.",
 };
 
+// The four example questions for step 3. The first carries a "(Uses the
+// scan_inbox prompt.)" note and the fourth a "[paste it]" note: both are
+// hints for the human reading the page, not part of the question, so Copy
+// takes the askable question only. For the fourth, paste the email after
+// the question. (Same list as the demo page, duplicated on purpose like
+// the snippets above, so a change here can never break it.)
+const EXAMPLE_QUESTIONS: { display: string; copy: string }[] = [
+  {
+    display: "Scan my email from the last 7 days and update Pulse Find. (Uses the scan_inbox prompt.)",
+    copy: "Scan my email from the last 7 days and update Pulse Find.",
+  },
+  {
+    display: "What's waiting on me in my job search, soonest first?",
+    copy: "What's waiting on me in my job search, soonest first?",
+  },
+  {
+    display: "Find remote software engineering internships posted this week.",
+    copy: "Find remote software engineering internships posted this week.",
+  },
+  {
+    display: "Is this recruiter email a scam? [paste it]",
+    copy: "Is this recruiter email a scam?",
+  },
+];
+
 export function ConnectAgent({ userId }: { userId: string }) {
   const db = useMemo(() => createClient(), []);
   const [tokens, setTokens] = useState<TokenRow[] | null>(null);
@@ -66,6 +93,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [copiedQuestion, setCopiedQuestion] = useState<number | null>(null);
   const [reload, setReload] = useState(0);
   const [origin, setOrigin] = useState("https://pulsefind-app.vercel.app");
 
@@ -117,6 +145,19 @@ export function ConnectAgent({ userId }: { userId: string }) {
     await navigator.clipboard.writeText(text);
     setPromptCopied(true);
     setTimeout(() => setPromptCopied(false), 2600);
+  }
+
+  // Separate from copy(): that one flips the step-1 token "Copied" label,
+  // which a question copy must never touch.
+  async function copyQuestion(text: string, i: number) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedQuestion(i);
+      setTimeout(() => setCopiedQuestion((c) => (c === i ? null : c)), 2600);
+    } catch {
+      // Clipboard blocked: the question stays visible, so it can still be
+      // selected by hand.
+    }
   }
 
   const shown = fresh ?? "pf_YOUR_TOKEN";
@@ -174,13 +215,18 @@ export function ConnectAgent({ userId }: { userId: string }) {
 
       <Panel title="3. Ask your agent" hint="Try one of these.">
         <ul className="space-y-2 text-sm">
-          {[
-            "Scan my email from the last 7 days and update Pulse Find. (Uses the scan_inbox prompt.)",
-            "What's waiting on me in my job search, soonest first?",
-            "Find remote software engineering internships posted this week.",
-            "Is this recruiter email a scam? [paste it]",
-          ].map((q) => (
-            <li key={q} className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-ink">&ldquo;{q}&rdquo;</li>
+          {EXAMPLE_QUESTIONS.map((q, i) => (
+            <li key={q.display} className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-ink">
+              <span className="min-w-0 flex-1">&ldquo;{q.display}&rdquo;</span>
+              <button
+                type="button"
+                className={btn.ghost}
+                aria-label={`Copy question ${i + 1}`}
+                onClick={() => void copyQuestion(q.copy, i)}
+              >
+                {copiedQuestion === i ? "Copied" : "Copy"}
+              </button>
+            </li>
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">

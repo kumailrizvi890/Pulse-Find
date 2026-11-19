@@ -7,11 +7,10 @@ export const metadata: Metadata = { title: "Sheet — Live demo" };
 
 // Public demo route for the Sheet view. Renders the same SheetView as the
 // signed-in app, with fictional sample data only.
-export default async function DemoSheetPage({ searchParams }: { searchParams: Promise<{ tour?: string | string[] }> }) {
-  const sp = await searchParams;
+export default function DemoSheetPage() {
   return (
     <>
-      <DemoNav tour={typeof sp.tour === "string" ? sp.tour : undefined} />
+      <DemoNav />
       <Suspense fallback={null}>
         <DemoSheetClient />
       </Suspense>

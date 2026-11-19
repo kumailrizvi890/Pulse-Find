@@ -24,6 +24,30 @@ import { btn, cx, Panel } from "@/components/dashboard/ui";
 
 const PLACEHOLDER_TOKEN = "pf_YOUR_TOKEN";
 
+// The four example questions for step 3. The first carries a "(Uses the
+// scan_inbox prompt.)" note and the fourth a "[paste it]" note: both are
+// hints for the human reading the page, not part of the question, so Copy
+// takes the askable question only. For the fourth, paste the email after
+// the question.
+const EXAMPLE_QUESTIONS: { display: string; copy: string }[] = [
+  {
+    display: "Scan my email from the last 7 days and update Pulse Find. (Uses the scan_inbox prompt.)",
+    copy: "Scan my email from the last 7 days and update Pulse Find.",
+  },
+  {
+    display: "What's waiting on me in my job search, soonest first?",
+    copy: "What's waiting on me in my job search, soonest first?",
+  },
+  {
+    display: "Find remote software engineering internships posted this week.",
+    copy: "Find remote software engineering internships posted this week.",
+  },
+  {
+    display: "Is this recruiter email a scam? [paste it]",
+    copy: "Is this recruiter email a scam?",
+  },
+];
+
 const CLIENTS = ["Claude Code", "Cursor", "VS Code", "Claude Desktop", "Other"] as const;
 type ClientName = (typeof CLIENTS)[number];
 
@@ -60,9 +84,9 @@ const WHERE: Record<ClientName, string> = {
 
 export function DemoConnectAgent() {
   const [client, setClient] = useState<ClientName>("Claude Code");
-  const [tokenCopied, setTokenCopied] = useState(false);
   const [snippetCopied, setSnippetCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [copiedQuestion, setCopiedQuestion] = useState<number | null>(null);
   // The origin is only known on the client; the lazy initializer reads it
   // on first render (in production it matches the fallback, so the server
   // and client render the same). No effect, so no extra render pass.
@@ -103,12 +127,11 @@ export function DemoConnectAgent() {
 
       <Panel title="1. Create an access token" hint="In the demo, this is a placeholder. A real token is created after you sign up.">
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 break-all rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 font-mono text-[13px]">{PLACEHOLDER_TOKEN}</code>
-            <button className={btn.secondary} onClick={() => void copy(PLACEHOLDER_TOKEN, setTokenCopied)}>
-              {tokenCopied ? "Copied" : "Copy"}
-            </button>
-          </div>
+          {/* No Copy button here on purpose: this is a placeholder, not a
+          working token, and copying it would hand a visitor a dead token
+          to paste into an agent config. It stays visible as an example
+          of what a real token looks like. */}
+          <code className="block break-all rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 font-mono text-[13px]">{PLACEHOLDER_TOKEN}</code>
           <p className="text-xs text-muted">
             After you sign up, your Connect page creates a real token for you. It is shown once, and Pulse Find stores only a
             fingerprint of it.
@@ -144,13 +167,18 @@ export function DemoConnectAgent() {
 
       <Panel title="3. Ask your agent" hint="Try one of these.">
         <ul className="space-y-2 text-sm">
-          {[
-            "Scan my email from the last 7 days and update Pulse Find. (Uses the scan_inbox prompt.)",
-            "What's waiting on me in my job search, soonest first?",
-            "Find remote software engineering internships posted this week.",
-            "Is this recruiter email a scam? [paste it]",
-          ].map((q) => (
-            <li key={q} className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-ink">&ldquo;{q}&rdquo;</li>
+          {EXAMPLE_QUESTIONS.map((q, i) => (
+            <li key={q.display} className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-ink">
+              <span className="min-w-0 flex-1">&ldquo;{q.display}&rdquo;</span>
+              <button
+                type="button"
+                className={btn.ghost}
+                aria-label={`Copy question ${i + 1}`}
+                onClick={() => void copy(q.copy, (v) => setCopiedQuestion(v ? i : null))}
+              >
+                {copiedQuestion === i ? "Copied" : "Copy"}
+              </button>
+            </li>
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">

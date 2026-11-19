@@ -119,7 +119,7 @@ export default async function Home() {
               Know what&apos;s waiting <span className="text-accent">on you.</span>
             </h1>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link href="/demo?tour=dashboard" className={heroPrimary}>Try the live demo</Link>
+              <Link href="/demo" className={heroPrimary}>Try the live demo</Link>
               <Link href="/jobs" className={heroSecondary}>Find jobs</Link>
               <Link href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally" className={heroSecondary} target="_blank" rel="noopener">Self host <IconExternalLink className="h-4 w-4 shrink-0" /></Link>
               <Link href="/#mcp" className={heroSecondary}>Connect your agents</Link>

@@ -17,8 +17,12 @@ describe("landing navbar Connect button", () => {
     });
 
     it("styles the button with the red accent treatment, sized for the top bar", () => {
-        expect(home).toContain("bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink");
-        expect(home).toContain("const navButton =");
+        // The style lives in TopBar.tsx now, shared with /privacy so the
+        // public nav matches on both pages; the landing page imports it.
+        const topBar = read("components/TopBar.tsx");
+        expect(topBar).toContain("bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink");
+        expect(topBar).toContain("export const navButton");
+        expect(home).toContain("navButton");
     });
 
     it("keeps the existing navbar links and their order", () => {
@@ -41,4 +45,3 @@ describe("landing navbar Connect button", () => {
         expect(home).toContain('<Link href="/demo/connect" className={primary}>Connect your agent</Link>');
     });
 });
-

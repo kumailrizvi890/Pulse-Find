@@ -658,7 +658,7 @@ body {
    translucent), so scrolled row text cannot bleed through the sticky
    header or the frozen Company column. Same reason as .tour-card. */
 .sheet-sticky {
-    background-color: var(--surface);
+  background-color: var(--surface);
 }
 
 /* Site backdrop glows (SiteBackdrop.tsx). */

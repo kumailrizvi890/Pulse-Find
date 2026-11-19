@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
 import { IconCheck, IconDetails, IconUndo, IconX } from "@/components/icons";
 import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
+import { JOB_SWIPED_EVENT, type JobSwipedDetail } from "@/lib/guided-tour";
 
 export type DeckJob = {
   id: string;
@@ -147,6 +148,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-3xl border border-line bg-surface" style={{ transform: "translate(7px, 5px) rotate(0.8deg)", opacity: 0.8, zIndex: 2 }} />
             <article
               key={top.id}
+              data-tour="job-card"
               style={{
                 transform: `translateX(${offset}px) rotate(${leaving ? (leaving === "saved" ? 6 : -6) : offset / 24}deg)`,
                 opacity: leaving ? 0 : 1,
@@ -168,9 +170,21 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
               onPointerMove={(e) => { if (dragging) setDx(e.clientX - start.current); }}
               onPointerUp={() => {
                 setDragging(false);
-                if (dx > THRESHOLD) decide("saved");
-                else if (dx < -THRESHOLD) decide("hidden");
-                else setDx(0);
+                // A real drag past the threshold announces itself, so
+                // the guided tour can complete on a swipe without
+                // watching pointer math. The buttons, the arrow keys
+                // and the save toast never fire this event.
+                if (dx > THRESHOLD) {
+                  window.dispatchEvent(
+                    new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "saved" } }),
+                  );
+                  decide("saved");
+                } else if (dx < -THRESHOLD) {
+                  window.dispatchEvent(
+                    new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "hidden" } }),
+                  );
+                  decide("hidden");
+                } else setDx(0);
               }}
               onPointerCancel={() => { setDragging(false); setDx(0); }}
             >
@@ -257,7 +271,6 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
         <button
           type="button"
           aria-label="Save"
-          data-tour="job-save"
           disabled={!top}
           onClick={() => decide("saved")}
           className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-accent text-accent-ink shadow-[0_8px_24px_rgba(253,88,93,0.45)] transition hover:scale-105 disabled:opacity-35"

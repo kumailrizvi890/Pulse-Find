@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { IconExternalLink } from "./icons";
 import { Logo } from "./Logo";
 import { PulseTrace } from "./PulseTrace";
 
@@ -29,8 +30,8 @@ export const navButton =
 
 export function GitHubLink() {
   return (
-    <Link href="https://github.com/kumailrizvi890/Pulse-Find" className={navLink} target="_blank" rel="noopener">
-      GitHub
+    <Link href="https://github.com/kumailrizvi890/Pulse-Find" className={`${navLink} inline-flex items-center gap-1`} target="_blank" rel="noopener">
+      GitHub <IconExternalLink className="h-3 w-3 shrink-0" />
     </Link>
   );
 }

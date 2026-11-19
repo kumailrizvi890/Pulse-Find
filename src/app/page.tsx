@@ -231,6 +231,6 @@ export default async function Home() {
         <StatsBand total={demoSum.total} oas={demoSum.oas} interviews={demoSum.interviews} actions={demoSum.actions} />
       </main>
             <SiteFooter />
-    </>div>
+    </>>
   );
 }

@@ -11,7 +11,7 @@ import { accountPipelineStore, isAlreadyTracked, leadKey } from "@/lib/pipeline"
 import { accountStore } from "@/lib/store";
 import { TRACKS, type Application, type Track } from "@/lib/types";
 import { Tag, btn, cx, field, useToast } from "@/components/dashboard/ui";
-import { IconX } from "@/components/icons";
+import { IconExternalLink, IconX } from "@/components/icons";
 import { PulseDot } from "@/components/PulseBrand";
 import { JobDetails } from "./JobDetails";
 import { initials, SwipeDeck } from "./SwipeDeck";
@@ -526,7 +526,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {j.url ? (
-                      <a href={j.url} target="_blank" rel="noopener noreferrer" className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink transition hover:opacity-90">View posting ↗</a>
+                      <a href={j.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink transition hover:opacity-90">View posting <IconExternalLink className="h-3 w-3 shrink-0" /></a>
                     ) : null}
                     {userId && (trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (
                       <Tag tone="muted">In tracker</Tag>
@@ -565,7 +565,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {j.url ? (
-                    <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting</a>
+                    <a href={j.url} target="_blank" rel="noopener noreferrer" className={btn.secondary}>Open posting <IconExternalLink className="h-3.5 w-3.5 shrink-0" /></a>
                   ) : null}
                   {userId ? (
                     m === "applied" || trackedKeys.has(leadKey({ company: j.company, role: j.title })) ? (

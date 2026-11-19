@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  JOB_SWIPED_EVENT,
   TOUR_BADGES,
   TOUR_PROGRESS_KEY,
   TOUR_RING_RADIUS,
@@ -48,7 +49,6 @@ describe("tour steps (Pulse-guided quest)", () => {
       "dashboard",
       "sheet",
       "leads",
-      "find-jobs",
       "jobs",
       "networking",
       "chat",
@@ -60,25 +60,23 @@ describe("tour steps (Pulse-guided quest)", () => {
     const routes: Record<TourStepId, string> = {
       dashboard: "/demo",
       sheet: "/demo/sheet",
-      "find-jobs": "/jobs",
       jobs: "/jobs",
       leads: "/demo/leads",
       networking: "/demo/networking",
       chat: "/demo",
-      connect: "/demo/connect",
+      connect: "/login",
     };
     // The ring targets the exact control the visitor acts on, not the
-    // whole page: the first waiting task, the sheet toolbar, the first
-    // row's Edit button, the save heart, the copy button.
+    // whole page: the first waiting task, the sheet toolbar, the job
+    // card, the sign-up toggle on the sign-in page.
     const anchors: Record<TourStepId, string> = {
       dashboard: "waiting-first",
       sheet: "sheet-tools",
-      "find-jobs": "find-jobs",
-      jobs: "job-save",
+      jobs: "job-card",
       leads: "lead-edit",
       networking: "contact-edit",
       chat: "ask-pulse",
-      connect: "connect-copy",
+      connect: "connect-signup",
     };
     for (const step of TOUR_STEPS) {
       expect(step.route).toBe(routes[step.id]);
@@ -93,12 +91,11 @@ describe("tour steps (Pulse-guided quest)", () => {
     const completions: Record<TourStepId, TourCompletion> = {
       dashboard: "waiting-open",
       sheet: "sheet-filter",
-      "find-jobs": "jobs-search",
-      jobs: "jobs-save",
+      jobs: "jobs-swipe",
       leads: "lead-edit",
       networking: "contact-edit",
       chat: "chat-ask",
-      connect: "connect-copy",
+      connect: "connect-signup",
     };
     for (const step of TOUR_STEPS) {
       expect(step.completion).toBe(completions[step.id]);
@@ -136,7 +133,11 @@ describe("tour steps (Pulse-guided quest)", () => {
     expect(jobs.lineAlt).toBe("tap View posting on the top card to peek at the role");
     expect(jobs.doneAlt).toBe("that's the one, the posting opens right from the card");
     expect(jobs.anchorAlt).toBe("job-posting");
-    expect(jobs.line).toContain("tap the green check button under the card");
+    // The demo line is a swipe, never a button press: no mention of
+    // the check button anywhere in it.
+    expect(jobs.line).toContain("swipe the top card right to save the job or left to pass it");
+    expect(jobs.line).not.toContain("check button");
+    expect(jobs.line).not.toContain("tap the green");
     // No other step needs a mode variant.
     for (const step of TOUR_STEPS) {
       if (step.id === "jobs") continue;
@@ -158,15 +159,16 @@ describe("tour steps (Pulse-guided quest)", () => {
     expect(nextTourStep(last)).toBeNull();
     expect(nextTourStep(first)?.id).toBe("sheet");
     expect(prevTourStep(last)?.id).toBe("chat");
-    expect(nextTourStep(parseTourStep("find-jobs")!)?.id).toBe("jobs");
-    expect(prevTourStep(parseTourStep("jobs")!)?.id).toBe("find-jobs");
+    expect(nextTourStep(parseTourStep("leads")!)?.id).toBe("jobs");
+    expect(prevTourStep(parseTourStep("jobs")!)?.id).toBe("leads");
   });
 
   it("builds step URLs from route + tour param, starting at the dashboard", () => {
     expect(tourHref(TOUR_STEPS[1])).toBe("/demo/sheet?tour=sheet");
     expect(tourHref(TOUR_STEPS[2])).toBe("/demo/leads?tour=leads");
-    expect(tourHref(TOUR_STEPS[3])).toBe("/jobs?tour=find-jobs");
-    expect(tourHref(TOUR_STEPS[6])).toBe("/demo?tour=chat");
+    expect(tourHref(TOUR_STEPS[3])).toBe("/jobs?tour=jobs");
+    expect(tourHref(TOUR_STEPS[5])).toBe("/demo?tour=chat");
+    expect(tourHref(TOUR_STEPS[6])).toBe("/login?tour=connect");
     expect(tourStartHref()).toBe("/demo?tour=dashboard");
   });
 
@@ -192,22 +194,80 @@ describe("the tour teaches one real action per stop", () => {
   it("names the one action to try in every line", () => {
     expect(byId("dashboard").line).toContain("tap Open on the first waiting task");
     expect(byId("sheet").line).toContain("Status dropdown in the toolbar above the sheet");
-    expect(byId("find-jobs").line).toContain("type a company or a role in the search box at the top of the jobs page");
-    expect(byId("jobs").line).toContain("tap the green check button under the card");
+    expect(byId("jobs").line).toContain("swipe the top card right to save the job or left to pass it");
     expect(byId("leads").line).toContain("tap Edit on the first lead row");
     expect(byId("networking").line).toContain("tap Edit on the first contact row");
     expect(byId("chat").line).toContain("tap Ask Pulse in the top bar");
     expect(byId("chat").line).toContain("i never guess");
-    expect(byId("connect").line).toContain("tap Copy full prompt under step 4");
-    expect(byId("connect").line).toContain("claude, cursor or copilot");
+    expect(byId("connect").line).toContain("2 easy steps to your token");
+    expect(byId("connect").line).toContain("create a free account");
   });
 
-  it("closes the Connect step with where to start and the replay link", () => {
+  it("closes the Connect step with the celebration, the token path, and the replay link", () => {
     const done = byId("connect").done;
-    expect(done).toContain("start with one application");
-    expect(done).toContain("one saved job");
-    expect(done).toContain("ask me what's due next");
+    expect(done).toContain("you did it");
+    expect(done).toContain("finish the account and grab your token from connect");
+    expect(done).toContain("start with one application and one saved job");
     expect(done).toContain("replay anytime from take the tour in the demo nav");
+  });
+});
+
+describe("tour changes, Nov 18: no company-name step, swipe the card, sign in to finish", () => {
+  it("has no step that asks for a company name", () => {
+    expect(TOUR_STEPS).toHaveLength(7);
+    expect(TOUR_STEPS.map((s) => s.id)).not.toContain("find-jobs");
+    for (const step of TOUR_STEPS) {
+      for (const text of [step.line, step.done]) {
+        expect(text).not.toContain("type a company");
+        expect(text).not.toContain("company name");
+        expect(text).not.toContain("search box");
+      }
+    }
+    // Nothing still references the removed step or its completion.
+    expect(tourLib).not.toContain("find-jobs");
+    expect(tourLib).not.toContain("jobs-search");
+    expect(tourHost).not.toContain("find-jobs");
+  });
+
+  it("swipes the card on the jobs step, never a button", () => {
+    const jobs = TOUR_STEPS.find((s) => s.id === "jobs")!;
+    expect(jobs.completion).toBe("jobs-swipe");
+    expect(jobs.anchor).toBe("job-card");
+    expect(jobs.line).toContain("swipe the top card right");
+    expect(jobs.line).toContain("left to pass it");
+    // The deck announces a real drag only: the event name is shared
+    // between the deck and the host, never a magic string twice.
+    expect(JOB_SWIPED_EVENT).toBe("pulsefind:job-swiped");
+    const deck = read("app/jobs/SwipeDeck.tsx");
+    expect(deck).toContain("JOB_SWIPED_EVENT");
+    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "saved" } })');
+    expect(deck).toContain('new CustomEvent<JobSwipedDetail>(JOB_SWIPED_EVENT, { detail: { direction: "hidden" } })');
+    // Both dispatches sit in the pointer-up handler, next to the
+    // threshold checks; the buttons and the arrow keys never fire it.
+    const pointerUp = deck.slice(deck.indexOf("onPointerUp="), deck.indexOf("onPointerCancel"));
+    expect(pointerUp).toContain("dx > THRESHOLD");
+    expect(pointerUp).toContain("dx < -THRESHOLD");
+    expect(pointerUp).toContain("JOB_SWIPED_EVENT");
+    expect(deck.match(/JOB_SWIPED_EVENT/g)?.length).toBe(3);
+  });
+
+  it("ends the tour on the sign-in page with a celebration and 2 easy steps", () => {
+    const connect = TOUR_STEPS.find((s) => s.id === "connect")!;
+    expect(connect.route).toBe("/login");
+    expect(connect.anchor).toBe("connect-signup");
+    expect(connect.completion).toBe("connect-signup");
+    expect(tourHref(connect)).toBe("/login?tour=connect");
+    // The host runs on the sign-in page, and no copy-token
+    // instruction survives anywhere in the tour.
+    expect(tourHost).toContain('"/login"');
+    expect(tourHost).toContain("Tour complete. Your token is 2 steps away");
+    const all = TOUR_STEPS.map((s) => `${s.line} ${s.done}`).join(" ");
+    expect(all).not.toContain("Copy full prompt");
+    expect(all).not.toContain("copy the token");
+    expect(all).not.toContain("Copy token");
+    // The celebration panel still shows the recap and the badges.
+    expect(tourHost).toContain('"You did all of it"');
+    expect(tourHost).toContain("tourRecapLines(progress.steps, signedIn)");
   });
 });
 
@@ -348,22 +408,34 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     for (const kind of [
       "waiting-open",
       "sheet-filter",
-      "jobs-search",
-      "jobs-save",
+      "jobs-swipe",
       "lead-edit",
       "contact-edit",
       "chat-ask",
-      "connect-copy",
+      "connect-signup",
     ]) {
       expect(tourHost).toContain(`case "${kind}":`);
     }
     expect(tourHost).toContain('data-tour-action="waiting-open"');
     expect(tourHost).toContain('data-tour-action="waiting-all"');
     expect(tourHost).toContain('aria-label") === "Filter by status"');
-    expect(tourHost).toContain('t.id === "job-search"');
-    expect(tourHost).toContain('[data-tour="job-save"]');
     expect(tourHost).toContain(".pf-chat-bubble-user-3d");
-    expect(tourHost).toContain('startsWith("Copy")');
+    // The jobs step completes on a real swipe only: the deck fires
+    // JOB_SWIPED_EVENT from a pointer drag past the threshold, and the
+    // host listens for that event on the window. No button, key, or
+    // toast completes it.
+    expect(tourHost).toContain("JOB_SWIPED_EVENT");
+    expect(tourHost).toContain(`on(window, JOB_SWIPED_EVENT, fn)`);
+    expect(tourHost).not.toContain('[data-tour="job-save"]');
+    expect(tourHost).not.toContain('startsWith("Saved")');
+    // The final step completes on the sign-up toggle, never a copy.
+    expect(tourHost).toContain('[data-tour="connect-signup"]');
+    expect(tourHost).toContain('"Create an account"');
+    expect(tourHost).toContain('document.querySelector("#l-name")');
+    expect(tourHost).not.toContain('startsWith("Copy")');
+    expect(tourHost).not.toContain('case "connect-copy"');
+    expect(tourHost).not.toContain('case "jobs-search"');
+    expect(tourHost).not.toContain('case "jobs-save"');
     // The advance is a timer after the action, never a button press,
     // and it waits for any open dialog to close first, so the visitor
     // reads the drawer or the edit form before the page changes.
@@ -460,8 +532,6 @@ describe("tour host (quest coach: no action buttons, advance only on the real ac
     expect(tourHost).toContain("step.lineAlt");
     expect(tourHost).toContain("step.doneAlt");
     expect(tourHost).toContain("step.anchorAlt");
-    // The save toast is the catch-all for swipe and keyboard saves.
-    expect(tourHost).toContain('startsWith("Saved")');
   });
 
   it("never performs a mutation: it only watches, never saves, dismisses, or sends", () => {
@@ -535,7 +605,7 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
     expect(TOUR_BADGES.map((b) => b.name)).toEqual(["Inbox Zero", "Explorer", "Networker"]);
     const earnedBy: Record<TourBadgeId, TourStepId> = {
       "inbox-zero": "dashboard",
-      explorer: "find-jobs",
+      explorer: "jobs",
       networker: "networking",
     };
     for (const badge of TOUR_BADGES) {
@@ -545,11 +615,11 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
     }
     // No other step earns a badge.
     for (const step of TOUR_STEPS) {
-      if (step.id === "dashboard" || step.id === "find-jobs" || step.id === "networking") continue;
+      if (step.id === "dashboard" || step.id === "jobs" || step.id === "networking") continue;
       expect(badgeForStep(step.id)).toBeUndefined();
     }
     expect(badgeForStep("dashboard")?.id).toBe("inbox-zero");
-    expect(badgeForStep("find-jobs")?.id).toBe("explorer");
+    expect(badgeForStep("jobs")?.id).toBe("explorer");
     expect(badgeForStep("networking")?.id).toBe("networker");
   });
 
@@ -564,11 +634,11 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
     expect(noBadge).toEqual({ steps: ["dashboard", "sheet"], badges: ["inbox-zero"] });
     let all: TourProgress = emptyTourProgress();
     for (const step of TOUR_STEPS) all = progressAfterCompletion(all, step.id);
-    expect(all.steps).toHaveLength(8);
+    expect(all.steps).toHaveLength(7);
     expect(all.badges).toEqual(["inbox-zero", "explorer", "networker"]);
     expect(tourProgressFraction(all)).toBe(1);
     expect(tourProgressFraction(empty)).toBe(0);
-    expect(tourProgressFraction({ steps: ["dashboard", "sheet"], badges: ["inbox-zero"] })).toBe(0.25);
+    expect(tourProgressFraction({ steps: ["dashboard", "sheet"], badges: ["inbox-zero"] })).toBe(2 / 7);
   });
 
   it("sizes the progress ring from the step fraction", () => {
@@ -589,14 +659,13 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
       "opened a waiting task",
       "filtered the sheet by stage",
       "opened a lead",
-      "searched fresh roles",
-      "saved a job to your leads",
+      "swiped a job card",
       "opened a due contact",
       "asked Pulse what is due next",
-      "copied the agent prompt",
+      "went to sign in for your token",
     ]);
     const signedIn = tourRecapLines(all, true);
-    expect(signedIn[4]).toBe("peeked at a posting");
+    expect(signedIn[3]).toBe("peeked at a posting");
     expect(tourRecapLines(["networking", "dashboard"], false)).toEqual([
       "opened a waiting task",
       "opened a due contact",
@@ -684,16 +753,13 @@ describe("tour rewards (Nov 17: guidance-first, earned only by real actions)", (
     // that render after the tour mounts.
     expect(tourHost).toContain('on(document, "click", fn)');
     expect(tourHost).toContain('on(document, "change", fn)');
-    expect(tourHost).toContain('on(document, "input", fn)');
     expect(tourHost).toContain("within(e, '[data-tour=\"waiting\"]')");
     expect(tourHost).toContain("within(e, '[data-tour=\"sheet\"]')");
-    expect(tourHost).toContain("within(e, '[data-tour=\"find-jobs\"]')");
     expect(tourHost).toContain("within(e, '[data-tour=\"jobs\"]')");
     expect(tourHost).toContain("within(e, '[data-tour=\"leads\"]')");
     expect(tourHost).toContain("within(e, '[data-tour=\"networking\"]')");
     expect(tourHost).not.toContain('document.querySelector(\'[data-tour="waiting"]\')');
     expect(tourHost).not.toContain('document.querySelector(\'[data-tour="sheet"]\')');
-    expect(tourHost).not.toContain('document.querySelector(\'[data-tour="find-jobs"]\')');
     expect(tourHost).not.toContain('document.querySelector(\'[data-tour="leads"]\')');
     expect(tourHost).not.toContain('document.querySelector(\'[data-tour="networking"]\')');
   });
@@ -708,9 +774,15 @@ describe("tour anchors exist on the pages the steps visit", () => {
     expect(read("components/dashboard/SheetView.tsx")).toContain('data-tour="sheet-tools"');
     expect(read("components/pipeline/LeadsSection.tsx")).toContain('"lead-edit"');
     expect(read("components/pipeline/NetworkingSection.tsx")).toContain('"contact-edit"');
-    expect(read("app/demo/connect/DemoConnectAgent.tsx")).toContain('data-tour="connect-copy"');
-    expect(read("app/jobs/SwipeDeck.tsx")).toContain('data-tour="job-save"');
+    expect(read("app/jobs/SwipeDeck.tsx")).toContain('data-tour="job-card"');
     expect(read("app/jobs/SwipeDeck.tsx")).toContain('"job-posting"');
+    expect(read("app/jobs/SwipeDeck.tsx")).not.toContain('data-tour="job-save"');
+    expect(read("app/login/LoginForm.tsx")).toContain('data-tour="connect-signup"');
+    // The old anchors are gone with their steps: no search-bar anchor,
+    // no save-button anchor, no copy anchor on the demo connect page.
+    expect(read("app/jobs/JobsBoard.tsx")).not.toContain('data-tour="find-jobs"');
+    expect(read("app/demo/connect/DemoConnectAgent.tsx")).not.toContain('data-tour="connect-copy"');
+    expect(read("app/demo/connect/DemoConnectAgent.tsx")).not.toContain('data-tour="connect"');
   });
 
   it("keeps the page-level anchors the detectors listen inside", () => {
@@ -720,9 +792,9 @@ describe("tour anchors exist on the pages the steps visit", () => {
     expect(read("components/pipeline/NetworkingSection.tsx")).toContain('data-tour="networking"');
   });
 
-  it("marks the jobs search bar and the swipe deck separately", () => {
+  it("marks the swipe deck, not the search bar, for the jobs step", () => {
     const jobs = read("app/jobs/JobsBoard.tsx");
-    expect(jobs).toContain('data-tour="find-jobs"');
+    expect(jobs).not.toContain('data-tour="find-jobs"');
     expect(jobs).toContain('data-tour="jobs"');
   });
 

@@ -27,7 +27,7 @@ export function PulseMark({ className = "h-6 w-6", animate = false }: { classNam
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2 font-display text-[17px] font-bold tracking-tight text-ink">
+    <Link href={href} className="flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-bold tracking-tight text-ink">
       <PulseMark />
       Pulse Find
     </Link>

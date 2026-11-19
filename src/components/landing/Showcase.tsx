@@ -6,7 +6,7 @@ import { WeeklyPace, type PaceDay } from "@/components/dashboard/Charts";
 import { Tag } from "@/components/dashboard/ui";
 import { Reveal } from "./Reveal";
 import { demoApplications } from "@/lib/demo-data";
-import { calendarWeekPace, todayISO } from "@/lib/metrics";
+import { rollingWeekPace, todayISO } from "@/lib/metrics";
 
 export type ShowcaseQueueItem = { company: string; action: string; dueLabel: string; urgent: boolean };
 export type ShowcaseGhostedItem = { company: string; quietDays: number };
@@ -15,7 +15,7 @@ export type ShowcaseGhostedItem = { company: string; quietDays: number };
  * The three live widgets that replace the old text-only feature trio.
  * Each one is a real render of the demo data (fictional sample data,
  * computed in page.tsx) — not a screenshot: the waiting queue, the
- * ghosted list, and the weekly pace chart. Cards tilt a few degrees
+ * ghosted list, and the rolling 7-day pace chart. Cards tilt a few degrees
  * toward the pointer on fine-pointer devices only, and sit still under
  * reduced motion or touch.
  */
@@ -38,17 +38,17 @@ export function Showcase({
   paceChange: number | null;
   goal: number;
 }) {
-  // The pace week is recomputed in the browser after mount: the server
+  // The rolling 7-day pace is recomputed in the browser after mount: the server
   // renders on UTC, so a server-rendered "today" is already tomorrow for
-  // a visitor west of UTC once midnight UTC passes, and the week would
+  // a visitor west of UTC once midnight UTC passes, and the window would
   // count an application dated tomorrow. Same pattern as ChatBeat: the
   // server props render first (no hydration mismatch), the browser's
-  // week replaces them one tick after mount.
+  // window replaces them one tick after mount.
   const [pace, setPace] = useState({ days: paceDays, total: paceTotal, change: paceChange });
   useEffect(() => {
     const t = window.setTimeout(() => {
       const today = todayISO();
-      setPace(calendarWeekPace(demoApplications(today), today));
+      setPace(rollingWeekPace(demoApplications(today), today));
     }, 0);
     return () => window.clearTimeout(t);
   }, []);
@@ -118,14 +118,14 @@ export function Showcase({
                 {pace.total} / {goal}
               </span>
             </div>
-            <p className="mb-4 text-sm text-muted">Monday to Sunday, compared with last week.</p>
+            <p className="mb-4 text-sm text-muted">Last 7 days, compared with the 7 days before.</p>
             <WeeklyPace
               days={pace.days}
               total={pace.total}
               change={pace.change}
-              totalLabel="Total this week (Mon-Sun)"
-              prevLabel="last week (Mon-Sun)"
-              ariaLabel="Applications per day, this week (Monday to Sunday)"
+              totalLabel="Total in the last 7 days"
+              prevLabel="previous 7 days"
+              ariaLabel="Applications per day, last 7 days"
             />
           </TiltCard>
         </Reveal>
@@ -147,6 +147,7 @@ function TiltCard({ children }: { children: React.ReactNode }) {
     const py = (e.clientY - r.top) / r.height - 0.5;
     el.style.transform = `perspective(900px) rotateX(${(-py * 4).toFixed(2)}deg) rotateY(${(px * 4).toFixed(2)}deg)`;
   };
+
   const onLeave = () => {
     if (ref.current) ref.current.style.transform = "";
   };

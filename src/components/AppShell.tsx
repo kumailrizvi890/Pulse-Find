@@ -11,12 +11,18 @@ export const shellTabActive = "pf-nav-glow border-b-2 border-accent px-2.5 py-1.
 
 export type ShellTab = "tracker" | "sheet" | "leads" | "networking" | "jobs" | "connect";
 
+/**
+ * Signed-in tab order (Nov 19 2026): Find jobs sits ahead of Leads —
+ * Kumail asked for the swap from his phone. It overrides the Nov 18
+ * order (Leads before Find jobs). The tour step order is separate
+ * (Leads step 3, Find jobs step 4) and is NOT changed here.
+ */
 const TABS: { href: string; label: string; key: ShellTab }[] = [
   { href: "/app", label: "Tracker", key: "tracker" },
   { href: "/app/sheet", label: "Sheet", key: "sheet" },
-  { href: "/app/leads", label: "Leads", key: "leads" },
-  { href: "/app/networking", label: "Networking", key: "networking" },
   { href: "/jobs", label: "Find jobs", key: "jobs" },
+  { href: "/app/networking", label: "Networking", key: "networking" },
+  { href: "/app/leads", label: "Leads", key: "leads" },
   { href: "/app/connect", label: "Connect agent", key: "connect" },
 ];
 
@@ -36,7 +42,18 @@ export function AppShell({
 }) {
   return (
     <div className="pf-shell min-h-dvh">
-      <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 border-b border-line bg-bg/85 backdrop-blur">
+      {/*
+        * Sticky shell bars are SOLID, never translucent (Nov 19 PWA
+        * fix). The old 85%-opaque blur let tracker rows show through
+        * the header and tab bar while scrolling, so the greeting read
+        * sliced in half behind the tabs. The header also sits at top-0
+        * with the safe-area inset as padding instead of as an offset:
+        * offsetting it down left a see-through strip above the pulse
+        * line where scrolled content showed through on the installed
+        * app. Desktop is unchanged: the inset is 0 there, so top-0
+        * plus zero padding is the same position as before.
+        */}
+      <header className="sticky top-0 z-30 border-b border-line bg-bg pt-[env(safe-area-inset-top,0px)]">
         <PulseTrace className="block h-[14px] w-full" glow />
         <div className="gutter mx-auto flex h-14 w-full max-w-[1180px] items-center justify-between gap-3">
           <Logo href="/app" />
@@ -44,7 +61,7 @@ export function AppShell({
         </div>
       </header>
       {active && (
-        <div className="sticky top-[calc(env(safe-area-inset-top,0px)+71px)] z-20 border-b border-line bg-bg/85 backdrop-blur">
+        <div className="sticky top-[calc(env(safe-area-inset-top,0px)+71px)] z-20 border-b border-line bg-bg">
           <div className="gutter mx-auto flex w-full max-w-[1180px] gap-1.5 overflow-x-auto pt-3" role="navigation" aria-label="Tracker sections">
             {TABS.map((t) => (
               <Link key={t.key} href={t.href} className={t.key === active ? shellTabActive : shellTab} aria-current={t.key === active ? "page" : undefined}>

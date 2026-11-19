@@ -420,8 +420,10 @@ export function GuidedTour() {
   // A step is done when the visitor does the real thing. The crystal
   // bursts, the ring pulses, and Pulse says the done line. The advance
   // itself lives in the effect below, so it can wait for a dialog to
-  // close first. The step and its badge (when it earns one) are
-  // recorded in localStorage, so a replay shows what was earned.
+  // close first. The last step has no next step, so it
+  // waits for Done instead. A dot jump or a browser Back clears the
+  // pending timer through the cleanup, and the guard below is the
+  // belt-and-braces for a timer that already fired.
   const complete = useCallback(() => {
     if (!step || doneStep === step.id) return;
     setDoneStep(step.id);
@@ -705,13 +707,13 @@ export function GuidedTour() {
             />
           ))}
           <span className="ml-1 shrink-0 font-mono text-[11px] text-faint">
-            {progress.steps.length}/{TOUR_STEPS.length}
+            {index + 1}/{TOUR_STEPS.length}
           </span>
         </div>
         {done && last && (
           <div className="mt-3 rounded-xl border border-line bg-surface-2 p-3">
             <p className="text-xs font-semibold text-ink">
-              {progress.steps.length === TOUR_STEPS.length ? "you did all of it" : "here is what you did"}
+              {progress.steps.length === TOUR_STEPS.length ? "You did all of it" : "Here is what you did"}
             </p>
             <ul className="mt-1.5 space-y-1">
               {recap.map((r) => (
@@ -721,7 +723,7 @@ export function GuidedTour() {
               ))}
             </ul>
             {earnedBadges.length > 0 && (
-              <p className="mt-2 text-xs text-muted">badges: {earnedBadges.map((b) => b.name).join(", ")}</p>
+              <p className="mt-2 text-xs text-muted">Badges: {earnedBadges.map((b) => b.name).join(", ")}</p>
             )}
           </div>
         )}
@@ -738,7 +740,7 @@ export function GuidedTour() {
               Skip tour
             </button>
           )}
-          <p className="text-xs text-faint">{done ? "moving on" : "do the thing and the tour moves on"}</p>
+          <p className="text-xs text-faint">{done ? "Moving on" : "Do the thing and the tour moves on"}</p>
         </div>
       </div>
     </div>

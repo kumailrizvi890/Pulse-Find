@@ -28,6 +28,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   const [loadError, setLoadError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
+  const [dueOnly, setDueOnly] = useState(false);
   const [form, setForm] = useState<{ open: boolean; editing: Contact | null }>({ open: false, editing: null });
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const { toast, toastNode } = useToast();
@@ -85,8 +86,14 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
   const responseRate = useMemo(() => contactResponseRate(contacts), [contacts]);
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? sorted.filter((c) => `${c.person_name} ${c.company} ${c.status} ${c.next_step} ${c.notes}`.toLowerCase().includes(q)) : sorted;
-  }, [sorted, query]);
+    return sorted.filter((c) => {
+      if (dueOnly) {
+        const bucket = dueBucket(c, today);
+        if (bucket !== "overdue" && bucket !== "today") return false;
+      }
+      return !q || `${c.person_name} ${c.company} ${c.status} ${c.next_step} ${c.notes}`.toLowerCase().includes(q);
+    });
+  }, [sorted, query, dueOnly, today]);
 
   async function markDone(c: Contact) {
     try {
@@ -152,7 +159,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="search"
             className={cx(field, "w-52")}
@@ -161,6 +168,13 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search people"
           />
+          <button
+            className={cx("whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs transition", dueOnly ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:text-ink")}
+            aria-pressed={dueOnly}
+            onClick={() => setDueOnly((v) => !v)}
+          >
+            Due only
+          </button>
           <button className={cx(btn.primary, "whitespace-nowrap")} onClick={() => setForm({ open: true, editing: null })}>+ Add person</button>
         </div>
       </div>
@@ -174,7 +188,13 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
           </div>
         ) : rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">
-            {contacts.length === 0 ? "No one here yet. Add the recruiters, alumni and engineers you're in touch with." : "No one matches this search."}
+            {contacts.length === 0
+              ? "No one here yet. Add the recruiters, alumni and engineers you're in touch with."
+              : dueOnly && query.trim()
+                ? "No due follow-ups match this search."
+                : dueOnly
+                  ? "No follow-ups due right now."
+                  : "No one matches this search."}
           </p>
         ) : (
           <ul className="divide-y divide-line">

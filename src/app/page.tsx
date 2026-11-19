@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GitHubLink, TopBar, navButton, navLink } from "@/components/TopBar";
+import { IconExternalLink } from "@/components/icons";
 import { SiteFooter } from "@/components/SiteFooter";
 import { HeroPreview } from "@/components/HeroPreview";
 import { PulseMark } from "@/components/Logo";
@@ -120,7 +121,7 @@ export default async function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href="/demo?tour=dashboard" className={heroPrimary}>Try the live demo</Link>
               <Link href="/jobs" className={heroSecondary}>Find jobs</Link>
-              <Link href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally" className={heroSecondary} target="_blank" rel="noopener">Self host</Link>
+              <Link href="https://github.com/kumailrizvi890/Pulse-Find#run-it-locally" className={heroSecondary} target="_blank" rel="noopener">Self host <IconExternalLink className="h-4 w-4 shrink-0" /></Link>
               <Link href="/#mcp" className={heroSecondary}>Connect your agents</Link>
             </div>
             <p className="mt-4 text-sm text-faint">No sign-up needed for the demo or the job board. Your real tracker is private to you.</p>
@@ -220,7 +221,7 @@ export default async function Home() {
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="/demo/connect" className={primary}>Connect your agent</Link>
-                <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it</Link>
+                <Link href="https://github.com/kumailrizvi890/Pulse-Find/blob/main/docs/SELF_HOST.md" className={secondary} target="_blank" rel="noopener">Self-host it <IconExternalLink className="h-4 w-4 shrink-0" /></Link>
               </div>
             </Reveal>
             <Reveal delay={90} className="min-w-0">

@@ -144,7 +144,7 @@ export function sortSheet(rows: SheetRow[], key: SheetKey, dir: SortDir): SheetR
   return [...rows].sort((a, b) => {
     if (NUMERIC_KEYS.has(key)) {
       const av = a.values[key] === "" ? null : Number(a.values[key]);
-      const bv = b.values[key] === "" ? null : Number(a.values[key]);
+      const bv = b.values[key] === "" ? null : Number(b.values[key]);
       if (av === null && bv === null) return a.app.company.localeCompare(b.app.company);
       if (av === null) return 1; // blanks last either way
       if (bv === null) return -1;

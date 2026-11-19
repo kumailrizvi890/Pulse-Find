@@ -154,7 +154,9 @@ describe("buildTaskAgentHandoff", () => {
     expect(h).toContain("Set me up first, automatically");
     expect(h).toContain("Sheet view");
     expect(h).toContain("scan_inbox");
-    expect(h).toContain("You are already connected to the MCP server");
+    expect(h).toContain("Your connection to the MCP server");
+    expect(h).toContain("If you are already connected");
+    expect(h).toContain("If you are not connected yet");
     expect(h).toContain("get_summary");
     expect(h).toContain("process_job_email");
     expect(h).toContain("What still needs me");

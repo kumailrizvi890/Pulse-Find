@@ -68,7 +68,7 @@ describe("floating Pulse button", () => {
     expect(button).toContain('"/login"');
     expect(button).toContain('"/signup"');
     expect(button).toContain('"/forgot-password"');
-    expect(button).toContain("if (overlayOpen && !open) return null;");
+    expect(button).toContain("if ((overlayOpen || dialogOpen) && !open) return null;");
   });
 
   it("reuses the waiting count for its badge instead of inventing a data path", () => {
@@ -119,6 +119,49 @@ describe("floating button wiring", () => {
   });
 });
 
+describe("floating button hides under foreign modal dialogs", () => {
+  const leads = readFileSync(join(root, "components", "pipeline", "LeadsSection.tsx"), "utf8");
+  const networking = readFileSync(join(root, "components", "pipeline", "NetworkingSection.tsx"), "utf8");
+  const importDialog = readFileSync(join(root, "components", "dashboard", "ImportDialog.tsx"), "utf8");
+  const settings = dashboard;
+
+  it("watches the DOM for modal dialogs with a MutationObserver and an initial scan", () => {
+    expect(button).toContain("new MutationObserver(scan)");
+    expect(button).toContain("observer.observe(document.body, { childList: true, subtree: true })");
+    expect(button).toContain("observer.disconnect()");
+    expect(button).toContain("setDialogOpen(foreign)");
+    expect(button).toContain("const [dialogOpen, setDialogOpen] = useState(false);");
+  });
+
+  it("matches every modal dialog by role and aria-modal, including the lead form", () => {
+    expect(button).toContain("'[role=\"dialog\"][aria-modal=\"true\"]'");
+    expect(leads).toContain('role="dialog" aria-modal="true"');
+    expect(leads).toContain("Save lead");
+    expect(networking).toContain('role="dialog" aria-modal="true"');
+    expect(importDialog).toContain('role="dialog" aria-modal="true"');
+    expect(settings).toContain('role="dialog" aria-modal="true"');
+  });
+
+  it("does not hide for the chat panel itself, which carries pf-chat-panel-3d", () => {
+    expect(button).toContain('!el.closest(".pf-chat-panel-3d")');
+    expect(panel).toContain("pf-chat-panel-3d");
+    expect(panel).toContain('role="dialog"');
+    expect(panel).toContain('aria-modal="true"');
+  });
+
+  it("treats the foreign dialogs as foreign: none of them carries the panel class", () => {
+    expect(leads).not.toContain("pf-chat-panel-3d");
+    expect(networking).not.toContain("pf-chat-panel-3d");
+    expect(importDialog).not.toContain("pf-chat-panel-3d");
+    expect(settings).not.toContain("pf-chat-panel-3d");
+  });
+
+  it("hides while a foreign dialog is open but stays as the chat close control", () => {
+    expect(button).toContain("if ((overlayOpen || dialogOpen) && !open) return null;");
+    expect(button).toContain('aria-label={open ? "Close chat" : "Chat with Pulse"}');
+  });
+});
+
 describe("3D chat panel restyle", () => {
   it("shares one crystal mark from PulseBrand", () => {
     expect(brand).toContain("export function PulseCrystal");
@@ -135,7 +178,7 @@ describe("3D chat panel restyle", () => {
 
   it("gives the crystal avatar a halo and the bubbles depth", () => {
     expect(panel).toContain("pf-crystal-halo");
-    expect(panel).toContain("radial-gradient(circle, rgba(248, 52, 62, 0.38)");
+    expect(panel).toContain("radial-gradient(circle, rgba(248, 52, 62, 38)");
     expect(panel).toContain("pf-chat-bubble-user-3d");
     expect(panel).toContain("pf-chat-bubble-ai-3d");
     expect(panel).toContain("linear-gradient(160deg, #fb7185, #f43f5e 55%, #e11d48)");

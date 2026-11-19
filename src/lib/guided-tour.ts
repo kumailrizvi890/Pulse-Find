@@ -2,8 +2,8 @@
 // tracker where Pulse talks and the visitor acts.
 //
 // One step per feature, in the order a new user should meet them:
-// dashboard, sheet, leads, find jobs, swipe board, networking, the Ask
-// Pulse chatbot, Connect Agent. The tour is driven by the `tour` search
+// dashboard, sheet, leads, swipe board, networking, the Ask Pulse
+// chatbot, Connect Agent. The tour is driven by the `tour` search
 // param (?tour=<step-id>), so each step is a plain link and the browser
 // back button walks the tour backwards. All functions here are pure so
 // tests can pin the order, the routes and the copy. No em dashes in any
@@ -15,19 +15,22 @@
 // says which real action in the real UI advances the tour. The tour
 // never performs the action itself; it only watches for it. The first
 // step orients the visitor on the nav tabs and the tour order, and the
-// last step closes with where to start and the replay link.
+// last step takes them to sign in, celebrates the tour, and leaves the
+// 2 easy steps to a free account and a token: create the account, then
+// grab the token from Connect once they are in.
 //
 // Safety: every completion action is non-destructive. On the demo the
-// same actions may write sample data only (save a demo job, edit a demo
-// cell); on signed-in pages the tour only ever asks for focus, open,
-// preview or copy. The jobs step is the one place the mode matters:
-// a signed-out visitor saves a demo card, a signed-in visitor only
-// opens a posting to peek at it, never saves a real job.
+// same actions may write sample data only (swipe a demo card, edit a
+// demo cell); on signed-in pages the tour only ever asks for focus,
+// open, preview or copy. The jobs step is the one place the mode
+// matters: a signed-out visitor swipes a demo card, a signed-in
+// visitor only opens a posting to peek at it, never saves a real job.
+// The last step only ever asks for the sign-up toggle on the sign-in
+// page; the tour never submits the form or creates an account.
 
 export type TourStepId =
   | "dashboard"
   | "sheet"
-  | "find-jobs"
   | "jobs"
   | "leads"
   | "networking"
@@ -41,12 +44,20 @@ export type TourStepId =
 export type TourCompletion =
   | "waiting-open"
   | "sheet-filter"
-  | "jobs-search"
-  | "jobs-save"
+  | "jobs-swipe"
   | "lead-edit"
   | "contact-edit"
   | "chat-ask"
-  | "connect-copy";
+  | "connect-signup";
+
+/** Fired on window by the swipe deck when a real drag on the top card
+    passes the swipe threshold, left or right. Buttons, arrow keys and
+    the save toast never fire it: the guided tour completes the jobs
+    step on a swipe only. The detail carries the direction, "saved" for
+    a right swipe and "hidden" for a left one. */
+export const JOB_SWIPED_EVENT = "pulsefind:job-swiped";
+
+export type JobSwipedDetail = { direction: "saved" | "hidden" };
 
 export interface TourStep {
   id: TourStepId;
@@ -118,24 +129,15 @@ export const TOUR_STEPS: TourStep[] = [
     anchor: "lead-edit",
   },
   {
-    id: "find-jobs",
-    title: "Find jobs",
-    line: "type a company or a role in the search box at the top of the jobs page and see what shows up",
-    done: "there they are, all fresh from the career pages",
-    completion: "jobs-search",
-    route: "/jobs",
-    anchor: "find-jobs",
-  },
-  {
     id: "jobs",
     title: "Jobs board",
-    line: "tap the green check button under the card to save the top job, it lands in your leads",
-    done: "saved, it's waiting in your leads whenever you want it",
+    line: "swipe the top card right to save the job or left to pass it, a save lands in your leads",
+    done: "there it goes, that is how the board works",
     lineAlt: "tap View posting on the top card to peek at the role",
     doneAlt: "that's the one, the posting opens right from the card",
-    completion: "jobs-save",
+    completion: "jobs-swipe",
     route: "/jobs",
-    anchor: "job-save",
+    anchor: "job-card",
     anchorAlt: "job-posting",
   },
   {
@@ -159,11 +161,11 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "connect",
     title: "Connect",
-    line: "tap Copy full prompt under step 4 to plug claude, cursor or copilot in",
-    done: "and that's the whole tour. start with one application and one saved job then ask me what's due next. replay anytime from take the tour in the demo nav",
-    completion: "connect-copy",
-    route: "/demo/connect",
-    anchor: "connect-copy",
+    line: "last stop. 2 easy steps to your token: 1 create a free account here, 2 grab it from connect once you are in",
+    done: "you did it. finish the account and grab your token from connect, then start with one application and one saved job. replay anytime from take the tour in the demo nav",
+    completion: "connect-signup",
+    route: "/login",
+    anchor: "connect-signup",
   },
 ];
 
@@ -174,7 +176,7 @@ export const TOUR_STEPS: TourStep[] = [
     steps complete, and the last step shows a short recap of what the
     visitor just did. The names come from the Nov 17 02:56 design
     (Explorer, Inbox Zero, Networker); the mapping is: Explorer for
-    searching fresh roles, Inbox Zero for opening the first waiting
+    swiping the jobs board, Inbox Zero for opening the first waiting
     task, Networker for opening a due contact. */
 export type TourBadgeId = "explorer" | "inbox-zero" | "networker";
 
@@ -189,7 +191,7 @@ export interface TourBadge {
 
 export const TOUR_BADGES: TourBadge[] = [
   { id: "inbox-zero", name: "Inbox Zero", earnedBy: "dashboard", blurb: "opened a waiting task" },
-  { id: "explorer", name: "Explorer", earnedBy: "find-jobs", blurb: "searched fresh roles" },
+  { id: "explorer", name: "Explorer", earnedBy: "jobs", blurb: "swiped a job card" },
   { id: "networker", name: "Networker", earnedBy: "networking", blurb: "opened a due contact" },
 ];
 
@@ -245,17 +247,16 @@ export function tourRingDash(fraction: number): { dasharray: string; dashoffset:
 
 /** One short line per completed step, in tour order, for the recap on
     the last step. The jobs line follows the mode: a signed-in visitor
-    peeks at a posting instead of saving a real job. */
+    peeks at a posting instead of swiping a real job. */
 export function tourRecapLines(completed: TourStepId[], signedIn: boolean): string[] {
   const lines: Record<TourStepId, string> = {
     dashboard: "opened a waiting task",
     sheet: "filtered the sheet by stage",
-    "find-jobs": "searched fresh roles",
-    jobs: signedIn ? "peeked at a posting" : "saved a job to your leads",
+    jobs: signedIn ? "peeked at a posting" : "swiped a job card",
     leads: "opened a lead",
     networking: "opened a due contact",
     chat: "asked Pulse what is due next",
-    connect: "copied the agent prompt",
+    connect: "went to sign in for your token",
   };
   return TOUR_STEPS.filter((s) => completed.includes(s.id)).map((s) => lines[s.id]);
 }

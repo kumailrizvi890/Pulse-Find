@@ -101,9 +101,9 @@ export function demoContacts(today: ISODate): Contact[] {
     return { ...rest, id: `demo-contact-${i + 1}`, next_step_on: on === null ? null : addDays(today, on) };
   };
   return [
-    mk(0, { person_name: "Priya Nair", company: "Copperline", status: `Connected — thanked ${shortDate(addDays(today, -12))}`, next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs", linkedin_url: "https://www.linkedin.com/in/priya-nair", last_contacted: addDays(today, -12) }),
-    mk(1, { person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged — awaiting reply", next_step: "Follow up if no reply", on: -2, notes: "Hiring manager, perception team", linkedin_url: "https://www.linkedin.com/in/marcus-webb", last_contacted: addDays(today, -9) }),
-    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: `Connected — replied ${shortDate(addDays(today, -7))}`, next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum", linkedin_url: "https://www.linkedin.com/in/elena-brooks", last_contacted: addDays(today, -7) }),
+    mk(0, { person_name: "Priya Nair", company: "Copperline", status: `Connected — thanked ${shortDate(addDays(today, -12))}`, next_step: "Week 2 value touch: one strength + one fix on the portfolio", on: 0, notes: "Recruiter, university programs", linkedin_url: "", last_contacted: addDays(today, -12) }),
+    mk(1, { person_name: "Marcus Webb", company: "Atlas Robotics", status: "Messaged — awaiting reply", next_step: "Follow up if no reply", on: -2, notes: "Hiring manager, perception team", linkedin_url: "", last_contacted: addDays(today, -9) }),
+    mk(2, { person_name: "Elena Brooks", company: "Westfield Labs", status: `Connected — replied ${shortDate(addDays(today, -7))}`, next_step: "Send the project write-up she asked about", on: 3, notes: "Engineer, UW alum", linkedin_url: "", last_contacted: addDays(today, -7) }),
     mk(3, { person_name: "Sam Ortiz", company: "Fernhill Capital", status: "Connected", next_step: "", on: null, notes: "Fellow student — connect only, no follow-up sequence", linkedin_url: "", last_contacted: null }),
   ];
 }

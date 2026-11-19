@@ -168,7 +168,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
         <div className="mb-2 flex justify-end">
           <button className={btn.ghost} onClick={() => copy(snippet(client, url, shown))}>Copy</button>
         </div>
-        <pre className="overflow-x-auto rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, shown)}</pre>
+        <pre className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, shown)}</pre>
         {!fresh && <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the token from step 1.</p>}
       </Panel>
 

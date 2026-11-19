@@ -188,7 +188,21 @@ export function WeeklyPace({
           <span className="font-medium text-muted">No applications in the {prevLabel}</span>
         ) : (
           <span className={change >= 0 ? "font-medium text-good" : "font-medium text-danger"}>
-            {change >= 0 ? "↗" : "↘"} {Math.abs(change)}% vs {prevLabel}
+            {/* Inline SVG arrows, not diagonal arrow characters: those
+              glyphs render as empty boxes in some browsers and fonts, so
+              the trend read as a missing character. The paths are drawn
+              with currentColor, so they follow the good / danger text color. */}
+            {change >= 0 ? (
+              <svg className="mr-1 inline-block h-3 w-3 align-[-1px]" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2.5 9.5 L9.5 2.5 M4.5 2.5 H9.5 V7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg className="mr-1 inline-block h-3 w-3 align-[-1px]" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2.5 2.5 L9.5 9.5 M4.5 9.5 H9.5 V4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+            <span className="sr-only">{change >= 0 ? "up " : "down "}</span>
+            {Math.abs(change)}% vs {prevLabel}
           </span>
         )}
       </div>

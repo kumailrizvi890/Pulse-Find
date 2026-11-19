@@ -29,6 +29,51 @@ const FIELD_FOR: Partial<Record<SheetKey, keyof ApplicationInput>> = {
 
 type Editing = { id: string; key: SheetKey } | null;
 
+// Sheet columns are 4-9% of a 1240px table, so a cell shows roughly
+// fifteen characters: anything past forty is certainly truncated. Long
+// cell text gets a Show more toggle that expands it in place, and every
+// truncated cell carries the full text as a hover tooltip, so the value
+// is readable without opening the editor. Same pattern as the networking
+// ContactNote toggle, with a lower limit for the narrow sheet columns.
+const CELL_EXPAND_LIMIT = 40;
+
+export function TruncatedCellText({
+  value,
+  expanded,
+  onToggle,
+  className,
+}: {
+  value: string;
+  expanded: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  const long = value.length > CELL_EXPAND_LIMIT;
+  return (
+    <>
+      <span
+        className={cx("block", expanded ? "whitespace-normal break-words" : "truncate", className)}
+        title={value}
+      >
+        {value}
+      </span>
+      {long && (
+        <button
+          type="button"
+          className="mt-0.5 text-xs font-medium text-accent hover:underline"
+          aria-expanded={expanded}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </>
+  );
+}
+
 /**
  * The tracker as a proper sheet: the Excel tracker's sixteen columns, a sticky
  * header, a frozen Company column, zebra rows, sortable/filterable columns,
@@ -45,6 +90,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
   const [status, setStatus] = useState<Status | "All">("All");
   const [sort, setSort] = useState<{ key: SheetKey; dir: SortDir }>({ key: "last_contact", dir: "desc" });
   const [editing, setEditing] = useState<Editing>(null);
+  const [expanded, setExpanded] = useState<Editing>(null); // One expanded cell at a time.
   const [draft, setDraft] = useState("");
   const [showEmpty, setShowEmpty] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -109,6 +155,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
     const v = app[f];
     setDraft(typeof v === "boolean" ? (v ? "Y" : "N") : v === null || v === undefined ? "" : String(v));
     setEditing({ id: app.id, key });
+    setExpanded(null);
   }
 
   async function commitEdit(app: Application) {
@@ -182,11 +229,23 @@ export function SheetView({ store }: { store: TrackerStore }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm" data-tour="sheet-tools">
+        {state === "loading" ? (
+          // The counts come from the tracker data, so while it is still
+          // loading the chips are skeleton pills, not zeros.
+          <>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span key={i} className="h-8 w-28 animate-pulse rounded-lg bg-surface-2" aria-hidden="true" />
+            ))}
+          </>
+        ) : (
+          <>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.total}</b> applications</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.tech}</b> tech</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.actions}</b> waiting on you</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.ghosted}</b> ghosted</span>
         <span className="tnum rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs"><b>{sum.rejected}</b> rejections</span>
+          </>
+        )}
         <span className="ml-auto flex items-center gap-2">
           <select
             className={cx(field, "w-40")}
@@ -288,6 +347,7 @@ export function SheetView({ store }: { store: TrackerStore }) {
                     <tr key={a.id} className={cx("border-b border-line last:border-0 hover:bg-accent-soft/40", ri % 2 === 1 && "bg-surface-2/60")}>
                       {visibleColumns.map((col, ci) => {
                         const isEditing = editing?.id === a.id && editing.key === col.key;
+                        const isExpanded = expanded?.id === a.id && expanded?.key === col.key;
                         const base = cx(
                           "px-3 py-2 align-top",
                           ci === 0 && "sticky left-0 z-[5] border-r border-line sheet-sticky font-semibold",
@@ -302,6 +362,10 @@ export function SheetView({ store }: { store: TrackerStore }) {
                         // The old per-cell title tooltip put that hint on all
                         // 264 editable cells at once, which was the noise.
                         const isEmptyEditable = !!col.editable && r.values[col.key] === "";
+                        // Text editors float wider than the narrow cell, so a long
+                        // value is visible while editing instead of clipping inside
+                        // the column width. Date and number editors stay cell width:
+                        // their values are short.
                         if (isEditing) {
                           return (
                             <td key={col.key} className={base}>
@@ -338,7 +402,8 @@ export function SheetView({ store }: { store: TrackerStore }) {
                                 <input
                                   autoFocus
                                   type={col.editable === "date" ? "date" : col.editable === "number" ? "number" : "text"}
-                                  className={cx(field, "px-2 py-1 text-[13px]")}
+                                  className={cx(field, "px-2 py-1 text-[13px]", col.editable === "text" && "relative shadow-panel")}
+                                  style={col.editable === "text" ? { width: "min(360px, 72vw)" } : undefined}
                                   value={draft}
                                   min={col.editable === "number" ? 0 : undefined}
                                   max={col.editable === "number" ? 50 : undefined}
@@ -374,11 +439,20 @@ export function SheetView({ store }: { store: TrackerStore }) {
                             ) : col.key === "date_applied" || col.key === "last_contact" || col.key === "action_due" ? (
                               <span className="tnum font-mono text-xs">{fmtDate(r.values[col.key] || null)}</span>
                             ) : col.key === "action_needed" ? (
-                              <span className={cx("block truncate", actionRow && "font-semibold text-danger")}>{r.values[col.key]}</span>
+                              <TruncatedCellText
+                                value={r.values[col.key]}
+                                expanded={isExpanded}
+                                onToggle={() => setExpanded(isExpanded ? null : { id: a.id, key: col.key })}
+                                className={actionRow ? "font-semibold text-danger" : undefined}
+                              />
                             ) : col.key === "company" ? (
                               <span className={cx(actionRow && "text-danger")}>{r.values[col.key]}</span>
                             ) : (
-                              <span className="block truncate">{r.values[col.key]}</span>
+                              <TruncatedCellText
+                                value={r.values[col.key]}
+                                expanded={isExpanded}
+                                onToggle={() => setExpanded(isExpanded ? null : { id: a.id, key: col.key })}
+                              />
                             )}
                           </td>
                         );
@@ -391,6 +465,10 @@ export function SheetView({ store }: { store: TrackerStore }) {
           </div>
         )}
         <p className="border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint">
+          {state === "loading" ? (
+            "Loading your sheet…"
+          ) : (
+            <>
           Showing {rows.length} of {apps.length} rows · Days Since Contact and Follow-Up Flag are worked out from Last Contact ({settings.ghost_days}+ quiet days = ghosted) · click a header to sort
           {hiddenCount > 0 && (
             <>
@@ -400,6 +478,8 @@ export function SheetView({ store }: { store: TrackerStore }) {
                   ? "Hide empty columns"
                   : `${hiddenCount} empty column${hiddenCount === 1 ? "" : "s"} hidden · Show all`}
               </button>
+            </>
+          )}
             </>
           )}
         </p>

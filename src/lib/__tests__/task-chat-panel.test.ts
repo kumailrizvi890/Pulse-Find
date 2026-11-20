@@ -84,6 +84,13 @@ describe("task chat panel sizing", () => {
     expect(src).toContain("pf-chat-in");
     expect(src).toContain("cubic-bezier(0.22, 1, 0.36, 1)");
     expect(src).toContain("prefers-reduced-motion");
+    // The composer is focused on mount so the visitor can type straight
+    // away, but a plain focus() scrolls the document on iOS Safari and
+    // sent the dashboard to the bottom when the chat opened from the
+    // landing page. The focus must never move the page: the navigation
+    // already lands at the top.
+    expect(src).toContain("inputRef.current?.focus({ preventScroll: true })");
+    expect(src).not.toMatch(/inputRef\.current\?\.focus\(\)/);
   });
 });
 

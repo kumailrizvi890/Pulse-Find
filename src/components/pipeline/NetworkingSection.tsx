@@ -150,7 +150,7 @@ export function NetworkingSection({ pipeline }: { pipeline: PipelineStore }) {
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">Networking</h1>
           <p className="mt-1 max-w-[68ch] text-sm text-muted">
-            People you&apos;re building real connections with, and the next step you owe each of them.
+            People you&apos;re building real connections with, and the next step for each one that has one.
             {dueCount > 0 && <> <b className="text-danger">{dueCount} step{dueCount === 1 ? " is" : "s are"} due or overdue.</b></>}
           </p>
           {state === "ready" && contacts.length > 0 && (

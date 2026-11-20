@@ -120,7 +120,9 @@ describe("saved jobs show the full title", () => {
 // Pass-64 audit, finding 7: the Jobs page read "Last refresh today"
 // with no time, although the refresh timestamp is already in the
 // component (meta.refreshed). Same-day refreshes now read
-// "today at 2:35 pm"; older ones keep the existing ago() wording.
+// "today at 2:35 pm"; a refresh from yesterday evening reads
+// "yesterday at 10:17 pm" even after midnight (pass 70: calendar
+// dates, not elapsed 24h periods); older ones keep the ago() wording.
 describe("last refresh carries the time when it was today", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -135,7 +137,7 @@ describe("last refresh carries the time when it was today", () => {
   });
 
   it("keeps the day wording for older refreshes", () => {
-    expect(refreshLabel(new Date(2026, 10, 18, 9, 0, 0).toISOString())).toBe("1d ago");
+    expect(refreshLabel(new Date(2026, 10, 18, 9, 0, 0).toISOString())).toBe("yesterday at 9:00 am");
     expect(refreshLabel(new Date(2026, 10, 14, 9, 0, 0).toISOString())).toBe("5d ago");
   });
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { accountPipelineStore, demoPipelineStore } from "@/lib/pipeline";
 import { todayISO } from "@/lib/metrics";
-import type { Application, Contact, TrackerEvent } from "@/lib/types";
+import type { Application, Contact, Lead, TrackerEvent } from "@/lib/types";
 import {
   answerGeneralQuestion,
   answerTaskQuestion,
@@ -158,6 +158,10 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
   const [copyFailed, setCopyFailed] = useState(false);
   const [contactsState, setContactsState] = useState<"loading" | "ready" | "error">("loading");
   const [contacts, setContacts] = useState<Contact[]>([]);
+  // General mode also answers from leads (what leads do I have, leads at
+  // a company). Task mode ignores them. A failed leads load leaves the
+  // list empty and the chat still answers from applications and contacts.
+  const [leads, setLeads] = useState<Lead[]>([]);
 
   const pipeline = useMemo(
     () => (userId ? accountPipelineStore(createClient(), userId) : demoPipelineStore(today)),
@@ -188,6 +192,21 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
     };
   }, [pipeline, application]);
 
+  useEffect(() => {
+    let alive = true;
+    pipeline
+      .loadLeads()
+      .then((rows) => {
+        if (alive) setLeads(rows);
+      })
+      .catch(() => {
+        // Leads stay empty; the chat answers from applications and contacts.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [pipeline]);
+
   const taskCtx: TaskChatContext | null = useMemo(() => {
     if (!application) return null;
     return {
@@ -206,13 +225,14 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
       apps: general.apps,
       events,
       contacts,
+      leads,
       today,
       origin,
       ghostDays: general.ghostDays,
       weeklyGoal: general.weeklyGoal,
       trackerPath: userId ? "/app" : "/demo",
     };
-  }, [general, events, contacts, today, origin, userId]);
+  }, [general, events, contacts, leads, today, origin, userId]);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     // One of the two contexts is always set: general mode passes general,

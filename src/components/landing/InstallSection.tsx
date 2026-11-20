@@ -113,7 +113,7 @@ export function InstallSection() {
   };
 
   return (
-    <section className="install" id="getApp" aria-label="Get Pulse Find on your phone">
+    <section className="install scroll-mt-24" id="getApp" aria-label="Get Pulse Find on your phone">
       <div className="install-card">
         <div>
           <h2>

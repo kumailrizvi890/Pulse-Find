@@ -84,7 +84,7 @@ export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]
               {w.tech > 0 && <rect x={x} y={yTech} width={bw} height={yOther - yTech} rx="3" fill="var(--tech)" />}
               {((weeks.length - 1 - i) % labelEvery === 0) && (
                 <text x={last ? Math.min(x + bw / 2 + 14, W - 2) : x + bw / 2} y={H - 8} textAnchor={last ? "end" : "middle"} fontSize="10" fill="var(--faint)" fontFamily="var(--font-mono)">
-                  {last ? (unit === "month" ? "This mo" : "This wk") : label(w.start)}
+                  {last ? (unit === "month" ? "This month" : "This wk") : label(w.start)}
                 </text>
               )}
             </g>
@@ -121,6 +121,9 @@ export interface PaceDay {
  * default); `prevLabel` names the comparison window ("last week" by
  * default). `compact` is for long windows (30 days): it hides the per-day
  * date and labels only every fifth bar, so the labels stay readable.
+ * Long windows (more than 14 days) also drop the per-bar value numbers
+ * and the trend line: 30 numbers and a zigzag line in a ~560px panel
+ * overlap into noise. The value stays on each bar's hover title.
  */
 export function WeeklyPace({
   days,
@@ -141,6 +144,10 @@ export function WeeklyPace({
 }) {
   const max = Math.max(...days.map((d) => d.value), 1);
   const average = days.length === 0 ? 0 : total / days.length;
+  // A 30-day window packs 30 bars into the same panel: per-bar numbers
+  // and the zigzag line overlap into unreadable noise, so long windows
+  // drop both and keep the hover title (value) and the compact labels.
+  const longRange = days.length > 14;
   const points = days
     .map((d, i) => {
       const x = ((i + 0.5) / days.length) * 100;
@@ -154,7 +161,9 @@ export function WeeklyPace({
         <div className="flex items-end gap-2" role="list" aria-label={ariaLabel}>
           {days.map((d, i) => (
             <div key={d.sub} role="listitem" className="flex flex-1 flex-col items-center gap-1">
-              <span className="text-xs font-semibold tabular-nums text-ink">{d.value}</span>
+              {!longRange && (
+                <span className="text-xs font-semibold tabular-nums text-ink">{d.value}</span>
+              )}
               <div className="flex h-28 w-full items-end overflow-hidden rounded-md">
                 <div
                   className="w-full rounded-md bg-accent"
@@ -171,7 +180,7 @@ export function WeeklyPace({
             </div>
           ))}
         </div>
-        {max > 0 && days.length > 1 && (
+        {max > 0 && days.length > 1 && !longRange && (
           <svg className="pointer-events-none absolute inset-x-0 top-5 h-28 w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <polyline points={points} fill="none" stroke="#f8343e" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
           </svg>

@@ -47,9 +47,14 @@ export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]
     return () => ro.disconnect();
   }, []);
   const H = 210, L = 30, R = 8, T = 22, B = 26;
-  const max = Math.max(goal, ...weeks.map((w) => w.tech + w.other), 1);
-  const niceMax = Math.ceil((max * 1.1) / 5) * 5;
+  // The axis scales to the data, not the goal: a monthly goal of 32
+  // against months of at most 11 used to force a 0-40 axis and leave
+  // the bars tiny. The goal line still draws, clamped to the top edge
+  // when it sits above the data, so it stays visible and honest.
+  const dataMax = Math.max(...weeks.map((w) => w.tech + w.other), 1);
+  const niceMax = Math.ceil((dataMax * 1.1) / 5) * 5;
   const y = (v: number) => T + (H - T - B) * (1 - v / niceMax);
+  const goalY = goal <= niceMax ? y(goal) : T;
   const slot = (W - L - R) / weeks.length;
   const bw = Math.min(26, slot * 0.62);
   const ticks = [0, niceMax / 2, niceMax].map((v) => Math.round(v));
@@ -60,7 +65,9 @@ export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]
       ? parseISO(s).toLocaleDateString(undefined, { month: "short" })
       : parseISO(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const total = weeks.reduce((s, w) => s + w.tech + w.other, 0);
-  const labelEvery = W < 420 ? 4 : 3;
+  // Month mode shows every 2nd month (Jan, Mar, May, Jul, Sep, This
+  // month); week mode keeps the old spacing.
+  const labelEvery = unit === "month" ? 2 : W < 420 ? 4 : 3;
   return (
     <figure ref={ref}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block max-w-full" role="img" aria-label={`Applications per ${unit}, ${total} total`}>
@@ -79,7 +86,7 @@ export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]
           const last = i === weeks.length - 1;
           return (
             <g key={w.start}>
-              <title>{`Week of ${label(w.start)}: ${w.tech} tech, ${w.other} other`}</title>
+              <title>{unit === "month" ? `${label(w.start)}: ${w.tech} tech, ${w.other} other` : `Week of ${label(w.start)}: ${w.tech} tech, ${w.other} other`}</title>
               {w.other > 0 && <rect x={x} y={yOther} width={bw} height={y(0) - yOther} rx="3" fill="var(--faint)" opacity="0.4" />}
               {w.tech > 0 && <rect x={x} y={yTech} width={bw} height={yOther - yTech} rx="3" fill="var(--tech)" />}
               {((weeks.length - 1 - i) % labelEvery === 0) && (
@@ -90,8 +97,8 @@ export function WeeklyBars({ weeks, goal, unit = "week" }: { weeks: WeekBucket[]
             </g>
           );
         })}
-        <line x1={L} x2={W - R} y1={y(goal)} y2={y(goal)} stroke="var(--accent)" strokeDasharray="5 4" strokeWidth="1.5" />
-        <text x={W - R} y={y(goal) - 6} textAnchor="end" fontSize="11" fill="var(--accent)" fontFamily="var(--font-mono)">
+        <line x1={L} x2={W - R} y1={goalY} y2={goalY} stroke="var(--accent)" strokeDasharray="5 4" strokeWidth="1.5" />
+        <text x={W - R} y={goalY - 6} textAnchor="end" fontSize="11" fill="var(--accent)" fontFamily="var(--font-mono)">
           Goal {goal}
         </text>
       </svg>

@@ -46,7 +46,11 @@ describe("followUp", () => {
   });
   it("never flags closed applications", () => {
     expect(followUp(app({ status: "Rejected", last_contact: "2026-01-01" }), TODAY, 21)).toBeNull();
-    expect(followUp(app({ status: "Offer", last_contact: "2026-01-01" }), TODAY, 21)).toBeNull();
+    expect(followUp(app({ status: "Accepted", last_contact: "2026-01-01" }), TODAY, 21)).toBeNull();
+  });
+  it("still flags an Offer: it is active until it is accepted or declined", () => {
+    expect(followUp(app({ status: "Offer", last_contact: "2026-01-01" }), TODAY, 21)).toBe("ghosted");
+    expect(followUp(app({ status: "Offer", last_contact: addDays(TODAY, -1) }), TODAY, 21)).toBe("waiting");
   });
 });
 
@@ -111,7 +115,8 @@ describe("summaries", () => {
 
   it("filters and searches", () => {
     expect(applyFilter(apps, "tech", TODAY, 21)).toHaveLength(2);
-    expect(applyFilter(apps, "closed", TODAY, 21)).toHaveLength(1);
+    expect(applyFilter(apps, "closed", TODAY, 21)).toHaveLength(0); // the Offer is active, not closed
+    expect(applyFilter(apps, "active", TODAY, 21)).toHaveLength(4);
     expect(applyFilter(apps, "all", TODAY, 21, "barista")).toHaveLength(1);
   });
 });

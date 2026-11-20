@@ -23,24 +23,35 @@ type Mark = JobPickMark;
 const PAGE = 40;
 const COLS = "id,company,title,location,remote,url,track,tech,posted_at";
 
+// Whole calendar days between two moments in the visitor's local
+// timezone, so a refresh from yesterday evening still reads as
+// yesterday after midnight instead of "today" (elapsed 24h periods
+// cross midnight wrongly). Math.round, not floor: a DST day is 23 or
+// 25 hours long, but it is still one calendar day.
+function calendarDaysBetween(from: Date, to: Date) {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((startOfDay(to) - startOfDay(from)) / 86_400_000);
+}
+
 function ago(iso: string | null) {
   if (!iso) return "";
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  const days = calendarDaysBetween(new Date(iso), new Date());
   if (days <= 0) return "today";
   if (days === 1) return "1d ago";
   if (days < 30) return `${days}d ago`;
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-/** "Last refresh" reads better with a time when the refresh was today:
- * "today at 2:35 pm" instead of a bare "today". The timestamp is already
- * in meta.refreshed, so no new data source is needed. */
+/** "Last refresh" reads better with a time when the refresh was today
+ * or yesterday: "today at 2:35 pm", "yesterday at 10:17 pm", instead
+ * of a bare "today" or "1d ago". The timestamp is already in
+ * meta.refreshed, so no new data source is needed. */
 export function refreshLabel(iso: string | null) {
   if (!iso) return "";
-  const label = ago(iso);
-  if (label !== "today") return label;
+  const days = calendarDaysBetween(new Date(iso), new Date());
+  if (days > 1) return ago(iso);
   const time = new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase();
-  return `today at ${time}`;
+  return days <= 0 ? `today at ${time}` : `yesterday at ${time}`;
 }
 
 export function JobsBoard({ userId }: { userId: string | null }) {

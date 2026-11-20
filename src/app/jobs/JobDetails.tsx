@@ -47,7 +47,7 @@ export function JobDetails({
           {initials(job.company)}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-display text-lg font-extrabold leading-tight tracking-tight" title={job.title}>{job.title}</p>
+          <p className="font-display text-lg font-extrabold leading-tight tracking-tight" title={job.title}>{job.title}</p>
           <p className="truncate text-sm font-semibold text-muted" title={job.company}>{job.company}</p>
         </div>
       </div>

@@ -54,11 +54,15 @@ describe("last refresh uses calendar dates, not elapsed 24h periods", () => {
 });
 
 describe("the calendar fix reaches posted dates too", () => {
+  // Pass 71 moved the helper out of JobsBoard into src/lib/dates.ts so
+  // the deck, the details panel and the newest openings all share it.
+  const dates = read("src/lib/dates.ts");
   it("ago() counts whole calendar days in local time", () => {
-    expect(jobsBoard).toContain("function calendarDaysBetween(from: Date, to: Date)");
-    expect(jobsBoard).toContain("new Date(d.getFullYear(), d.getMonth(), d.getDate())");
-    expect(jobsBoard).toContain("calendarDaysBetween(new Date(iso), new Date())");
-    expect(jobsBoard).not.toContain("Math.floor((Date.now() - new Date(iso).getTime())");
+    expect(dates).toContain("export function calendarDaysBetween(from: Date, to: Date)");
+    expect(dates).toContain("new Date(d.getFullYear(), d.getMonth(), d.getDate())");
+    expect(dates).toContain("calendarDaysBetween(new Date(iso), new Date())");
+    expect(dates).not.toContain("Math.floor((Date.now() - new Date(iso).getTime())");
+    expect(jobsBoard).toContain('import { ago, calendarDaysBetween } from "@/lib/dates"');
   });
 
   it("the list rows still render posted dates through ago()", () => {

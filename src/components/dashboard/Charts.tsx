@@ -119,8 +119,9 @@ export interface PaceDay {
  * Applications per day over a trailing window, with a red trend line over
  * the bars. `totalLabel` is the full chip prefix ("Total this week" by
  * default); `prevLabel` names the comparison window ("last week" by
- * default). `compact` is for long windows (30 days): it hides the per-day
- * date and labels only every fifth bar, so the labels stay readable.
+ * default). `compact` is for long windows (30 days): it shows the date
+ * on every fifth bar instead of the weekday, so the labels stay readable
+ * and still say which day each bar is.
  * Long windows (more than 14 days) also drop the per-bar value numbers
  * and the trend line: 30 numbers and a zigzag line in a ~560px panel
  * overlap into noise. The value stays on each bar's hover title.
@@ -172,7 +173,7 @@ export function WeeklyPace({
                 />
               </div>
               {(!compact || i % 5 === 0 || i === days.length - 1) && (
-                <span className="text-center text-[11px] leading-tight text-muted">{d.label}</span>
+                <span className="text-center text-[11px] leading-tight text-muted">{compact ? d.sub : d.label}</span>
               )}
               {!compact && (
                 <span className="text-center text-[10px] leading-tight text-muted">{d.sub}</span>

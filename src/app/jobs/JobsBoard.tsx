@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { ago, calendarDaysBetween } from "@/lib/dates";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
 import { readJobPicks, writeJobPicks, type JobPick, type JobPickMark } from "@/lib/job-picks";
@@ -22,25 +23,6 @@ type Mark = JobPickMark;
 
 const PAGE = 40;
 const COLS = "id,company,title,location,remote,url,track,tech,posted_at";
-
-// Whole calendar days between two moments in the visitor's local
-// timezone, so a refresh from yesterday evening still reads as
-// yesterday after midnight instead of "today" (elapsed 24h periods
-// cross midnight wrongly). Math.round, not floor: a DST day is 23 or
-// 25 hours long, but it is still one calendar day.
-function calendarDaysBetween(from: Date, to: Date) {
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  return Math.round((startOfDay(to) - startOfDay(from)) / 86_400_000);
-}
-
-function ago(iso: string | null) {
-  if (!iso) return "";
-  const days = calendarDaysBetween(new Date(iso), new Date());
-  if (days <= 0) return "today";
-  if (days === 1) return "1d ago";
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
-}
 
 /** "Last refresh" reads better with a time when the refresh was today
  * or yesterday: "today at 2:35 pm", "yesterday at 10:17 pm", instead
@@ -538,7 +520,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           )}
         </div>
       ) : view === "saved" ? (
-        <div className="mx-auto flex w-full max-w-[430px] flex-col gap-3">
+        // The saved list uses the full main width, not the 430px deck
+        // column: at desktop width a 400px column truncated every title
+        // and location. The swipe deck itself stays 430px, and the list
+        // stays single-column on phones.
+        <div className="flex w-full flex-col gap-3">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="font-display text-[15px] font-bold tracking-tight">Saved, ready to apply</h2>
@@ -554,7 +540,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           {savedList.length === 0 ? (
             <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">Nothing saved yet. Swipe right on a role to keep it here.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {savedList.map((j) => (
                 <li key={j.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3" onClick={(e) => { if (!(e.target as HTMLElement).closest("a,button")) jumpToJob(j); }}>
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-sm font-bold text-accent" aria-hidden="true">

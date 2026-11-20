@@ -247,45 +247,69 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
 
       </div>
 
-    <div className="mt-6 flex items-center gap-5">
-        <button
-          type="button"
-          aria-label="Pass"
-          disabled={!top}
-          onClick={() => decide("hidden")}
-          className="flex h-[58px] w-[58px] items-center justify-center rounded-full border border-line bg-surface text-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
-        >
-          <IconX className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Details"
-          disabled={!top}
-          onClick={() => top && onDetails(top)}
-          className="flex h-[46px] w-[46px] -translate-y-1.5 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
-        >
-          <IconDetails className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          aria-label="Undo"
-          title="Undo your last swipe. Only swipes from this session can be undone"
-          disabled={!canUndo}
-          onClick={onUndo}
-          className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:scale-105 disabled:opacity-35"
-        >
-          <IconUndo className="h-[18px] w-[18px]" />
-        </button>
-        <button
-          type="button"
-          aria-label="Save"
-          disabled={!top}
-          onClick={() => decide("saved")}
-          className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-accent text-accent-ink shadow-[0_8px_24px_rgba(253,88,93,0.45)] transition hover:scale-105 disabled:opacity-35"
-        >
-          <IconCheck className="h-5 w-5" />
-        </button>
-      </div>
+    {/* Each button carries a visible label under its circle: icon-only
+      buttons left a first-time visitor guessing which was which. The
+      circle sits in a fixed 58px slot so the two 46px buttons stay
+      centered like before and all four labels share one baseline. */}
+    <div className="mt-6 flex items-start gap-5">
+      <span className="flex flex-col items-center gap-1">
+        <span className="flex h-[58px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="Pass"
+            disabled={!top}
+            onClick={() => decide("hidden")}
+            className="flex h-[58px] w-[58px] items-center justify-center rounded-full border border-line bg-surface text-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
+          >
+            <IconX className="h-5 w-5" />
+          </button>
+        </span>
+        <span aria-hidden="true" className="text-[11px] font-medium text-muted">Pass</span>
+      </span>
+      <span className="flex flex-col items-center gap-1">
+        <span className="flex h-[58px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="Details"
+            disabled={!top}
+            onClick={() => top && onDetails(top)}
+            className="flex h-[46px] w-[46px] -translate-y-1.5 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-panel transition hover:scale-105 disabled:opacity-35"
+          >
+            <IconDetails className="h-5 w-5" />
+          </button>
+        </span>
+        <span aria-hidden="true" className="text-[11px] font-medium text-muted">Details</span>
+      </span>
+      <span className="flex flex-col items-center gap-1">
+        <span className="flex h-[58px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="Undo"
+            title="Undo your last swipe. Only swipes from this session can be undone"
+            disabled={!canUndo}
+            onClick={onUndo}
+            className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:scale-105 disabled:opacity-35"
+          >
+            <IconUndo className="h-[18px] w-[18px]" />
+          </button>
+        </span>
+        <span aria-hidden="true" className="text-[11px] font-medium text-muted">Undo</span>
+      </span>
+      <span className="flex flex-col items-center gap-1">
+        <span className="flex h-[58px] items-center justify-center">
+          <button
+            type="button"
+            aria-label="Save"
+            disabled={!top}
+            onClick={() => decide("saved")}
+            className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-accent text-accent-ink shadow-[0_8px_24px_rgba(253,88,93,0.45)] transition hover:scale-105 disabled:opacity-35"
+          >
+            <IconCheck className="h-5 w-5" />
+          </button>
+        </span>
+        <span aria-hidden="true" className="text-[11px] font-medium text-muted">Save</span>
+      </span>
+    </div>
       <p className="mt-3 font-mono text-[11px] text-faint">
         Drag the card, tap the buttons, or use{" "}
         <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">←</kbd> pass{" "}

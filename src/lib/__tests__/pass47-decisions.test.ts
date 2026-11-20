@@ -48,11 +48,14 @@ describe("add-person Company field has no borrowed Status placeholder", () => {
   it("the Company input carries no placeholder; the Status example stays", () => {
     // Pass 46 transcribed the Status field's example placeholder onto
     // the Company input. The Company field takes a plain company name,
-    // so it gets no example text; the Status example is the only
-    // "Connected — thanked" left in the form.
+    // so it gets no example text. Pass 66 replaced the Status example
+    // with a generic one ("Met at a career fair"): the old dynamic
+    // example mirrored seeded contact Priya Nair's status, so the form
+    // looked prefilled.
     const companyInput = networking.match(/Company\s*\n\s*<input[^/]*\/>/);
     expect(companyInput).not.toBeNull();
     expect(companyInput![0]).not.toContain("placeholder");
-    expect(networking.split("Connected — thanked").length - 1).toBe(1);
+    expect(networking.split("Met at a career fair").length - 1).toBe(1);
+    expect(networking).not.toContain("Connected — thanked");
   });
 });

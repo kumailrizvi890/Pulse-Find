@@ -42,18 +42,20 @@ const networking = read("components/pipeline/NetworkingSection.tsx");
 const drawer = read("components/dashboard/ApplicationDrawer.tsx");
 
 const WEEK: PaceDay[] = [
-  { label: "Nov 13", sub: "Thu", value: 1 },
-  { label: "Nov 14", sub: "Fri", value: 0 },
-  { label: "Nov 15", sub: "Sat", value: 1 },
-  { label: "Nov 16", sub: "Sun", value: 1 },
-  { label: "Nov 17", sub: "Mon", value: 1 },
-  { label: "Nov 18", sub: "Tue", value: 1 },
-  { label: "Nov 19", sub: "Wed", value: 1 },
+  { label: "Fri", sub: "Nov 13", value: 1 },
+  { label: "Sat", sub: "Nov 14", value: 0 },
+  { label: "Sun", sub: "Nov 15", value: 1 },
+  { label: "Mon", sub: "Nov 16", value: 1 },
+  { label: "Tue", sub: "Nov 17", value: 1 },
+  { label: "Wed", sub: "Nov 18", value: 1 },
+  { label: "Thu", sub: "Nov 19", value: 1 },
 ];
 
 const MONTH: PaceDay[] = Array.from({ length: 30 }, (_, i) => ({
-  label: `Nov ${i + 1}`,
-  sub: `Day ${i + 1}`,
+  // Real metrics.ts semantics: label is the weekday short name, sub is
+  // the date. Nov 1 2026 is a Sunday, so the weekday cycles from there.
+  label: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i % 7],
+  sub: `Nov ${i + 1}`,
   value: i % 3 === 0 ? 1 : 0,
 }));
 
@@ -94,11 +96,11 @@ describe("30-day pace chart stays readable", () => {
       }),
     );
     expect(html).not.toContain("<polyline");
-    expect(html).toContain('title="Nov 1: 1"');
-    expect(html).toContain('title="Nov 2: 0"');
+    expect(html).toContain('title="Sun: 1"');
+    expect(html).toContain('title="Mon: 0"');
   });
 
-  it("keeps readable compact labels over 30 days", () => {
+  it("labels every fifth bar with the date in compact mode", () => {
     const html = renderToStaticMarkup(
       createElement(WeeklyPace, {
         days: MONTH,
@@ -110,8 +112,17 @@ describe("30-day pace chart stays readable", () => {
         ariaLabel: "Applications per day, last 30 days",
       }),
     );
-    expect(html).toContain("Nov 1");
-    expect(html).toContain("Nov 30");
+    // Seven label spans (bars 0, 5, 10, 15, 20, 25 and the last bar),
+    // all dates, and no date-sub spans: compact mode shows the date
+    // as the label instead of the weekday.
+    expect(html.match(/text-\[11px\]/g)?.length ?? 0).toBe(7);
+    expect(html.match(/text-\[10px\]/g)?.length ?? 0).toBe(0);
+    for (const d of ["Nov 1", "Nov 6", "Nov 11", "Nov 16", "Nov 21", "Nov 26", "Nov 30"]) {
+      expect(html).toContain(`>${d}<`);
+    }
+    for (const w of ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) {
+      expect(html).not.toContain(`>${w}<`);
+    }
     expect(html).toContain("Total in the last 30 days: 10");
   });
 

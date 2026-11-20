@@ -8,10 +8,21 @@
 // instead of guessed. All functions here are pure and take `today` so tests
 // can pin the date. No em dashes in any user-facing string.
 
-import { CLOSED, daysBetween, parseISO, weekStart } from "./metrics";
+import {
+  addDays,
+  applicationResponseRate,
+  CLOSED,
+  contactResponseRate,
+  daysBetween,
+  hasOA,
+  INTERVIEW_STAGE,
+  OFFER_STAGE,
+  parseISO,
+  weekStart,
+} from "./metrics";
 import { buildAgentHandoffPrompt, getMcpEndpoint } from "./agent-prompt";
 import { dueBucket } from "./pipeline";
-import type { Application, Contact, ISODate, TrackerEvent } from "./types";
+import type { Application, Contact, ISODate, Lead, TrackerEvent } from "./types";
 
 export type ChatRole = "user" | "assistant";
 
@@ -290,6 +301,8 @@ export interface GeneralChatContext {
   events: TrackerEvent[];
   /** All networking contacts. */
   contacts: Contact[];
+  /** Leads, when the panel has loaded them. Absent for the landing beat, which answers from applications only. */
+  leads?: Lead[];
   today: ISODate;
   /** App origin, used for links back into the tracker. */
   origin: string;
@@ -350,7 +363,9 @@ export function generalChatGreeting(ctx: GeneralChatContext): ChatMessage {
       `${waiting.length} thing${waiting.length === 1 ? "" : "s"} waiting on you. Soonest: ${soonest.company}, ${soonest.action_needed}. ${duePhrase(soonest, ctx.today)}`,
     );
   }
-  lines.push("Ask me what is waiting, what is due next, who went quiet, or how your week is going.");
+  lines.push(
+    "Ask me what is waiting, what is due next, who went quiet, or how your week is going. You can also ask about any company, like whether you have an assessment from them.",
+  );
   // No tracker link here, for the same reason as the task greeting: the
   // first answer already carries one, and the greeting plus that answer
   // showed the same pill twice in a row.
@@ -461,11 +476,447 @@ function answerGeneralContacts(ctx: GeneralChatContext): ChatMessage {
   return { id: "contacts", role: "assistant", text: lines.join("\n"), links: [generalNetworkingLink(ctx)] };
 }
 
+// ---------- Company and person lookup: any name in the tracker ----------
+
+function leadsOf(ctx: GeneralChatContext): Lead[] {
+  return ctx.leads ?? [];
+}
+
+/** "Harbor & Pike" becomes "harbor and pike": one comparable shape for names and questions. */
+function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function nameTokens(s: string): string[] {
+  const n = normalizeName(s);
+  return n ? n.split(" ") : [];
+}
+
+/** True when the name's words appear in order inside the question's words. */
+function nameInQuestion(name: string, questionTokens: string[]): boolean {
+  const nt = nameTokens(name);
+  if (nt.length === 0) return false;
+  for (let i = 0; i + nt.length <= questionTokens.length; i += 1) {
+    if (nt.every((t, j) => questionTokens[i + j] === t)) return true;
+  }
+  return false;
+}
+
+/**
+ * Every company the tracker knows (applications, leads, contacts), with
+ * first-word aliases when they point at exactly one company ("Northwind"
+ * for "Northwind Labs"). The longest match wins, so a full name beats
+ * its own alias.
+ */
+function knownCompanies(ctx: GeneralChatContext): { name: string; display: string }[] {
+  const byNorm = new Map<string, string>();
+  const add = (company: string) => {
+    const norm = normalizeName(company);
+    if (norm && !byNorm.has(norm)) byNorm.set(norm, company);
+  };
+  for (const a of ctx.apps) add(a.company);
+  for (const l of leadsOf(ctx)) add(l.company);
+  for (const c of ctx.contacts) add(c.company);
+  const out = [...byNorm.entries()].map(([norm, display]) => ({ name: norm, display }));
+  const firstWord = new Map<string, string>();
+  for (const { name, display } of out) {
+    const first = name.split(" ")[0];
+    if (!first || first.length < 3) continue;
+    if (firstWord.has(first) && firstWord.get(first) !== display) firstWord.set(first, "");
+    else if (!firstWord.has(first)) firstWord.set(first, display);
+  }
+  for (const [first, display] of firstWord) {
+    if (display) out.push({ name: first, display });
+  }
+  return out;
+}
+
+/** The company named in the question, if the tracker knows one. Longest match wins. */
+function findKnownCompany(question: string, ctx: GeneralChatContext): string | null {
+  const tokens = nameTokens(question);
+  let best: { name: string; display: string } | null = null;
+  for (const cand of knownCompanies(ctx)) {
+    if (nameInQuestion(cand.name, tokens) && (!best || cand.name.length > best.name.length)) best = cand;
+  }
+  return best?.display ?? null;
+}
+
+/** The contact named in the question, if one is saved. Longest match wins. */
+function findKnownPerson(question: string, ctx: GeneralChatContext): Contact | null {
+  const tokens = nameTokens(question);
+  let best: Contact | null = null;
+  for (const c of ctx.contacts) {
+    if (nameInQuestion(c.person_name, tokens) && (!best || c.person_name.length > best.person_name.length)) best = c;
+  }
+  return best;
+}
+
+/** Words that are never a company name on their own. */
+const COMPANY_CANDIDATE_BLOCK = new Set([
+  "my week", "my tracker", "the tracker", "the week", "my job", "a job",
+  "it", "this", "that", "everything", "anything", "work", "school",
+  "them", "him", "her", "us", "me", "you",
+  "tracker", "dashboard", "week", "day", "today", "tomorrow", "home",
+]);
+
+/**
+ * A company the tracker does NOT know, pulled from the tail of a
+ * company-shaped question ("an assessment from Roblox", "applied to
+ * Acme", "my status at Globex"). Only the preposition + tail shape
+ * counts, so "what is waiting on me" or "how is my week going" never
+ * yields a phantom company. "To" only counts after apply ("applied to
+ * Acme"), never after "follow up" or "do". Title-cased for display.
+ */
+function extractUnknownCompany(question: string): string | null {
+  const m =
+    question.match(/(?:\bfrom|\bat|\bwith|\bfor|\babout)\s+([a-z0-9][a-z0-9&' .-]*?)\s*(?:\?|$)/) ??
+    question.match(/\bappl(?:y|ied|ying)?\s+to\s+([a-z0-9][a-z0-9&' .-]*?)\s*(?:\?|$)/);
+  if (!m) return null;
+  let cand = m[1]
+    .replace(/\b(assessment|assessments|oa|interview|interviews|offer|offers|job|jobs|role|roles|application|applications|status|update|updates|news|yet|any|anymore|still|there)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  // "apply to at Acme" leaves a second preposition at the front: drop it.
+  cand = cand.replace(/^(from|at|with|for|to|about|the|a|an|my)\s+/, "");
+  if (!cand || cand.length > 40) return null;
+  if (COMPANY_CANDIDATE_BLOCK.has(cand)) return null;
+  return cand
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+/** Append a period when the sentence does not already end with one. */
+function endSentence(s: string): string {
+  return s.endsWith(".") || s.endsWith("!") || s.endsWith("?") ? s : `${s}.`;
+}
+
+function companyApps(ctx: GeneralChatContext, company: string): Application[] {
+  const norm = normalizeName(company);
+  return ctx.apps.filter((a) => normalizeName(a.company) === norm);
+}
+
+function companyLeads(ctx: GeneralChatContext, company: string): Lead[] {
+  const norm = normalizeName(company);
+  return leadsOf(ctx).filter((l) => normalizeName(l.company) === norm);
+}
+
+function companyContacts(ctx: GeneralChatContext, company: string): Contact[] {
+  const norm = normalizeName(company);
+  return ctx.contacts.filter((c) => normalizeName(c.company) === norm);
+}
+
+function appSummaryLine(a: Application, ctx: GeneralChatContext): string {
+  const parts = [`${a.role}: ${a.status}`];
+  if (a.date_applied) parts.push(`applied ${fmtDay(a.date_applied)}`);
+  if (a.last_contact) {
+    const quiet = daysBetween(a.last_contact, ctx.today);
+    parts.push(quiet <= 0 ? "last contact today" : `last heard ${fmtDay(a.last_contact)}, ${quiet} day${quiet === 1 ? "" : "s"} ago`);
+  }
+  if (a.oa_received) parts.push("assessment received");
+  if (a.interviews_done > 0) parts.push(`${a.interviews_done} interview${a.interviews_done === 1 ? "" : "s"} done`);
+  if (a.action_needed) parts.push(`waiting on you: ${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+  if (a.latest_update) parts.push(`Latest: ${a.latest_update}`);
+  return `- ${endSentence(parts.join(". "))}`;
+}
+
+/** One company, any question about it: status, assessment, dates, people, leads. */
+function answerGeneralCompany(company: string, q: string, ctx: GeneralChatContext, known: boolean): ChatMessage {
+  const apps = companyApps(ctx, company);
+  const leads = companyLeads(ctx, company);
+  const contacts = companyContacts(ctx, company);
+  const links = [generalTrackerLink(ctx)];
+  if (!known) {
+    const lines = [`No application at ${company} is in your tracker.`];
+    if (/\b(assessment|oa|hackerrank|codesignal|online test|interview|offer)\b/.test(q)) {
+      lines.push(`So there is no assessment, interview or offer from ${company} in your tracker either.`);
+    }
+    if (leads.length > 0) {
+      lines.push(`You do have ${leads.length === 1 ? "a lead" : `${leads.length} leads`} there: ${leads.map((l) => `${l.role} (${l.status})`).join(", ")}.`);
+    } else if (contacts.length > 0) {
+      lines.push(`No lead there either, but you know ${contacts.map((c) => c.person_name).join(", ")} at ${company}.`);
+    } else {
+      lines.push("Nothing saved for them yet, no lead and no contact there.");
+    }
+    lines.push("If you apply, add it on the Tracker page and I can keep track of it.");
+    return { id: "company", role: "assistant", text: lines.join(" "), links };
+  }
+  if (/\b(assessment|oa|hackerrank|codesignal|online test)\b/.test(q)) {
+    const withOA = apps.filter((a) => hasOA(a));
+    if (withOA.length === 0) {
+      const lines = [`No assessment from ${company} in your tracker.`];
+      if (apps.length > 0) lines.push(apps.map((a) => `${a.role} is ${a.status}`).join(" "));
+      return { id: "company-oa", role: "assistant", text: lines.join(" "), links };
+    }
+    const lines = [`Yes, ${company} sent an assessment:`];
+    for (const a of withOA) {
+      const bits = [`${a.role}`];
+      if (a.latest_update) bits.push(a.latest_update);
+      if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+      lines.push(`- ${endSentence(bits.join(". "))}`);
+    }
+    return { id: "company-oa", role: "assistant", text: lines.join("\n"), links };
+  }
+  if (/\b(interview|interviews)\b/.test(q)) {
+    const atStage = apps.filter((a) => INTERVIEW_STAGE.includes(a.status) || a.interviews_done > 0);
+    if (atStage.length === 0) {
+      const lines = [`No interviews at ${company} in your tracker.`];
+      if (apps.length > 0) lines.push(apps.map((a) => `${a.role} is ${a.status}`).join(" "));
+      return { id: "company-interview", role: "assistant", text: lines.join(" "), links };
+    }
+    const lines = [`Interviews at ${company}:`];
+    for (const a of atStage) {
+      const bits = [`${a.role}: ${a.status}`];
+      if (a.interviews_done > 0) bits.push(`${a.interviews_done} interview${a.interviews_done === 1 ? "" : "s"} done`);
+      if (a.latest_update) bits.push(a.latest_update);
+      if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+      lines.push(`- ${endSentence(bits.join(". "))}`);
+    }
+    return { id: "company-interview", role: "assistant", text: lines.join("\n"), links };
+  }
+  if (/\b(offer|offers)\b/.test(q)) {
+    const withOffer = apps.filter((a) => OFFER_STAGE.includes(a.status));
+    if (withOffer.length === 0) {
+      return { id: "company-offer", role: "assistant", text: `No offer from ${company} in your tracker.`, links };
+    }
+    const lines = [`Offers from ${company}:`];
+    for (const a of withOffer) {
+      const bits = [`${a.role}: ${a.status}`];
+      if (a.latest_update) bits.push(a.latest_update);
+      if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+      lines.push(`- ${endSentence(bits.join(". "))}`);
+    }
+    return { id: "company-offer", role: "assistant", text: lines.join("\n"), links };
+  }
+  if (/\bwhen\b/.test(q) && /\bappl/.test(q)) {
+    if (apps.length === 0) {
+      return { id: "company", role: "assistant", text: `You have not applied at ${company} yet.`, links };
+    }
+    const lines = apps.map((a) => `- ${a.role}: applied ${a.date_applied ? fmtDay(a.date_applied) : "date not set"}.`);
+    return { id: "company", role: "assistant", text: `Applied at ${company}:\n${lines.join("\n")}`, links };
+  }
+  if (/\bwhat\b/.test(q) && /\bappl/.test(q)) {
+    if (apps.length === 0) {
+      return { id: "company", role: "assistant", text: `You have not applied at ${company} yet.`, links };
+    }
+    const lines = apps.map((a) => `- ${a.role}: ${a.status}.`);
+    return { id: "company", role: "assistant", text: `You applied to this at ${company}:\n${lines.join("\n")}`, links };
+  }
+  if (/\b(who|know|contact|people|network|recruiter)\b/.test(q)) {
+    if (contacts.length === 0) {
+      return {
+        id: "company",
+        role: "assistant",
+        text: `You have no networking contacts saved at ${company}.`,
+        links: [generalNetworkingLink(ctx)],
+      };
+    }
+    const lines = [`People you know at ${company}:`];
+    for (const c of contacts.slice(0, 5)) {
+      const step = c.next_step.trim() || (c.next_step_on ? "Follow up" : "");
+      lines.push(`- ${c.person_name}${step ? `: ${step}` : ""}${c.next_step_on ? ` (${fmtDay(c.next_step_on)})` : ""}.`);
+    }
+    return { id: "company", role: "assistant", text: lines.join("\n"), links: [generalNetworkingLink(ctx)] };
+  }
+  if (/\bleads?\b/.test(q)) {
+    if (leads.length === 0) {
+      return { id: "company", role: "assistant", text: `No leads saved at ${company}.`, links };
+    }
+    const lines = [`Leads at ${company}:`];
+    for (const l of leads) {
+      lines.push(`- ${l.role} (${l.status})${l.location ? `, ${l.location}` : ""}${l.fit_note ? `. ${l.fit_note}` : ""}.`);
+    }
+    return { id: "company", role: "assistant", text: lines.join("\n"), links };
+  }
+  const lines = [`${company}:`];
+  for (const a of apps) lines.push(appSummaryLine(a, ctx));
+  const appIds = new Set(apps.map((a) => a.id));
+  const recent = ctx.events.filter((e) => appIds.has(e.application_id)).slice(0, 3);
+  if (recent.length > 0) {
+    lines.push("Recent history:");
+    for (const e of recent) {
+      lines.push(`- ${fmtDay(e.event_date)}: ${e.kind}${e.details ? `, ${e.details}` : ""}.`);
+    }
+  }
+  if (leads.length > 0) lines.push(`Leads there: ${leads.map((l) => `${l.role} (${l.status})`).join(", ")}.`);
+  if (contacts.length > 0) lines.push(`People you know there: ${contacts.map((c) => c.person_name).join(", ")}.`);
+  return { id: "company", role: "assistant", text: lines.join("\n"), links };
+}
+
+/** One saved person, by name: status, next step, last touch. */
+function answerGeneralPerson(person: Contact, ctx: GeneralChatContext): ChatMessage {
+  const lines = [`${person.person_name}${person.company ? ` (${person.company})` : ""}: ${person.status || "no status saved"}.`];
+  const step = person.next_step.trim() || (person.next_step_on ? "Follow up" : "");
+  if (step) lines.push(`Next step: ${step}${person.next_step_on ? ` (${fmtDay(person.next_step_on)})` : ""}.`);
+  if (person.last_contacted) lines.push(`Last in touch ${fmtDay(person.last_contacted)}.`);
+  if (person.notes) lines.push(person.notes);
+  return { id: "person", role: "assistant", text: lines.join(" "), links: [generalNetworkingLink(ctx)] };
+}
+
+// ---------- Stage counts and lists ----------
+
+function answerGeneralOAs(ctx: GeneralChatContext): ChatMessage {
+  const oas = ctx.apps.filter((a) => hasOA(a));
+  if (oas.length === 0) {
+    return { id: "oas", role: "assistant", text: "No assessments in your tracker yet. Nothing has sent you one.", links: [generalTrackerLink(ctx)] };
+  }
+  const lines = [`${oas.length} assessment${oas.length === 1 ? "" : "s"}:`];
+  for (const a of oas.slice(0, 5)) {
+    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}`];
+    if (a.latest_update) bits.push(a.latest_update);
+    if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+    lines.push(`- ${endSentence(bits.join(". "))}`);
+  }
+  if (oas.length > 5) lines.push(`And ${oas.length - 5} more in your tracker.`);
+  return { id: "oas", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
+function answerGeneralInterviews(ctx: GeneralChatContext): ChatMessage {
+  const list = ctx.apps.filter(
+    (a) => INTERVIEW_STAGE.includes(a.status) || (a.interviews_done > 0 && a.status !== "Offer" && a.status !== "Accepted"),
+  );
+  if (list.length === 0) {
+    return { id: "interviews", role: "assistant", text: "No interviews in your tracker yet.", links: [generalTrackerLink(ctx)] };
+  }
+  const lines = [`${list.length} ${list.length === 1 ? "application is" : "applications are"} at interview stage:`];
+  for (const a of list.slice(0, 5)) {
+    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}: ${a.status}`];
+    if (a.interviews_done > 0) bits.push(`${a.interviews_done} interview${a.interviews_done === 1 ? "" : "s"} done`);
+    if (a.latest_update) bits.push(a.latest_update);
+    if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+    lines.push(`- ${endSentence(bits.join(". "))}`);
+  }
+  if (list.length > 5) lines.push(`And ${list.length - 5} more in your tracker.`);
+  return { id: "interviews", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
+function answerGeneralRejections(ctx: GeneralChatContext): ChatMessage {
+  const list = ctx.apps.filter((a) => a.status === "Rejected");
+  const withdrawn = ctx.apps.filter((a) => a.status === "Withdrawn").length;
+  if (list.length === 0) {
+    return {
+      id: "rejections",
+      role: "assistant",
+      text:
+        withdrawn > 0
+          ? `No rejections in your tracker, but ${withdrawn} ${withdrawn === 1 ? "application was" : "applications were"} withdrawn.`
+          : "No rejections in your tracker yet.",
+      links: [generalTrackerLink(ctx)],
+    };
+  }
+  const lines = [`${list.length} rejection${list.length === 1 ? "" : "s"}:`];
+  for (const a of list.slice(0, 5)) {
+    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}`];
+    if (a.latest_update) bits.push(a.latest_update);
+    if (a.last_contact) bits.push(fmtDay(a.last_contact));
+    lines.push(`- ${endSentence(bits.join(". "))}`);
+  }
+  if (list.length > 5) lines.push(`And ${list.length - 5} more in your tracker.`);
+  return { id: "rejections", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
+function answerGeneralOffers(ctx: GeneralChatContext): ChatMessage {
+  const list = ctx.apps.filter((a) => OFFER_STAGE.includes(a.status));
+  if (list.length === 0) {
+    return { id: "offers", role: "assistant", text: "No offers in your tracker yet.", links: [generalTrackerLink(ctx)] };
+  }
+  const lines = [`${list.length} offer${list.length === 1 ? "" : "s"}:`];
+  for (const a of list.slice(0, 5)) {
+    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}: ${a.status}`];
+    if (a.latest_update) bits.push(a.latest_update);
+    if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+    lines.push(`- ${endSentence(bits.join(". "))}`);
+  }
+  if (list.length > 5) lines.push(`And ${list.length - 5} more in your tracker.`);
+  return { id: "offers", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
+// ---------- Timeline, leads, response rate, due window ----------
+
+function answerGeneralHistory(ctx: GeneralChatContext, days: number): ChatMessage {
+  const since = addDays(ctx.today, -days);
+  const byId = new Map(ctx.apps.map((a) => [a.id, a]));
+  const recent = ctx.events
+    .filter((e) => e.event_date >= since && e.event_date <= ctx.today)
+    .sort((a, b) => b.event_date.localeCompare(a.event_date));
+  if (recent.length === 0) {
+    return {
+      id: "history",
+      role: "assistant",
+      text: days === 1 ? "Nothing new since yesterday." : `Nothing new in the last ${days} days.`,
+      links: [generalTrackerLink(ctx)],
+    };
+  }
+  const windowWord = days === 1 ? "since yesterday" : `in the last ${days} days`;
+  const lines = [`What happened ${windowWord}:`];
+  for (const e of recent.slice(0, 8)) {
+    const app = byId.get(e.application_id);
+    lines.push(`- ${fmtDay(e.event_date)}: ${app ? `${app.company}, ` : ""}${e.kind}${e.details ? `, ${e.details}` : ""}.`);
+  }
+  if (recent.length > 8) lines.push(`And ${recent.length - 8} more events in your tracker.`);
+  return { id: "history", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
+function answerGeneralLeads(ctx: GeneralChatContext): ChatMessage {
+  const all = leadsOf(ctx);
+  const open = all.filter((l) => l.status === "New" || l.status === "Queued");
+  const links = [{ label: "Open Leads", href: `${ctx.origin.replace(/\/+$/, "")}${ctx.trackerPath}/leads` }];
+  if (open.length === 0) {
+    return {
+      id: "leads",
+      role: "assistant",
+      text: all.length === 0 ? "No leads saved yet." : "No open leads right now.",
+      links,
+    };
+  }
+  const lines = [`${open.length} open lead${open.length === 1 ? "" : "s"}:`];
+  for (const l of open.slice(0, 5)) {
+    const bits = [`${l.company}, ${l.role} (${l.status})`];
+    if (l.location) bits.push(l.location);
+    if (l.pay) bits.push(l.pay);
+    if (l.fit_note) bits.push(l.fit_note);
+    lines.push(`- ${endSentence(bits.join(". "))}`);
+  }
+  if (open.length > 5) lines.push(`And ${open.length - 5} more in your tracker.`);
+  return { id: "leads", role: "assistant", text: lines.join("\n"), links };
+}
+
+function answerGeneralResponseRate(ctx: GeneralChatContext): ChatMessage {
+  const apps = applicationResponseRate(ctx.apps);
+  const contacts = contactResponseRate(ctx.contacts);
+  const appPct = Math.round(apps.rate * 100);
+  const contactPct = Math.round(contacts.rate * 100);
+  const text =
+    `Your application response rate is ${appPct}% (${apps.responded} of ${apps.total} applications got a reply, meaning the status moved past Applied). ` +
+    `Networking is ${contactPct}% (${contacts.responded} of ${contacts.total} contacts responded).`;
+  return { id: "response-rate", role: "assistant", text, links: [generalTrackerLink(ctx)] };
+}
+
+function answerGeneralDueWindow(ctx: GeneralChatContext): ChatMessage {
+  const due = waitingApps(ctx)
+    .filter((a) => a.action_due && a.action_due <= addDays(ctx.today, 7))
+    .sort(bySoonestDue);
+  if (due.length === 0) {
+    return { id: "due-week", role: "assistant", text: "Nothing is due in the next 7 days.", links: [generalTrackerLink(ctx)] };
+  }
+  const lines = [`${due.length} thing${due.length === 1 ? "" : "s"} due in the next 7 days:`];
+  for (const a of due.slice(0, 5)) {
+    lines.push(`- ${a.company}${a.role ? `, ${a.role}` : ""}: ${a.action_needed}. ${duePhrase(a, ctx.today)}`);
+  }
+  if (due.length > 5) lines.push(`And ${due.length - 5} more in your tracker.`);
+  return { id: "due-week", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
+}
+
 function answerGeneralHelp(): ChatMessage {
   return {
     id: "help",
     role: "assistant",
-    text: "Happy to help. I can answer from your whole tracker: what is waiting on you, what is due next, who went quiet, how your week is going, your overall status, and who is due a follow-up. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.",
+    text: "Happy to help. I can answer from your whole tracker: any company, like whether you have an assessment from them or when you applied; how many OAs, interviews, rejections or offers you have; what is waiting on you and what is due this week; what happened this week; your leads; who you know at a company; and your response rate. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.",
   };
 }
 
@@ -473,7 +924,7 @@ function answerGeneralFallback(): ChatMessage {
   return {
     id: "fallback",
     role: "assistant",
-    text: "Hmm, I do not know that one from your tracker data. Try asking what is waiting on you, what is due next, who went quiet, or how your week is going. Or tap Talk to Agent and your connected agent can dig into it with you.",
+    text: "Hmm, I do not know that one from your tracker data. I can answer about any company, like whether you have an assessment from them, how many OAs, interviews, rejections or offers you have, what is due this week, what happened this week, your leads, and your response rate. Or tap Talk to Agent and your connected agent can dig into it with you.",
   };
 }
 
@@ -489,13 +940,34 @@ export function answerGeneralQuestion(question: string, ctx: GeneralChatContext)
   if (/\b(help|what can you do|what can i ask)\b/.test(q)) return answerGeneralHelp();
   // "Who went quiet?" has both "who" and "quiet": check quiet first.
   if (/\b(quiet|ghost|silent|no reply|heard from)\b/.test(q)) return answerGeneralQuiet(ctx);
-    // Networking follow-ups name people, not application tasks: check them
-    // before the generic "what is due / waiting" handler, which would
-    // otherwise answer a "follow-ups due" question with the waiting
-    // applications. "networking" and "follow-ups" do not match the
-    // word-boundary checks below (networking carries a suffix, follow-ups
-    // a plural), so this check spells the variants out.
-    if (/\b(networking|follow[- ]?ups?|contacts?)\b/.test(q)) return answerGeneralContacts(ctx);
+  // A named person or company beats every generic handler: "Do I have an
+  // assessment from Roblox?" is a company question, not a status one.
+  const person = findKnownPerson(q, ctx);
+  if (person) return answerGeneralPerson(person, ctx);
+  const company = findKnownCompany(q, ctx);
+  if (company) return answerGeneralCompany(company, q, ctx, true);
+  const unknown = extractUnknownCompany(q);
+  if (unknown) return answerGeneralCompany(unknown, q, ctx, false);
+  // "What happened this week?" is history, not the week-count summary.
+  if (/\b(happened|happen|what'?s new|what is new|new since|since yesterday|recent|latest news)\b/.test(q)) {
+    return answerGeneralHistory(ctx, /\bsince yesterday\b/.test(q) ? 1 : 7);
+  }
+  // Stage counts and lists: "how many OAs", "what interviews are coming up".
+  if (/\b(oa|oas|assessment|assessments|online test)\b/.test(q)) return answerGeneralOAs(ctx);
+  if (/\b(interview|interviews)\b/.test(q)) return answerGeneralInterviews(ctx);
+  if (/\b(reject|rejection|rejections|rejected|turned down)\b/.test(q)) return answerGeneralRejections(ctx);
+  if (/\b(offer|offers)\b/.test(q)) return answerGeneralOffers(ctx);
+  if (/\b(response rate|reply rate|responded)\b/.test(q)) return answerGeneralResponseRate(ctx);
+  if (/\b(leads?)\b/.test(q)) return answerGeneralLeads(ctx);
+  // Networking follow-ups name people, not application tasks: check them
+  // before the generic "what is due / waiting" handler, which would
+  // otherwise answer a "follow-ups due" question with the waiting
+  // applications. "networking" and "follow-ups" do not match the
+  // word-boundary checks below (networking carries a suffix, follow-ups
+  // a plural), so this check spells the variants out.
+  if (/\b(networking|follow[- ]?ups?|contacts?)\b/.test(q)) return answerGeneralContacts(ctx);
+  // "Due this week / today / tomorrow" narrows the waiting list to a window.
+  if (/\bdue\b/.test(q) && /\b(this week|today|tomorrow|soon|this month)\b/.test(q)) return answerGeneralDueWindow(ctx);
   if (/\b(waiting|due|deadline|next|should i|what do i do|to-?do|todo)\b/.test(q)) return answerGeneralWaiting(ctx);
   if (/\b(week|pace|goal|applied this week|progress)\b/.test(q)) return answerGeneralWeek(ctx);
   if (/\b(who|contact|know|people|network|recruiter|follow-?up)\b/.test(q)) return answerGeneralContacts(ctx);

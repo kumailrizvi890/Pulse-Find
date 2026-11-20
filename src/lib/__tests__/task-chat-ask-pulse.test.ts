@@ -346,10 +346,14 @@ describe("Ask Pulse answers stage counts and lists", () => {
 
   it("lists interviews coming up", () => {
     const a = answerGeneralQuestion("What interviews are coming up?", ctx());
-    expect(a.text).toContain("1 application is at interview stage");
+    // Same membership as the dashboard: Initech at interview stage plus
+    // Wonka at Offer (an offer means interviews happened), both active.
+    expect(a.text).toContain("2 applications reached interview stage, 2 still active");
     expect(a.text).toContain("Initech");
     expect(a.text).toContain("Interview Invited");
     expect(a.text).toContain("Recruiter screen passed");
+    expect(a.text).toContain("Wonka Industries");
+    expect(a.text).toContain("Offer");
   });
 
   it("counts rejections", () => {

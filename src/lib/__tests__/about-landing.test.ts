@@ -15,7 +15,7 @@ import { shouldAutoStartTour, TOUR_CONNECT_HREF } from "@/lib/tour-window";
 // constant in AboutLanding.tsx, which renders it in the rigor
 // paragraph, the "N tests · CI" chip, and the founder number.
 
-const EXPECTED_TEST_COUNT = 879;
+const EXPECTED_TEST_COUNT = 950;
 
 const root = join(__dirname, "..", "..");
 const repoRoot = join(root, "..");

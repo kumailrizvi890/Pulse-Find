@@ -1,6 +1,20 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { IconExternalLink } from "@/components/icons";
 import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
+import { parallaxOffset, sectionProgress } from "@/lib/scroll-anim";
+
+// About redesign (landing only, Nov 20 2026): same approved copy,
+// numbers, links, and rigor wording, restyled in the crazy hero's
+// language. Feature cards rise in on scroll with a staggered
+// cubic-bezier(0.22,1,0.36,1), the founder photo tilts in 3D on
+// hover, and the founder numbers count up when they enter view.
+// All motion is transform/opacity only, and reduced motion shows
+// everything still. The new sixth card is the open-source card:
+// MIT licensed, self-host guide in docs/SELF_HOST.md, verified
+// against the repo README before shipping.
 
 // The About page: the new landing for signed-out visitors (Nov 19
 // 2026). Ported from the first-visit preview: install section sits
@@ -22,11 +36,104 @@ import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
 // sync lives in the external cron script (not this repo), and Vercel
 // has gone Ready on a red CI run before, so "a red test stops the
 // deploy" is not a true claim. See OPEN_QUESTIONS.md.
-const TEST_COUNT = 1061;
+const TEST_COUNT = 1159;
 
 export function AboutLanding() {
+  const photoRef = useRef<HTMLDivElement>(null);
+
+  // Founder photo parallax, landing only: the photo drifts up to
+  // 24px as its section scrolls through view, driven by the shared
+  // sectionProgress math. Reduced motion skips it entirely, so the
+  // photo stays put. The hover tilt lives on the inner photo ring,
+  // so the two transforms never fight.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const photo = photoRef.current;
+    if (!photo) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const section = photo.closest("section");
+      if (!section) return;
+      const rect = section.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      const p = sectionProgress(window.scrollY, top, rect.height, window.innerHeight);
+      photo.style.transform = `translateY(${parallaxOffset(p, 24).toFixed(1)}px)`;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        raf = requestAnimationFrame(update);
+      }
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  // Scroll reveals + count-up, landing only. Numbers start at their
+  // server-rendered final values, so the count-up only ever runs in
+  // the browser after the section enters view; reduced motion and
+  // no-JS both leave the final values in place.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const revealEls = Array.from(document.querySelectorAll<HTMLElement>(".reveal-3d"));
+    if (reduced) {
+      revealEls.forEach((el) => el.classList.add("in"));
+      return;
+    }
+    const ro = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            (e.target as HTMLElement).classList.add("in");
+            ro.unobserve(e.target);
+          }
+        }
+      },
+      { threshold: 0.15 },
+    );
+    revealEls.forEach((el) => ro.observe(el));
+    const nums = Array.from(document.querySelectorAll<HTMLElement>(".founder-nums b"));
+    const co = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const b = e.target as HTMLElement;
+          co.unobserve(b);
+          const finalText = b.textContent ?? "";
+          if (!/^\d/.test(finalText)) continue;
+          const final = parseInt(finalText.replace(/[^0-9]/g, ""), 10);
+          if (!Number.isFinite(final)) continue;
+          const t0 = performance.now();
+          const tick = (now: number) => {
+            const p = Math.min(1, (now - t0) / 1000);
+            const eased = 1 - Math.pow(1 - p, 3);
+            b.textContent = String(Math.round(final * eased));
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.4 },
+    );
+    nums.forEach((b) => co.observe(b));
+    return () => {
+      ro.disconnect();
+      co.disconnect();
+    };
+  }, []);
+
   return (
-    <main className="about" id="aboutPage">
+    <main className="about about-3d" id="aboutPage">
       <span className="about-kicker">About Pulse Find</span>
       <h2 className="big">
         The internship hunt, <em>run like a system.</em>
@@ -39,7 +146,7 @@ export function AboutLanding() {
       </p>
 
       <div className="feat-list">
-        <div className="feat">
+        <div className="feat reveal-3d">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M3 12h4l2.5-6 4 12L16 12h5" stroke="#ff97a3" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -51,7 +158,7 @@ export function AboutLanding() {
           </div>
           <span className="f-tag">Refreshed daily</span>
         </div>
-        <div className="feat">
+        <div className="feat reveal-3d">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="3" y="5" width="18" height="14" rx="3" stroke="#ff97a3" strokeWidth="2" />
@@ -64,7 +171,7 @@ export function AboutLanding() {
           </div>
           <span className="f-tag">Newest first</span>
         </div>
-        <div className="feat">
+        <div className="feat reveal-3d">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M4 6h16M4 12h16M4 18h10" stroke="#ff97a3" strokeWidth="2.2" strokeLinecap="round" />
@@ -76,7 +183,7 @@ export function AboutLanding() {
           </div>
           <span className="f-tag">Exports to .xlsx</span>
         </div>
-        <div className="feat">
+        <div className="feat reveal-3d">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#ff97a3" strokeWidth="2" strokeLinecap="round" />
@@ -89,7 +196,7 @@ export function AboutLanding() {
           </div>
           <span className="f-tag">MCP-native</span>
         </div>
-        <div className="feat">
+        <div className="feat reveal-3d">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="7" y="2.5" width="10" height="19" rx="2.5" stroke="#ff97a3" strokeWidth="2" />
@@ -104,11 +211,25 @@ export function AboutLanding() {
             <a href="#getApp">Get the app ↑</a>
           </span>
         </div>
+        <div className="feat reveal-3d">
+          <div className="f-ico">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m8 8-4 4 4 4m8-8 4 4-4 4" stroke="#ff97a3" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <h3>Open source, self-host it</h3>
+            <p>MIT licensed and free to run yourself. One Deploy button, free Supabase and Vercel, and the same code that runs this site.</p>
+          </div>
+          <span className="f-tag">
+            <a href="https://github.com/kumailrizvi890/Pulse-Find" target="_blank" rel="noopener">GitHub ↑</a>
+          </span>
+        </div>
       </div>
 
-      <section className="founder" aria-label="Meet the founder">
+      <section className="founder reveal-3d" aria-label="Meet the founder">
         <div className="founder-grid">
-          <div className="founder-photo">
+          <div className="founder-photo founder-photo-3d" ref={photoRef}>
             <div className="photo-ring">
               <Image
                 src="/founder/kumail-rizvi.webp"

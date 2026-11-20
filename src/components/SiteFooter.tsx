@@ -19,7 +19,10 @@ export function SiteFooter() {
         </p>
         <nav className="flex gap-4">
           <Link href="/jobs" className="hover:text-accent">Jobs</Link>
-          <Link href="/app/connect" className="hover:text-accent">Agents</Link>
+          {/* The footer is public nav (landing, /privacy, not-found), so
+          Agents points at the public Connect page: /app/connect would
+          bounce a signed-out visitor to /login. */}
+          <Link href="/demo/connect" className="hover:text-accent">Agents</Link>
           <Link href="/demo" className="hover:text-accent">Demo</Link>
           <Link href="https://github.com/kumailrizvi890/Pulse-Find" className="inline-flex items-center gap-1 hover:text-accent" target="_blank" rel="noopener">GitHub <IconExternalLink className="h-3 w-3 shrink-0" /></Link>
           <Link href="/privacy" className="hover:text-accent">Privacy</Link>

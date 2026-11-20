@@ -44,9 +44,7 @@ function snippet(client: ClientName, url: string, token: string) {
         2,
       );
     default:
-      return `URL:        ${url}
-Transport:  Streamable HTTP
-Header:     Authorization: ${auth}`;
+      return `URL:        ${url}\nTransport:  Streamable HTTP\nHeader:     Authorization: ${auth}`;
   }
 }
 

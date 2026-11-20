@@ -76,10 +76,10 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
 
         <div className="flex flex-col gap-4 px-5 py-5">
           <Row label="Company" htmlFor="f-company">
-            <input id="f-company" ref={firstRef} className={field} value={v.company} onChange={(e) => set("company", e.target.value)} placeholder="Northwind Labs" maxLength={200} required />
+            <input id="f-company" ref={firstRef} className={field} value={v.company} onChange={(e) => set("company", e.target.value)} placeholder="Example Corp" maxLength={200} required />
           </Row>
           <Row label="Role" htmlFor="f-role">
-            <input id="f-role" className={field} value={v.role} onChange={(e) => set("role", e.target.value)} placeholder="Software Engineer Intern" maxLength={300} />
+            <input id="f-role" className={field} value={v.role} onChange={(e) => set("role", e.target.value)} placeholder="Data Engineer Intern" maxLength={300} />
           </Row>
           <div className="grid grid-cols-2 gap-3">
             <Row label="Status" htmlFor="f-status">
@@ -118,7 +118,7 @@ export function ApplicationDrawer({ initial, editing, events, onClose, onSave, o
           </fieldset>
 
           <Row label="Latest update" htmlFor="f-update">
-            <input id="f-update" className={field} value={v.latest_update} onChange={(e) => set("latest_update", e.target.value)} placeholder="Recruiter replied, phone screen next week" maxLength={1000} />
+            <input id="f-update" className={field} value={v.latest_update} onChange={(e) => set("latest_update", e.target.value)} placeholder="Waiting to hear back after applying" maxLength={1000} />
           </Row>
           <Row label="Link (posting or email)" htmlFor="f-link">
             <input id="f-link" type="url" inputMode="url" className={field} value={v.link} onChange={(e) => set("link", e.target.value)} placeholder="https://" maxLength={2000} />

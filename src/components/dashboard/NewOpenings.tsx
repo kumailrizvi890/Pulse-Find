@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { ago } from "@/lib/dates";
 import { Panel, btn } from "./ui";
 import { IconExternalLink } from "@/components/icons";
 
 type Job = { id: string; company: string; title: string; location: string; url: string; posted_at: string | null };
-
-function ago(iso: string | null) {
-  if (!iso) return "";
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  return days <= 0 ? "today" : days === 1 ? "1d ago" : `${days}d ago`;
-}
 
 /** The newest tech internships from the job board, right on the dashboard. */
 export function NewOpenings() {

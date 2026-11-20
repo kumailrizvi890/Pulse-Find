@@ -106,7 +106,9 @@ describe("OAs panel", () => {
 describe("jobs progress", () => {
   it("counts every decision and divides by the whole feed total, clamped at 100", () => {
     expect(jobsBoard).toContain("Object.keys(marks).length");
-    expect(jobsBoard).toContain("total === null ? 0 : Math.min(100, Math.round((reviewed / total) * 100))");
+    // A zero-match search makes total 0, and reviewed / 0 is Infinity,
+    // which used to round to a 100% progress bar on an empty deck.
+    expect(jobsBoard).toContain("total === null || total === 0 ? 0 : Math.min(100, Math.round((reviewed / total) * 100))");
     expect(jobsBoard).not.toContain("reviewed / (reviewed + queue.length)");
     // The "left to review" text is unchanged and total-based, so
     // reviewed + left = total once reviewed counts every decision.

@@ -576,7 +576,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
                   )}
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
                     <span className="font-medium text-ink">{j.company}</span>
-                    {j.location && <span className="truncate">· {j.location}</span>}
+                    {j.location && <span className="truncate" title={j.location}>· {j.location}</span>}
                     {j.remote && <Tag tone="tech">Remote</Tag>}
                     {j.posted_at && <span className="tnum font-mono text-xs text-faint">{ago(j.posted_at)}</span>}
                   </p>
@@ -634,15 +634,35 @@ const SAVED_TITLE_LIMIT = 40;
 /** A saved job's title truncates in the narrow row, so the full title
  * carries a hover tooltip and long titles get the same Show more toggle
  * the sheet's TruncatedCellText uses, past the same 40 characters. The
- * toggle stops the click, so it never jumps to the job in the deck. */
+ * toggle stops the click, so it never jumps to the job in the deck. The
+ * forty-character limit is only a fallback, as in the sheet: a shorter
+ * title can still truncate once the View posting button takes its
+ * space ("2027 Mission Operations Engineer" is 32 characters and
+ * already ellipsised), so the toggle also appears whenever the rendered
+ * title actually overflows (scrollWidth past clientWidth, re-measured
+ * on resize). */
 export function SavedJobTitle({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
   const long = title.length > SAVED_TITLE_LIMIT;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflowing(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [title, expanded]);
+  // Expanded titles keep their Show less button; collapsed titles get
+  // one when long or actually overflowing. In a server render there is
+  // no layout to measure, so only the long rule applies there.
+  const showToggle = expanded || long || overflowing;
   return (
     <>
-      <p className={cx("text-sm font-semibold", expanded ? "whitespace-normal break-words" : "truncate")} title={title}>
+      <p ref={ref} className={cx("text-sm font-semibold", expanded ? "whitespace-normal break-words" : "truncate")} title={title}>
         {title}
       </p>
-      {long && (
+      {showToggle && (
         <button
           type="button"
           className="mt-0.5 text-xs font-medium text-accent hover:underline"

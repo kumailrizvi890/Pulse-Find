@@ -47,8 +47,8 @@ export function JobDetails({
           {initials(job.company)}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-display text-lg font-extrabold leading-tight tracking-tight">{job.title}</p>
-          <p className="truncate text-sm font-semibold text-muted">{job.company}</p>
+          <p className="truncate font-display text-lg font-extrabold leading-tight tracking-tight" title={job.title}>{job.title}</p>
+          <p className="truncate text-sm font-semibold text-muted" title={job.company}>{job.company}</p>
         </div>
       </div>
       <dl className="flex flex-col gap-2 text-sm">

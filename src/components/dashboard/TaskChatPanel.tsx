@@ -241,7 +241,13 @@ export function TaskChatPanel({ application, general, events, userId, onClose }:
   ]);
 
   useEffect(() => {
-    const t = setTimeout(() => inputRef.current?.focus(), 60);
+        // The composer is focused on mount so the visitor can type straight
+    // away, but the focus must never move the page: a plain focus()
+    // scrolls the document on iOS Safari, and that is what sent the
+    // dashboard to the bottom when the chat opened from the landing
+    // page (the navigation itself lands at the top). preventScroll
+    // keeps the page where the navigation put it.
+    const t = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 60);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => {

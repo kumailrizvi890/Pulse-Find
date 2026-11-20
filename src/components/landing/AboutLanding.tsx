@@ -79,7 +79,7 @@ export function AboutLanding() {
         <div className="feat">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#ff97a3" strokeWidth="2.2" strokeLinecap="round" />
+              <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#ff97a3" strokeWidth="2" strokeLinecap="round" />
               <circle cx="12" cy="12" r="3.2" stroke="#ff97a3" strokeWidth="2" />
             </svg>
           </div>
@@ -139,16 +139,16 @@ export function AboutLanding() {
             <p>
               I&apos;m Kumail, a computer science senior at UW Bothell,
               graduating December 2027, and the founder of Pulse Find. I built
-              it out of my own internship search: {" "}
+              it out of my own internship search:{" "}
               <b>hundreds of applications</b>, a spreadsheet that kept falling
               apart, and follow-ups slipping through the cracks. Pulse Find is
               the system I wanted, so I built it, and now it runs my whole
               search.
             </p>
             <p>
-              <b>The stack is the fun part.</b> Pulse Find runs on {" "}
+              <b>The stack is the fun part.</b> Pulse Find runs on{" "}
               <b>Next.js 16 and React 19</b> with <b>Supabase</b>, Postgres,
-              Auth, and Storage, deployed on Vercel, but the headline is the {" "}
+              Auth, and Storage, deployed on Vercel, but the headline is the{" "}
               <b>MCP server</b>: Pulse Find plugs straight into Claude Code,
               Cursor, and Copilot, so an AI agent can read a tracker, add
               leads, and update stages like a teammate. On Agensi&apos;s MCP
@@ -156,7 +156,7 @@ export function AboutLanding() {
               out of 18 listings.
             </p>
             <p>
-              <b>And it&apos;s tested like it matters.</b> Pulse Find runs {" "}
+              <b>And it&apos;s tested like it matters.</b> Pulse Find runs{" "}
               <b>{TEST_COUNT} automated tests, green in CI on every push</b>:
               unit tests across the tracker, leads, and networking logic,
               integration tests against the Supabase sync engine, and

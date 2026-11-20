@@ -257,6 +257,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
         <button
           type="button"
           aria-label="Undo"
+          title="Undo your last swipe. Only swipes from this session can be undone"
           disabled={!canUndo}
           onClick={onUndo}
           className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:scale-105 disabled:opacity-35"
@@ -276,7 +277,8 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
       <p className="mt-3 font-mono text-[11px] text-faint">
         Drag the card, tap the buttons, or use{" "}
         <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">←</kbd> pass{" "}
-        <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">→</kbd> save
+        <kbd className="rounded border border-line bg-surface px-1.5 py-0.5 text-ink">→</kbd> save.{" "}
+        Undo only covers swipes from this session.
       </p>
     </div>
   );

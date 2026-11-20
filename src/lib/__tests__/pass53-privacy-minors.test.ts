@@ -52,7 +52,7 @@ describe("shared site footer", () => {
     expect(footer).toContain("Pulse Find");
     expect(footer).toContain("Kumail Rizvi");
     expect(footer).toContain('href="/jobs"');
-    expect(footer).toContain('href="/app/connect"');
+    expect(footer).toContain('href="/demo/connect"');
     expect(footer).toContain('href="/demo"');
     expect(footer).toContain("github.com/kumailrizvi890/Pulse-Find");
     expect(footer).toContain('href="/privacy"');

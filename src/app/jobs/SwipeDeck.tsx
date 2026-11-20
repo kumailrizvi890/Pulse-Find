@@ -53,6 +53,14 @@ type Props = {
   onUndo: () => void;
   canUndo: boolean;
   emptyText: string;
+  /** Heading for the empty deck. "Deck cleared" by default; the board
+   * passes its own heading when the deck is empty because the search
+   * found nothing, so the empty state never claims the deck is finished. */
+  emptyTitle?: string;
+  /** Clears the search and every filter. Passed only when the deck is
+   * empty because the search found nothing, so the recovery button resets
+   * the filter instead of re-reviewing the same empty set. */
+  onClearFilters?: () => void;
   /** Opens the details panel for the top card (mobile) or scrolls to it (desktop). */
   onDetails: (job: DeckJob) => void;
   /** Re-reviews the passed jobs in this view; absent when nothing was reviewed. */
@@ -69,7 +77,7 @@ type Props = {
  * note, so none of those are rendered (and none are invented): the card
  * shows only what the posting actually has.
  */
-export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText, onDetails, onReviewAgain, canReviewAgain }: Props) {
+export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText, emptyTitle = "Deck cleared", onClearFilters, onDetails, onReviewAgain, canReviewAgain }: Props) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<"saved" | "hidden" | null>(null);
@@ -127,10 +135,14 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
               </>
             ) : (
               <>
-                <p className="font-display text-lg font-bold text-ink">Deck cleared</p>
+                <p className="font-display text-lg font-bold text-ink">{emptyTitle}</p>
                 <p>{emptyText}</p>
                 <WaitingSignal className="justify-center" />
-                {canReviewAgain && onReviewAgain && (
+                {onClearFilters ? (
+                  <button type="button" onClick={onClearFilters} className="mt-1 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink shadow-panel transition hover:scale-[1.03]">
+                    Clear search and filters
+                  </button>
+                ) : canReviewAgain && onReviewAgain && (
                   <button type="button" onClick={onReviewAgain} className="mt-1 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink shadow-panel transition hover:scale-[1.03]">
                     Review again
                   </button>

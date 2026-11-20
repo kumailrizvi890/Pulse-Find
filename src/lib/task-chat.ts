@@ -15,9 +15,9 @@ import {
   contactResponseRate,
   daysBetween,
   hasOA,
-  INTERVIEW_STAGE,
   OFFER_STAGE,
   parseISO,
+  reachedInterview,
   weekStart,
 } from "./metrics";
 import { buildAgentHandoffPrompt, getMcpEndpoint } from "./agent-prompt";
@@ -663,7 +663,7 @@ function answerGeneralCompany(company: string, q: string, ctx: GeneralChatContex
     return { id: "company-oa", role: "assistant", text: lines.join("\n"), links };
   }
   if (/\b(interview|interviews)\b/.test(q)) {
-    const atStage = apps.filter((a) => INTERVIEW_STAGE.includes(a.status) || a.interviews_done > 0);
+    const atStage = apps.filter((a) => reachedInterview(a));
     if (atStage.length === 0) {
       const lines = [`No interviews at ${company} in your tracker.`];
       if (apps.length > 0) lines.push(apps.map((a) => `${a.role} is ${a.status}`).join(" "));
@@ -777,15 +777,25 @@ function answerGeneralOAs(ctx: GeneralChatContext): ChatMessage {
 }
 
 function answerGeneralInterviews(ctx: GeneralChatContext): ChatMessage {
-  const list = ctx.apps.filter(
-    (a) => INTERVIEW_STAGE.includes(a.status) || (a.interviews_done > 0 && a.status !== "Offer" && a.status !== "Accepted"),
-  );
+  // Same membership as the dashboard Interviews panel: reachedInterview
+  // folds in offer-stage rows (an offer means interviews happened) and
+  // rejected rows with interviews done. Active first, then most recently
+  // contacted, so the finished rows sit at the end, marked closed.
+  const list = ctx.apps
+    .filter((a) => reachedInterview(a))
+    .sort(
+      (a, b) =>
+        Number(CLOSED.includes(a.status)) - Number(CLOSED.includes(b.status)) ||
+        (b.last_contact ?? "").localeCompare(a.last_contact ?? ""),
+    );
   if (list.length === 0) {
     return { id: "interviews", role: "assistant", text: "No interviews in your tracker yet.", links: [generalTrackerLink(ctx)] };
   }
-  const lines = [`${list.length} ${list.length === 1 ? "application is" : "applications are"} at interview stage:`];
+  const active = list.filter((a) => !CLOSED.includes(a.status)).length;
+  const lines = [`${list.length} ${list.length === 1 ? "application" : "applications"} reached interview stage, ${active} still active:`];
   for (const a of list.slice(0, 5)) {
-    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}: ${a.status}`];
+    const finished = CLOSED.includes(a.status);
+    const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}: ${a.status}${finished ? " (Closed)" : ""}`];
     if (a.interviews_done > 0) bits.push(`${a.interviews_done} interview${a.interviews_done === 1 ? "" : "s"} done`);
     if (a.latest_update) bits.push(a.latest_update);
     if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
@@ -794,7 +804,6 @@ function answerGeneralInterviews(ctx: GeneralChatContext): ChatMessage {
   if (list.length > 5) lines.push(`And ${list.length - 5} more in your tracker.`);
   return { id: "interviews", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
 }
-
 function answerGeneralRejections(ctx: GeneralChatContext): ChatMessage {
   const list = ctx.apps.filter((a) => a.status === "Rejected");
   const withdrawn = ctx.apps.filter((a) => a.status === "Withdrawn").length;

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cx } from "@/components/dashboard/ui";
+import { postedAgo } from "@/lib/dates";
 import { IconCheck, IconDetails, IconExternalLink, IconUndo, IconX } from "@/components/icons";
 import { PulseHeartbeat, WaitingSignal } from "@/components/PulseBrand";
 
@@ -39,11 +40,6 @@ export function bannerStyle(name: string): { background: string } {
   return {
     background: `linear-gradient(135deg, hsl(${h} 65% 42%) 0%, hsl(${(h + 40) % 360} 70% 26%) 100%)`,
   };
-}
-function ago(iso: string | null) {
-  if (!iso) return null;
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  return days <= 0 ? "Posted today" : days === 1 ? "Posted yesterday" : `Posted ${days}d ago`;
 }
 
 type Props = {
@@ -200,10 +196,10 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
               {/* Banner: per-company gradient, brand tile + name, posted pill. */}
               <div className="relative -mx-6 -mt-6 h-[172px] w-[calc(100%+3rem)] shrink-0 overflow-hidden rounded-t-3xl" style={bannerStyle(top.company)}>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" aria-hidden="true" />
-                {ago(top.posted_at) && (
+                {postedAgo(top.posted_at) && (
                   <span className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/45 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-                    {ago(top.posted_at)}
+                    {postedAgo(top.posted_at)}
                   </span>
                 )}
                 <div className="absolute bottom-3 left-4 flex items-center gap-3">
@@ -223,7 +219,7 @@ export function SwipeDeck({ queue, loading, onDecide, onUndo, canUndo, emptyText
                   {top.remote && <span className="rounded-full border border-good/30 bg-good-soft px-2.5 py-0.5 font-mono text-[11px] text-good">Remote</span>}
                 </div>
                 <div className="mt-auto flex w-full items-center justify-between pt-3 text-xs text-faint">
-                  <span>{ago(top.posted_at) ?? ""}</span>
+                  <span>{postedAgo(top.posted_at) ?? ""}</span>
                   {top.url ? (
                     <a
                       href={top.url}

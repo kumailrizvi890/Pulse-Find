@@ -44,7 +44,9 @@ function snippet(client: ClientName, url: string, token: string) {
         2,
       );
     default:
-      return `URL:        ${url}\nTransport:  Streamable HTTP\nHeader:     Authorization: ${auth}`;
+      return `URL:        ${url}
+Transport:  Streamable HTTP
+Header:     Authorization: ${auth}`;
   }
 }
 
@@ -229,7 +231,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">
-          Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs.
+          Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact.
           Agents are told to stay read-only in your inbox and never send email or apply for you.
         </p>
       </Panel>

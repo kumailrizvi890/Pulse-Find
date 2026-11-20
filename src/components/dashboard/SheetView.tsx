@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Application, ApplicationInput, Settings, Status } from "@/lib/types";
 import { DEFAULT_SETTINGS, STATUSES } from "@/lib/types";
 import { dedupeImport, filterSheet, sheetColumnWidths, sheetRows, sortSheet, SHEET_COLUMNS, visibleSheetColumns, type SheetKey, type SortDir } from "@/lib/sheet";
@@ -35,6 +35,12 @@ type Editing = { id: string; key: SheetKey } | null;
 // truncated cell carries the full text as a hover tooltip, so the value
 // is readable without opening the editor. Same pattern as the networking
 // ContactNote toggle, with a lower limit for the narrow sheet columns.
+// The forty-character limit is only a fallback: a shorter value can
+// still truncate in the narrowest column ("Backend Engineer Intern" is
+// 23 characters and already ellipsised), so the toggle also appears
+// whenever the rendered text actually overflows its cell (scrollWidth
+// past clientWidth, re-measured on resize). A value that fits shows
+// neither toggle nor tooltip trouble: the title is always there.
 const CELL_EXPAND_LIMIT = 40;
 
 export function TruncatedCellText({
@@ -48,16 +54,31 @@ export function TruncatedCellText({
   onToggle: () => void;
   className?: string;
 }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
   const long = value.length > CELL_EXPAND_LIMIT;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflowing(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [value, expanded]);
+  // Expanded cells keep their Show less button; collapsed cells get one
+  // when the value is long or actually overflowing. In a server render
+  // there is no layout to measure, so only the long rule applies there.
+  const showToggle = expanded || long || overflowing;
   return (
     <>
       <span
+        ref={ref}
         className={cx("block", expanded ? "whitespace-normal break-words" : "truncate", className)}
         title={value}
       >
         {value}
       </span>
-      {long && (
+      {showToggle && (
         <button
           type="button"
           className="mt-0.5 text-xs font-medium text-accent hover:underline"

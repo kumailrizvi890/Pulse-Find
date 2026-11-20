@@ -543,6 +543,9 @@ function Shell({ banner, children }: { banner?: ReactNode; children: ReactNode }
 }
 
 function AppList({ rows, today, ghostDays, onOpen }: { rows: Application[]; today: string; ghostDays: number; onOpen: (a: Application) => void }) {
+  // The order is deliberate (waiting items first, then most recent
+  // contact), so one line says so instead of leaving it a mystery.
+  const sortNote = "Waiting items first, then most recent contact.";
   const flagTag = (a: Application) => {
     const f = followUp(a, today, ghostDays);
     if (f === "ghosted") return <Tag tone="danger">Ghosted</Tag>;
@@ -551,6 +554,7 @@ function AppList({ rows, today, ghostDays, onOpen }: { rows: Application[]; toda
   };
   return (
     <>
+      <p className="mb-3 text-xs text-faint">{sortNote}</p>
       {/* phones: cards */}
       <ul className="flex flex-col gap-2 md:hidden">
         {rows.map((a) => (

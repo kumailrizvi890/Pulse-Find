@@ -12,7 +12,9 @@ import { describe, expect, it } from "vitest";
 //     all (signed-in visitors only had a bare "Open" link to the page).
 //     The whole card is now a link to the Networking page deep-linked
 //     to that contact (?contact=<id> opens their edit form on arrival).
-//     The one-line note truncation from pass 36 is untouched on purpose.
+//     Pass 68 changed the note (and the next step and name lines) from
+//     one truncated line to two clamped lines with the full text on
+//     hover; the pin below tracks the new design.
 function read(rel: string): string {
   return readFileSync(join(__dirname, "..", "..", ...rel.split("/")), "utf8");
 }
@@ -30,9 +32,11 @@ describe("networking follow-ups cards open the contact", () => {
     expect(overview).not.toContain('className={cx(btn.ghost, "mt-2")}');
   });
 
-  it("keeps the one-line note truncation (pass 36 design)", () => {
+  it("shows notes on two lines with the full text on hover (pass 68 design)", () => {
     expect(overview).toContain("{c.notes &&");
-    expect(overview).toContain("truncate text-xs text-faint");
+    expect(overview).toContain("line-clamp-2 text-xs text-faint");
+    expect(overview).toContain("title={c.notes}");
+    expect(overview).not.toContain("truncate text-xs text-faint");
   });
 
   it("opens the deep-linked contact's edit form on the Networking page", () => {

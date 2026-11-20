@@ -22,7 +22,7 @@ import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
 // sync lives in the external cron script (not this repo), and Vercel
 // has gone Ready on a red CI run before, so "a red test stops the
 // deploy" is not a true claim. See OPEN_QUESTIONS.md.
-const TEST_COUNT = 1038;
+const TEST_COUNT = 1045;
 
 export function AboutLanding() {
   return (

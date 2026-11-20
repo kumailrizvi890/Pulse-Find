@@ -364,7 +364,7 @@ export function generalChatGreeting(ctx: GeneralChatContext): ChatMessage {
     );
   }
   lines.push(
-    "Ask me what is waiting, what is due next, who went quiet, or how your week is going. You can also ask about any company, like whether you have an assessment from them.",
+    "Ask me what is waiting, what is due next, who went quiet or ghosted you, or how your week is going. You can also ask about any company, like whether you have an assessment from them.",
   );
   // No tracker link here, for the same reason as the task greeting: the
   // first answer already carries one, and the greeting plus that answer
@@ -408,6 +408,7 @@ function answerGeneralQuiet(ctx: GeneralChatContext): ChatMessage {
       `- ${app.company}${app.role ? `, ${app.role}` : ""}: last heard ${fmtDay(app.last_contact)}, ${quiet} day${quiet === 1 ? "" : "s"} ago.`,
     );
   }
+  if (ghosted.length > 5) lines.push(`And ${ghosted.length - 5} more in your tracker.`);
   lines.push("A short follow up is the sensible next step for the quietest one.");
   return { id: "quiet", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
 }
@@ -765,14 +766,16 @@ function answerGeneralOAs(ctx: GeneralChatContext): ChatMessage {
   if (oas.length === 0) {
     return { id: "oas", role: "assistant", text: "No assessments in your tracker yet. Nothing has sent you one.", links: [generalTrackerLink(ctx)] };
   }
+  // Every assessment is named: the question asks which companies sent
+  // one, and the list stays short, so there is no "And N more" tail
+  // hiding a company the way the old slice(0, 5) hid the sixth.
   const lines = [`${oas.length} assessment${oas.length === 1 ? "" : "s"}:`];
-  for (const a of oas.slice(0, 5)) {
+  for (const a of oas) {
     const bits = [`${a.company}${a.role ? `, ${a.role}` : ""}`];
     if (a.latest_update) bits.push(a.latest_update);
     if (a.action_needed) bits.push(`${a.action_needed}. ${duePhrase(a, ctx.today)}`);
     lines.push(`- ${endSentence(bits.join(". "))}`);
   }
-  if (oas.length > 5) lines.push(`And ${oas.length - 5} more in your tracker.`);
   return { id: "oas", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
 }
 
@@ -804,6 +807,7 @@ function answerGeneralInterviews(ctx: GeneralChatContext): ChatMessage {
   if (list.length > 5) lines.push(`And ${list.length - 5} more in your tracker.`);
   return { id: "interviews", role: "assistant", text: lines.join("\n"), links: [generalTrackerLink(ctx)] };
 }
+
 function answerGeneralRejections(ctx: GeneralChatContext): ChatMessage {
   const list = ctx.apps.filter((a) => a.status === "Rejected");
   const withdrawn = ctx.apps.filter((a) => a.status === "Withdrawn").length;
@@ -925,7 +929,7 @@ function answerGeneralHelp(): ChatMessage {
   return {
     id: "help",
     role: "assistant",
-    text: "Happy to help. I can answer from your whole tracker: any company, like whether you have an assessment from them or when you applied; how many OAs, interviews, rejections or offers you have; what is waiting on you and what is due this week; what happened this week; your leads; who you know at a company; and your response rate. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.",
+    text: "Happy to help. I can answer from your whole tracker: any company, like whether you have an assessment from them or when you applied; how many OAs, interviews, rejections or offers you have; what is waiting on you and what is due this week; who went quiet or ghosted you; what happened this week; your leads; who you know at a company; and your response rate. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.",
   };
 }
 
@@ -933,7 +937,7 @@ function answerGeneralFallback(): ChatMessage {
   return {
     id: "fallback",
     role: "assistant",
-    text: "Hmm, I do not know that one from your tracker data. I can answer about any company, like whether you have an assessment from them, how many OAs, interviews, rejections or offers you have, what is due this week, what happened this week, your leads, and your response rate. Or tap Talk to Agent and your connected agent can dig into it with you.",
+    text: "Hmm, I do not know that one from your tracker data. I can answer about any company, like whether you have an assessment from them, how many OAs, interviews, rejections or offers you have, who went quiet or ghosted you, what is due this week, what happened this week, your leads, and your response rate. Or tap Talk to Agent and your connected agent can dig into it with you.",
   };
 }
 
@@ -948,7 +952,9 @@ export function answerGeneralQuestion(question: string, ctx: GeneralChatContext)
   if (/^(hi|hey|hello|yo)\b/.test(q)) return generalChatGreeting(ctx);
   if (/\b(help|what can you do|what can i ask)\b/.test(q)) return answerGeneralHelp();
   // "Who went quiet?" has both "who" and "quiet": check quiet first.
-  if (/\b(quiet|ghost|silent|no reply|heard from)\b/.test(q)) return answerGeneralQuiet(ctx);
+  // "ghosted" is its own word: the old \bghost\b never matched it, so
+  // "which applications are ghosted" fell through to the fallback.
+  if (/\b(quiet|ghosted|ghost|silent|no reply|heard from)\b/.test(q)) return answerGeneralQuiet(ctx);
   // A named person or company beats every generic handler: "Do I have an
   // assessment from Roblox?" is a company question, not a status one.
   const person = findKnownPerson(q, ctx);

@@ -166,9 +166,9 @@ describe("Charts range support", () => {
     expect(charts).toContain("{!compact && (");
   });
 
-  it("WeeklyBars takes a unit and labels the current month 'This mo'", () => {
+  it("WeeklyBars takes a unit and labels the current month 'This month'", () => {
     expect(charts).toContain('unit?: "week" | "month"');
-    expect(charts).toContain('"This mo"');
+    expect(charts).toContain('"This month"');
     expect(charts).toContain("Applications per ${unit}");
   });
 });

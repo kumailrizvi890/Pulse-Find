@@ -79,7 +79,7 @@ export function AboutLanding() {
         <div className="feat">
           <div className="f-ico">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#ff97a3" strokeWidth="2" strokeLinecap="round" />
+              <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="#ff97a3" strokeWidth="2" />
               <circle cx="12" cy="12" r="3.2" stroke="#ff97a3" strokeWidth="2" />
             </svg>
           </div>
@@ -209,9 +209,9 @@ export function AboutLanding() {
 
       <div className="about-foot">
         <p>
-          <b>That&apos;s the whole site.</b> New here? The tour up top is the
-          front door. Already have an account? You skip it and land on your
-          dashboard.
+          <b>That&apos;s the whole site.</b> New here? The Replay the tour
+          button below runs the guided walkthrough. Already have an
+          account? You skip it and land on your dashboard.
         </p>
         <ReplayTourButton />
         <a

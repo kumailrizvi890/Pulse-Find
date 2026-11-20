@@ -161,6 +161,7 @@ export function DemoConnectAgent() {
         behind a horizontal scrollbar. Copy still takes the exact
         snippet string, not the wrapped rendering. */}
         <pre className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, PLACEHOLDER_TOKEN)}</pre>
+        <p className="mt-2 text-xs text-muted">Claude Code shows a terminal command; Cursor, VS Code and Claude Desktop show a JSON config; Other shows the connection details.</p>
         <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the real token from step 1 after you sign up.</p>
       </Panel>
 

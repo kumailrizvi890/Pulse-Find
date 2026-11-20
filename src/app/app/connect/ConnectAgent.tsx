@@ -208,6 +208,7 @@ export function ConnectAgent({ userId }: { userId: string }) {
           <button className={btn.ghost} onClick={() => copy(snippet(client, url, shown))}>Copy</button>
         </div>
         <pre className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface-2 p-3 font-mono text-[12.5px] leading-relaxed">{snippet(client, url, shown)}</pre>
+        <p className="mt-2 text-xs text-muted">Claude Code shows a terminal command; Cursor, VS Code and Claude Desktop show a JSON config; Other shows the connection details.</p>
         {!fresh && <p className="mt-2 text-xs text-faint">Replace pf_YOUR_TOKEN with the token from step 1.</p>}
       </Panel>
 

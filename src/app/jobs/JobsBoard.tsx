@@ -207,6 +207,19 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     setAttempt((n) => n + 1);
   };
 
+  /** Clears the search box and every filter, so an empty result set
+   * recovers to the full feed instead of re-reviewing the same empty
+   * filter. The feed refetches from the effect on track / techOnly /
+   * remoteOnly / query, and the debounced query follows the cleared box. */
+  function clearFilters() {
+    setPage(0);
+    setState("loading");
+    setQ("");
+    setTrack("all");
+    setTechOnly(false);
+    setRemoteOnly(false);
+  }
+
   // any filter change starts from page 0
   const resetTo = <T,>(set: (v: T) => void) => (v: T) => { setPage(0); setState("loading"); set(v); };
 
@@ -381,7 +394,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     // swipe view said 2 reviewed while the other views' numbers read 1.
   const reviewed = Object.keys(marks).length;
     const leftToReview = total === null ? null : Math.max(0, total - reviewed);
-  const progressPct = total === null ? 0 : Math.min(100, Math.round((reviewed / total) * 100));
+  const progressPct = total === null || total === 0 ? 0 : Math.min(100, Math.round((reviewed / total) * 100));
 
   // keep the deck stocked: fetch the next page when only a few cards are left
   useEffect(() => {
@@ -466,7 +479,7 @@ export function JobsBoard({ userId }: { userId: string | null }) {
           guessing whether a save, a pass, or just looking counted. */}
           {total !== null && (
           <p className="font-mono text-[11px] text-faint">
-            {reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}
+            {total === 0 ? "0 openings match" : <>{reviewed} reviewed (saved, hidden or applied) · {leftToReview} left of {total}</>}
           </p>
 
         )}
@@ -500,6 +513,8 @@ export function JobsBoard({ userId }: { userId: string | null }) {
               onUndo={undo}
               canUndo={history.length > 0}
               emptyText={jobs.length ? "You've reviewed everything that matches. Change a filter for more." : "No openings match. Try turning off a filter."}
+              emptyTitle={jobs.length === 0 ? "No openings match" : undefined}
+              onClearFilters={jobs.length === 0 ? clearFilters : undefined}
               onDetails={openDetails}
               onReviewAgain={reviewAgain}
               canReviewAgain={reviewed > 0}

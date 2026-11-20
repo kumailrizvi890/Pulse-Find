@@ -21,6 +21,9 @@ const details = readFileSync(
   join(__dirname, "..", "..", "app", "jobs", "JobDetails.tsx"),
   "utf8",
 );
+// The "Posted ..." wording moved to the shared helper in pass 71
+// (src/lib/dates.ts); the deck renders it through postedAgo().
+const dates = readFileSync(join(__dirname, "..", "..", "lib", "dates.ts"), "utf8");
 
 function fnBody(src: string, name: string, nextMarker: string): string {
   const start = src.indexOf(`async function ${name}(`);
@@ -45,7 +48,8 @@ describe("swipe deck redesign — banner card, blank back shells", () => {
     expect(deck).toContain("h-[172px]");
     expect(deck).toContain("bannerStyle(top.company)");
     expect(deck).toContain("h-[52px] w-[52px]");
-    expect(deck).toContain("Posted today");
+    expect(deck).toContain("postedAgo(top.posted_at)");
+    expect(dates).toContain('"Posted today"');
     expect(deck).toContain("bg-accent");
   });
 

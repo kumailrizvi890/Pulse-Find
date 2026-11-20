@@ -74,12 +74,14 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  overflow-x: clip;
 }
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "cv11";
+  overflow-x: clip;
 }
 h1, h2, h3 {
   text-wrap: balance;
@@ -974,4 +976,820 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .pf-site-float-a, .pf-site-float-b, .pf-site-float-c { animation: none; }
+  .morph-num, .morph-label, .morph-sub { opacity: 1 !important; transform: none !important; }
+  .hero-crazy .hero-scroll-cue i { animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important; }
+  .hero-crazy .hero-field, .hero-crazy .hero-aurora { display: none; }
+  .hero-crazy .hero-card-3d, .hero-crazy .hero-crazy-copy { transform: none !important; opacity: 1 !important; }
+  .about-3d .reveal-3d { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .about-3d .founder-photo-3d .photo-ring { transform: none !important; }
+  .about-3d .founder-photo { transform: none !important; }
+  .scroll-progress, .hero-crazy .hero-cursor-glow { display: none; }
+  .hero-ecg-divider path { animation: none !important; stroke-dashoffset: 0 !important; }
+  .pw-live-dot { animation: none !important; }
+
+  .how-it-works.hiw-armed .reveal-3d {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .hiw-rail-dot,
+  .hiw-rail-dot::before {
+    display: none;
+    animation: none;
+  }
+  .hiw-rail-draw {
+    display: none;
+  }
+  .hiw-typing i {
+    animation: none;
+  }
+  .how-it-works .hiw-ring-fg {
+    stroke-dashoffset: 0 !important;
+  }
+  .how-it-works .hiw-deck-top {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .how-it-works .hiw-saved {
+    opacity: 0 !important;
+  }
+  .how-it-works .hiw-bar i {
+    width: 100% !important;
+  }
+  .how-it-works .hiw-chip {
+    opacity: 1 !important;
+  }
+  .how-it-works .hiw-chip i {
+    opacity: 1 !important;
+  }
+  .how-it-works .hiw-net-link i {
+    height: 100% !important;
+  }
+  .how-it-works .hiw-net-dot {
+    background: #fd585d;
+    border-color: #fd585d;
+    box-shadow: none;
+  }
+  .how-it-works .hiw-typing {
+    display: none !important;
+  }
+  .how-it-works .hiw-word {
+    opacity: 1 !important;
+  }
+}
+
+/* Product window (landing only, Nov 20 2026): the hero card rebuilt
+   as a live product window, not a glowing number. Flat near-black
+   surface, window chrome, a ticker cycling the demo pipeline
+   counts, and tracker rows with real stage colors. The old glass
+   layers stay as class names, restyled quiet: the halo is a soft
+   drop shadow, the glow a faint top tint, the grain stays for
+   texture, the rim is a 1.5px hairline. The ticker numbers move
+   only through the rAF loop, never through CSS animation, so
+   reduced motion can stop the loop and leave a still frame. */
+.morph-halo { position: absolute; inset: 32px 16px -16px 16px; background: rgba(0, 0, 0, 0.45); filter: blur(28px); }
+.morph-card { position: relative; width: 560px; max-width: 100%; height: auto; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #131218; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 24px 60px rgba(0, 0, 0, 0.55); }
+.morph-base { position: absolute; inset: 0; background: linear-gradient(155deg, #1c1b24 0%, #121118 55%, #0d0c10 100%); }
+.morph-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(253, 88, 93, 0.07), rgba(253, 88, 93, 0) 70%); }
+.morph-sheen { position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 28%); }
+.morph-grain { position: absolute; inset: 0; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E"); }
+.morph-rim { position: absolute; inset: 0; border-radius: 14px; padding: 1.5px; background: linear-gradient(140deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.06) 45%, rgba(255, 255, 255, 0.1)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+.morph-content { position: relative; height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; text-align: left; padding: 0; }
+.morph-eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #ff97a3; }
+.morph-num { font-family: var(--font-display); font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: #fff; font-variant-numeric: tabular-nums; will-change: transform, opacity; }
+.morph-label { font-size: 13px; font-weight: 800; color: #fff; }
+.morph-sub { font-size: 12px; color: #8a8aa0; margin-top: 2px; }
+.morph-dots { display: flex; gap: 7px; margin-left: auto; align-self: center; }
+.morph-dots span { width: 7px; height: 7px; border-radius: 99px; background: #3a3a4a; }
+.morph-dots span.on { background: #fd585d; box-shadow: 0 0 10px rgba(253, 88, 93, 0.8); }
+/* Product window chrome, ticker, and rows (landing only, Nov 20
+   2026): traffic-light dots and a title bar, the pipeline ticker,
+   and tracker rows split by hairlines with real stage colors. */
+.pw-chrome { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid #23232f; background: rgba(255, 255, 255, 0.02); }
+.pw-dot { width: 10px; height: 10px; border-radius: 50%; }
+.pw-chrome .pw-dot:nth-child(1) { background: #ff5f57; }
+.pw-chrome .pw-dot:nth-child(2) { background: #febc2e; }
+.pw-chrome .pw-dot:nth-child(3) { background: #28c840; }
+.pw-title { margin-left: 8px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.04em; color: #bcbccb; }
+.pw-live-dot { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: #fd585d; box-shadow: 0 0 8px rgba(253, 88, 93, 0.8); animation: pw-live 2s ease-in-out infinite; }
+@keyframes pw-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pw-ticker { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px; border-bottom: 1px solid #23232f; }
+.pw-ticker-text { min-width: 0; }
+.pw-rows { list-style: none; margin: 0; padding: 4px 0; }
+.pw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 16px; border-bottom: 1px solid #1e1e2b; }
+.pw-row:last-child { border-bottom: none; }
+.pw-company { font-size: 14px; font-weight: 700; color: #f3f2f0; }
+.pw-chip { font-size: 12px; font-weight: 800; letter-spacing: 0.02em; padding: 4px 10px; border-radius: 99px; border: 1px solid #2a2a3a; color: #bcbccb; white-space: nowrap; }
+.pw-chip.pw-oa { color: #f5c66b; border-color: rgba(245, 198, 107, 0.45); }
+.pw-chip.pw-int { color: #6fe3a5; border-color: rgba(111, 227, 165, 0.45); }
+
+/* Resume check (landing only, Nov 20 2026): paste or upload, parse
+   in the browser, match against the demo roles. */
+.resume-check { position: relative; z-index: 2; max-width: 1060px; margin: 0 auto; padding: 56px 16px 20px; scroll-margin-top: 90px; }
+.resume-check h2.big { font-family: var(--font-display); font-size: clamp(30px, 5.4vw, 46px); line-height: 1.08; letter-spacing: -0.025em; margin: 18px 0 12px; max-width: 720px; }
+.resume-check h2.big em { font-style: normal; color: #ff2e42; text-shadow: 0 0 26px rgba(255, 46, 66, 0.5); }
+.resume-check .lede { color: #bcbccb; font-size: 16.5px; max-width: 640px; margin: 0; }
+.resume-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.resume-label { display: block; font-size: 13px; font-weight: 800; color: #bcbccb; margin-bottom: 8px; }
+.resume-input { width: 100%; min-height: 300px; resize: vertical; background: #14131a; border: 1px solid #2a2a3a; border-radius: 14px; color: #f3f2f0; font: inherit; font-size: 13.5px; line-height: 1.55; padding: 14px; }
+.resume-input:focus { outline: none; border-color: rgba(253, 88, 93, 0.6); box-shadow: 0 0 0 3px rgba(253, 88, 93, 0.15); }
+.resume-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.resume-error { color: #ff97a3; font-size: 13.5px; font-weight: 700; margin: 12px 0 0; }
+.resume-privacy { color: #8a8aa0; font-size: 13px; margin: 12px 0 0; }
+.resume-results h3 { font-size: 16px; margin: 0 0 10px; }
+.resume-results h3:not(:first-child) { margin-top: 22px; }
+.resume-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.resume-chips span { font-size: 12.5px; font-weight: 800; color: #bcbccb; background: #1b1b26; border: 1px solid #2a2a3a; padding: 6px 12px; border-radius: 99px; }
+.resume-chips span.dim { color: #8a8aa0; }
+.resume-facts { color: #8a8aa0; font-size: 13.5px; margin: 12px 0 0; }
+.resume-matches { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.resume-matches li { background: #14131a; border: 1px solid #2a2a3a; border-radius: 12px; padding: 12px 14px; }
+.resume-matches li > div { display: flex; flex-direction: column; }
+.resume-matches li > div span { color: #8a8aa0; font-size: 12.5px; }
+.resume-score { color: #6fe3a5; font-size: 15px; float: right; }
+.resume-matches p { color: #bcbccb; font-size: 13.5px; margin: 8px 0 0; }
+.resume-tips { margin: 0; padding-left: 18px; color: #bcbccb; font-size: 14px; line-height: 1.6; }
+.resume-tips li { margin-bottom: 6px; }
+.resume-empty { background: #14131a; border: 1px dashed #2a2a3a; border-radius: 14px; padding: 28px 20px; color: #8a8aa0; font-size: 14px; text-align: center; }
+.resume-empty p { margin: 0 0 6px; }
+@media (max-width: 820px) { .resume-grid { grid-template-columns: 1fr; } }
+
+/* Crazy hero (landing only, Nov 20 2026): full-viewport, canvas
+   particle field + faint aurora behind, a pulse crystal that
+   assembles from orbiting particles with an ECG ring around it (see
+   HeroCrazy.tsx and src/lib/hero-greeting.ts), Clash Display
+   headline revealed by a JS scramble-in, flat CTAs, and the live
+   product window tilted in CSS 3D by a springy pointer tilt and
+   morphed away by scroll. One accent (#fd585d) on near-black
+   (#0d0c10). Headline uses Clash Display from Fontshare (injected
+   by HeroCrazy), falling back to Bricolage. The headline words are
+   rendered whole in JSX, so no-JS shows the final headline; the loop
+   overwrites each word with its scrambled form while the greeting
+   runs. There is no CSS mask rise anymore: the .hw wrappers only
+   keep the words as separate inline blocks. */
+.hero-crazy { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; background: #0d0c10; }
+.hero-field { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.hero-aurora { position: absolute; inset: -20% -10%; pointer-events: none; background: radial-gradient(ellipse 55% 40% at 72% 18%, rgba(253, 88, 93, 0.05), rgba(253, 88, 93, 0) 70%), radial-gradient(ellipse 45% 35% at 12% 82%, rgba(253, 88, 93, 0.035), rgba(253, 88, 93, 0) 70%); filter: blur(10px); animation: hero-aurora-drift 18s ease-in-out infinite alternate; }
+@keyframes hero-aurora-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-2%, 3%, 0) scale(1.06); } }
+
+/* Scroll progress ECG line (landing only, Nov 20 2026): fixed
+   just below the TopBar, the pulse line draws itself as the page
+   scrolls, with a glowing dot at the leading edge. It does NOT sit
+   at top 0: the TopBar owns that strip with its own 12px PulseTrace
+   (sticky top-0, z-30), and a second ECG in the same band doubled
+   the waveform. Top 69px is the bar height (12px trace + 56px nav
+   row + 1px border) plus the safe-area inset the bar pads with.
+   Thin and quiet, it never covers content. */
+.scroll-progress { position: fixed; top: calc(69px + env(safe-area-inset-top, 0px)); left: 0; right: 0; height: 12px; z-index: 80; pointer-events: none; }
+.scroll-progress svg { display: block; width: 100%; height: 12px; }
+.scroll-progress path { fill: none; stroke: #fd585d; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.scroll-progress-dot { position: absolute; top: 50%; left: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fd585d; box-shadow: 0 0 10px rgba(253, 88, 93, 0.9); }
+
+/* Cursor glow (landing only): a faint red wash that follows the
+   pointer across the hero. Hidden on touch, hidden under reduced
+   motion. */
+.hero-cursor-glow { position: absolute; left: 0; top: 0; width: 340px; height: 340px; margin: -170px 0 0 -170px; border-radius: 50%; background: radial-gradient(circle, rgba(253, 88, 93, 0.09), rgba(253, 88, 93, 0) 70%); pointer-events: none; z-index: 1; will-change: transform, opacity; }
+@media (hover: none) { .hero-cursor-glow { display: none; } }
+.hero-crazy-inner { position: relative; z-index: 2; max-width: 1180px; width: 100%; margin: 0 auto; padding: 96px 24px 64px; display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 40px; align-items: start; }
+/* Editorial offset: the copy sits high, the product window sits
+   low and overlaps the copy edge by 32px, breaking the symmetrical
+   two-column grid. Reset to a plain stack on phones. */
+.hero-crazy-copy { padding-top: 32px; }
+.hero-crazy-stage { margin-top: 72px; margin-left: -32px; z-index: 3; }
+.hero-crazy-inner > *, .founder-grid > * { min-width: 0; }
+.hero-crazy-copy .about-kicker { display: inline-block; }
+.hero-crazy-copy h1 { font-family: "Clash Display", var(--font-display); font-weight: 600; font-size: clamp(40px, 11vw, 100px); line-height: 0.94; letter-spacing: -0.03em; margin: 18px 0 20px; color: #fff; }
+.hero-crazy-copy h1 .hw { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.hero-crazy-copy h1 .hw-in { display: inline-block; }
+.hero-crazy-copy h1 .hw:nth-child(2) .hw-in, .hero-crazy-copy h1 .hw:nth-child(4) .hw-in { color: #fd585d; }
+.hero-crazy-copy > p { color: #bcbccb; font-size: 17px; line-height: 1.55; max-width: 480px; margin: 0; }
+.hero-crazy-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+.hero-crazy-ctas .cta2 { box-shadow: none; }
+.hero-crazy-note { color: #8a8aa0 !important; font-size: 13px !important; margin-top: 16px !important; }
+/* ECG divider (landing only): the pulse line motif under the copy,
+   drawing itself once on load. */
+.hero-ecg-divider { margin-top: 24px; }
+.hero-ecg-divider svg { display: block; }
+.hero-ecg-divider path { stroke-dasharray: 100; stroke-dashoffset: 100; animation: hero-ecg-draw 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.9s forwards; }
+@keyframes hero-ecg-draw { to { stroke-dashoffset: 0; } }
+.hero-stages { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 26px; }
+.hero-stages span { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; padding: 6px 12px; border-radius: 99px; border: 1px solid #2a2a3a; background: rgba(20, 19, 26, 0.7); color: #bcbccb; }
+.hero-stages .st-applied { color: #ff97a3; border-color: rgba(253, 88, 93, 0.5); }
+.hero-stages .st-oa { color: #f5c66b; border-color: rgba(245, 198, 107, 0.45); }
+.hero-stages .st-int { color: #6fe3a5; border-color: rgba(111, 227, 165, 0.45); }
+.hero-stages .st-offer { color: #6fe3a5; border-color: rgba(111, 227, 165, 0.45); }
+.hero-crazy-stage { position: relative; perspective: 1100px; }
+.hero-card-3d { will-change: transform, opacity; transform-style: preserve-3d; }
+.hero-scroll-cue { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; color: #8a8aa0; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+.hero-scroll-cue i { display: block; width: 1.5px; height: 34px; background: linear-gradient(#fd585d, rgba(253, 88, 93, 0)); animation: hero-cue 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite; transform-origin: top; }
+@keyframes hero-cue { 0% { transform: scaleY(0); } 45% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
+@media (max-width: 820px) {
+  .hero-crazy-inner { grid-template-columns: 1fr; gap: 36px; padding-top: 72px; align-items: center; }
+  .hero-crazy-copy { padding-top: 0; }
+  .hero-crazy-stage { margin: 0; }
+  .hero-scroll-cue { display: none; }
+}
+@media (max-width: 560px) {
+  .hero-crazy-inner { padding: 72px 16px 48px; }
+  .hero-crazy-ctas .cta2 { flex: 1 1 100%; justify-content: center; }
+  .pw-row:nth-child(n+7) { display: none; }
+  .pw-ticker { padding: 14px; gap: 10px; }
+}
+
+/* About 3D (landing only, Nov 20 2026): same copy, same numbers,
+   same links. Cards rise in on scroll with a stagger, the founder
+   photo tilts in 3D on hover, stack chips lift, numbers count up.
+   The big About headline takes Clash Display to match the hero. */
+.about-3d h2.big { font-family: "Clash Display", var(--font-display); font-weight: 600; letter-spacing: -0.03em; }
+.about-3d .reveal-3d { opacity: 0; transform: translateY(28px) rotateX(4deg); transform-origin: center top; transition: opacity 0.7s cubic-bezier(0.22, 1.35, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1.35, 0.36, 1); will-change: transform, opacity; }
+.about-3d .reveal-3d.in { opacity: 1; transform: none; }
+.about-3d .feat-list .reveal-3d:nth-child(2) { transition-delay: 0.08s; }
+.about-3d .feat-list .reveal-3d:nth-child(3) { transition-delay: 0.16s; }
+.about-3d .feat-list .reveal-3d:nth-child(4) { transition-delay: 0.24s; }
+.about-3d .feat-list .reveal-3d:nth-child(5) { transition-delay: 0.32s; }
+.about-3d .feat-list .reveal-3d:nth-child(6) { transition-delay: 0.4s; }
+.about-3d .feat { transition: border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.about-3d .feat:hover { border-color: rgba(253, 88, 93, 0.4); background: rgba(253, 88, 93, 0.05); }
+.about-3d .stack-chips span { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
+.about-3d .stack-chips span:hover { transform: translateY(-2px); border-color: rgba(253, 88, 93, 0.5); }
+.about-3d .founder-photo-3d { perspective: 900px; }
+.about-3d .founder-photo-3d .photo-ring { transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1); transform-style: preserve-3d; }
+.about-3d .founder-photo-3d:hover .photo-ring { transform: rotateY(5deg) rotateX(-3deg) translateZ(8px); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(253, 88, 93, 0.45); }
+.about-3d .founder-nums div b { font-family: "Clash Display", var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* About feat list, editorial (landing only, Nov 20 2026): the six
+   cards are rows, not boxes. Hairline dividers stay, row numerals
+   come from a CSS counter, even rows indent on desktop for a
+   varied rhythm. Same six cards, same words, new layout. */
+.about-3d .feat-list { counter-reset: feat-row; }
+.about-3d .feat { grid-template-columns: 40px 52px 1fr auto; }
+.about-3d .feat::before { counter-increment: feat-row; content: "0" counter(feat-row); font-family: var(--font-display); font-size: 13px; font-weight: 700; color: #5a5a6e; }
+.about-3d .feat-list .feat:nth-child(even) { padding-left: 28px; }
+@media (max-width: 560px) { .about-3d .feat { grid-template-columns: 36px 46px 1fr; } .about-3d .feat-list .feat:nth-child(even) { padding-left: 0; } }
+
+/* Founder photo parallax (landing only): the photo drifts with
+   scroll from JS, so it gets will-change. The hover tilt stays on
+   the inner photo ring. */
+.about-3d .founder-photo { will-change: transform; }
+
+/* How it works (landing only, Nov 20 2026): the teaching section
+   between the hero and About. Editorial layout, not a grid of samey cards:
+   oversized Clash Display step numbers, hairline dividers, steps
+   alternating sides of a central ECG rail on desktop, one column
+   with the rail on the left on phones. One accent (#fd585d) on
+   near-black (#0d0c10). Nothing here may exceed the viewport at
+   320px: every demo is max-width 100% with min-width 0 children. */
+
+.how-it-works {
+  position: relative;
+  z-index: 2;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 64px 16px 72px;
+  box-sizing: border-box;
+  overflow: clip;
+}
+.how-it-works > * {
+  min-width: 0;
+}
+.how-it-works .about-kicker {
+  display: inline-block;
+}
+.hiw-title {
+  font-family: "Clash Display", var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  margin: 18px 0 12px;
+  color: #fff;
+}
+.hiw-lede {
+  color: #bcbccb;
+  font-size: 16.5px;
+  line-height: 1.55;
+  max-width: 640px;
+  margin: 0;
+}
+
+/* Steps and the ECG rail. Mobile: rail on the left, steps padded
+   past it. Desktop: rail down the center, steps alternate sides. */
+.hiw-steps {
+  position: relative;
+  margin-top: 40px;
+}
+.hiw-rail {
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  z-index: 0;
+}
+.hiw-rail-line {
+  position: absolute;
+  inset: 0;
+  background: #26232e;
+}
+.hiw-rail-draw {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: #fd585d;
+  box-shadow: 0 0 12px rgba(253, 88, 93, 0.8);
+}
+.hiw-rail-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fd585d;
+  box-shadow: 0 0 10px rgba(253, 88, 93, 1), 0 0 22px rgba(253, 88, 93, 0.6);
+}
+.hiw-rail-dot::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(253, 88, 93, 0.7);
+  animation: hiw-dot-ring 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes hiw-dot-ring {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.hiw-step {
+  position: relative;
+  z-index: 1;
+  padding: 28px 0 32px 36px;
+  border-top: 1px solid #1e1e2b;
+  min-width: 0;
+}
+.hiw-step:first-of-type {
+  border-top: none;
+}
+.hiw-num {
+  font-family: "Clash Display", var(--font-display);
+  font-weight: 600;
+  font-size: clamp(56px, 8vw, 84px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: rgba(253, 88, 93, 0.9);
+  margin-bottom: 10px;
+}
+.hiw-step h3 {
+  font-family: var(--font-display);
+  font-size: clamp(21px, 3.4vw, 27px);
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+  color: #fff;
+}
+.hiw-step > p {
+  color: #bcbccb;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0 0 18px;
+  max-width: 520px;
+}
+
+/* Scroll reveal, scoped to this section (the same pattern as
+   .about-3d .reveal-3d). The section is armed by JS first, so
+   without JS the steps stay visible. */
+.how-it-works.hiw-armed .reveal-3d {
+  opacity: 0;
+  transform: translateY(28px) rotateX(4deg);
+  transform-origin: center top;
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+.how-it-works.hiw-armed .reveal-3d.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Demo panels: slices of the product UI, not illustrations. */
+.hiw-demo {
+  position: relative;
+  background: #14131a;
+  border: 1px solid #2a2a3a;
+  border-radius: 16px;
+  padding: 14px;
+  max-width: 520px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.hiw-demo b {
+  color: #fff;
+}
+.hiw-demo span {
+  display: block;
+  color: #8a8aa0;
+  font-size: 13px;
+}
+.hiw-sample {
+  display: inline-block !important;
+  font-size: 10.5px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8aa0 !important;
+  background: #1b1b26;
+  border: 1px solid #2a2a3a;
+  padding: 3px 8px;
+  border-radius: 99px;
+  margin-bottom: 12px;
+}
+
+/* Step 1: role card with the match ring. */
+.hiw-role {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+.hiw-role > div:first-child {
+  min-width: 0;
+}
+.hiw-role > div:first-child b {
+  display: block;
+  font-size: 17px;
+}
+.hiw-role > div:first-child span {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.hiw-ring {
+  position: relative;
+  flex: none;
+  width: 84px;
+  height: 84px;
+}
+.hiw-ring svg {
+  display: block;
+  transform: rotate(-90deg);
+}
+.hiw-ring-bg {
+  fill: none;
+  stroke: #26232e;
+  stroke-width: 6;
+}
+.hiw-ring-fg {
+  fill: none;
+  stroke: #fd585d;
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(253, 88, 93, 0.7));
+}
+.hiw-ring > b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: #fff;
+}
+.hiw-match-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #1e1e2b;
+  color: #ff97a3 !important;
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+/* Step 2: the swipe deck. Cards stack, the top one travels. */
+.hiw-deck {
+  position: relative;
+  height: 188px;
+}
+.hiw-deck-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: #1b1b26;
+  border: 1px solid #2a2a3a;
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 148px;
+  box-sizing: border-box;
+}
+.hiw-deck-card b {
+  display: block;
+  font-size: 17px;
+}
+.hiw-deck-card span {
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.hiw-deck-mid {
+  transform: translateY(8px) scale(0.97);
+  opacity: 0.75;
+}
+.hiw-deck-back {
+  transform: translateY(16px) scale(0.94);
+  opacity: 0.45;
+}
+.hiw-deck-top {
+  background: linear-gradient(160deg, #211d28, #14131a);
+  border-color: rgba(253, 88, 93, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  will-change: transform, opacity;
+}
+.hiw-saved {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+  display: inline-block !important;
+  background: #fd585d;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 99px;
+  box-shadow: 0 0 16px rgba(253, 88, 93, 0.6);
+  opacity: 0;
+}
+.hiw-deck-hint {
+  margin-top: 12px;
+  color: #8a8aa0 !important;
+  font-size: 13px !important;
+}
+
+/* Step 3: the tracker row, filling stage by stage. */
+.hiw-row-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.hiw-row-head b {
+  display: block;
+  font-size: 17px;
+}
+.hiw-row-head span {
+  margin-top: 3px;
+  font-size: 13.5px;
+}
+.hiw-row-date {
+  flex: none;
+  color: #8a8aa0 !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hiw-stages {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.hiw-stage {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.hiw-chip {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px !important;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1px solid #2a2a3a;
+  background: #1b1b26;
+  color: #bcbccb !important;
+  opacity: 0.35;
+  white-space: nowrap;
+}
+.hiw-chip-applied {
+  color: #ff97a3 !important;
+  border-color: rgba(253, 88, 93, 0.5);
+}
+.hiw-chip-oa {
+  color: #f5c66b !important;
+  border-color: rgba(232, 168, 60, 0.5);
+}
+.hiw-chip-interview {
+  color: #6fe3a5 !important;
+  border-color: rgba(94, 172, 109, 0.5);
+}
+.hiw-chip i {
+  font-style: normal;
+  opacity: 0;
+}
+.hiw-bar {
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: #26232e;
+  overflow: hidden;
+}
+.hiw-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  background: #fd585d;
+}
+.hiw-stage:nth-child(2) .hiw-bar i {
+  background: #e8a83c;
+}
+.hiw-stage:nth-child(3) .hiw-bar i {
+  background: #5eac6d;
+}
+.hiw-row-foot {
+  margin-top: 14px;
+  color: #8a8aa0 !important;
+  font-size: 13px !important;
+}
+
+/* Step 4: the network panel, lines drawing down the dots. */
+.hiw-net-rows {
+  display: flex;
+  flex-direction: column;
+}
+.hiw-net-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.hiw-net-row b {
+  display: block;
+  font-size: 15px;
+}
+.hiw-net-row span {
+  font-size: 13px;
+}
+.hiw-net-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3a3a4a;
+  border: 2px solid #26232e;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.hiw-net-dot.lit {
+  background: #fd585d;
+  border-color: #fd585d;
+  box-shadow: 0 0 10px rgba(253, 88, 93, 0.9);
+}
+.hiw-net-link {
+  display: block;
+  width: 2px;
+  height: 16px;
+  margin-left: 5px;
+  background: #26232e;
+  position: relative;
+}
+.hiw-net-link i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: #fd585d;
+  box-shadow: 0 0 8px rgba(253, 88, 93, 0.7);
+}
+
+/* Step 5: the agent chat. */
+.hiw-chat {
+  display: grid;
+  gap: 10px;
+}
+.hiw-bubble {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.hiw-bubble-user {
+  justify-self: end;
+  max-width: 88%;
+  background: #1b1b26;
+  border: 1px solid #2a2a3a;
+  color: #f5f3f5;
+  border-bottom-right-radius: 4px;
+}
+.hiw-bubble-agent {
+  justify-self: start;
+  max-width: 92%;
+  background: rgba(253, 88, 93, 0.1);
+  border: 1px solid rgba(253, 88, 93, 0.35);
+  color: #f5f3f5;
+  border-bottom-left-radius: 4px;
+}
+.hiw-agent-tag {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ff97a3 !important;
+  margin-bottom: 6px;
+}
+.hiw-demo .hiw-typing {
+  display: none;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 0;
+}
+.hiw-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff97a3;
+  animation: hiw-typing-bounce 1s ease-in-out infinite;
+}
+.hiw-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.hiw-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes hiw-typing-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+.hiw-word {
+  display: inline !important;
+  color: #f5f3f5 !important;
+  font-size: 14px !important;
+}
+
+/* Desktop: rail down the center, steps alternate sides and vary
+   in width, so the section reads editorial instead of gridded. */
+@media (min-width: 860px) {
+  .how-it-works {
+    padding: 72px 24px 88px;
+  }
+  .hiw-rail {
+    left: 50%;
+    margin-left: -1px;
+  }
+  .hiw-step {
+    width: calc(50% - 44px);
+    padding-left: 0;
+    padding-top: 32px;
+    padding-bottom: 40px;
+  }
+  .hiw-step:nth-of-type(odd) {
+    margin-right: auto;
+  }
+  .hiw-step:nth-of-type(even) {
+    margin-left: auto;
+  }
+  .hiw-step:nth-of-type(3n) .hiw-demo {
+    max-width: 460px;
+  }
+}
+
+/* Static end states: lite tier and no-JS both land here by
+   default, since the CSS defaults are the final frames. */
+.how-it-works.hiw-static .hiw-ring-fg {
+  stroke-dashoffset: 0 !important;
+}
+.how-it-works.hiw-static .hiw-deck-top {
+  transform: none !important;
+  opacity: 1 !important;
+}
+.how-it-works.hiw-static .hiw-saved {
+  opacity: 0 !important;
+}
+.how-it-works.hiw-static .hiw-bar i {
+  width: 100% !important;
+}
+.how-it-works.hiw-static .hiw-chip {
+  opacity: 1 !important;
+}
+.how-it-works.hiw-static .hiw-chip i {
+  opacity: 1 !important;
+}
+.how-it-works.hiw-static .hiw-net-link i {
+  height: 100% !important;
+}
+.how-it-works.hiw-static .hiw-net-dot {
+  background: #fd585d;
+  border-color: #fd585d;
+  box-shadow: 0 0 10px rgba(253, 88, 93, 0.9);
+}
+.how-it-works.hiw-static .hiw-typing {
+  display: none !important;
+}
+.how-it-works.hiw-static .hiw-word {
+  opacity: 1 !important;
 }

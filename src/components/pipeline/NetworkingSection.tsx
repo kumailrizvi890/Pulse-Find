@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Contact, ContactInput } from "@/lib/types";
 import { emptyContact } from "@/lib/types";
-import { addDays, contactResponseRate, todayISO } from "@/lib/metrics";
+import { contactResponseRate, todayISO } from "@/lib/metrics";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import type { PipelineStore } from "@/lib/pipeline";
 import { dueBucket, isExternalUrl, sortContacts, type DueBucket } from "@/lib/pipeline";
@@ -321,7 +321,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Status
-            <input className={field} maxLength={200} value={v.status} onChange={(e) => set("status", e.target.value)} placeholder={`Connected — thanked ${fmtDate(addDays(todayISO(), -12))}`} />
+            <input className={field} maxLength={200} value={v.status} onChange={(e) => set("status", e.target.value)} placeholder="Met at a career fair" />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             LinkedIn profile URL
@@ -333,7 +333,7 @@ function ContactForm({ initial, editing, onClose, onSave }: { initial: ContactIn
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted sm:col-span-2">
             Next step
-            <input className={field} maxLength={500} value={v.next_step} onChange={(e) => set("next_step", e.target.value)} placeholder="Week 2 value touch: one strength + one fix" />
+            <input className={field} maxLength={500} value={v.next_step} onChange={(e) => set("next_step", e.target.value)} placeholder="Ask for feedback on the portfolio" />
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted">
             Next step date

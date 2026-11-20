@@ -161,8 +161,9 @@ describe("Charts range support", () => {
     expect(charts).toContain("ariaLabel?: string");
   });
 
-  it("compact hides the per-day date and labels only every fifth bar", () => {
+  it("compact shows the date on every fifth bar, not the weekday", () => {
     expect(charts).toContain("i % 5 === 0");
+    expect(charts).toContain("{compact ? d.sub : d.label}");
     expect(charts).toContain("{!compact && (");
   });
 

@@ -1,13 +1,8 @@
 "use client";
 
 import { IconExternalLink, IconX } from "@/components/icons";
+import { postedAgo } from "@/lib/dates";
 import { bannerStyle, initials, type DeckJob } from "./SwipeDeck";
-
-function ago(iso: string | null) {
-  if (!iso) return null;
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  return days <= 0 ? "Posted today" : days === 1 ? "Posted yesterday" : `Posted ${days}d ago`;
-}
 
 /**
  * Details panel for the front card, synced to it: brand row, meta stack,
@@ -58,7 +53,7 @@ export function JobDetails({
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Posted</dt>
-          <dd className="text-right font-medium">{ago(job.posted_at) ?? "Not listed"}</dd>
+          <dd className="text-right font-medium">{postedAgo(job.posted_at) ?? "Not listed"}</dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Type</dt>

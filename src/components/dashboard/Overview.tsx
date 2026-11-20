@@ -491,6 +491,13 @@ export function Overview({
                           ? `Today · ${date}`
                           : date;
                   const urgent = bucket === "overdue" || bucket === "today";
+                  // The full texts, for the hover title: the three lines
+                  // below clamp to two lines, so hover still shows all of
+                  // a long next step, name, or note. No `block` class on
+                  // those spans: it overrides the display line-clamp sets
+                  // and the clamp silently stops working.
+                  const nextStep = c.next_step.trim() || `Follow up with ${c.person_name}`;
+                  const personLine = c.company ? `${c.person_name} · ${c.company}` : c.person_name;
                   return (
                     <li key={c.id} className="rounded-xl border border-line">
                       <Link
@@ -508,17 +515,16 @@ export function Overview({
                           {initials(c.person_name)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">
-                            {c.next_step.trim() || `Follow up with ${c.person_name}`}
+                          <span className="line-clamp-2 text-sm font-semibold" title={nextStep}>
+                            {nextStep}
                           </span>
-                          <span className="block truncate text-xs text-muted">
-                            {c.person_name}
-                            {c.company ? ` · ${c.company}` : ""}
+                          <span className="line-clamp-2 text-xs text-muted" title={personLine}>
+                            {personLine}
                           </span>
                           <span className={cx("mt-1 block text-xs", urgent ? "font-medium text-danger" : "text-muted")}>
                             {dueText}
                           </span>
-                          {c.notes && <span className="mt-1 block truncate text-xs text-faint">{c.notes}</span>}
+                          {c.notes && <span className="mt-1 line-clamp-2 text-xs text-faint" title={c.notes}>{c.notes}</span>}
                           <span className="mt-2 inline-flex text-xs font-medium text-accent">Open →</span>
                         </span>
                       </Link>

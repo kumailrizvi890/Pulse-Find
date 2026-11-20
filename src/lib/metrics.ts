@@ -39,7 +39,16 @@ export function weekStart(s: ISODate): ISODate {
 export { isTechRole } from "../../supabase/functions/_shared/jobs";
 import { isTechRole } from "../../supabase/functions/_shared/jobs";
 
-export const CLOSED: readonly Status[] = ["Rejected", "Offer", "Accepted", "Withdrawn"];
+/**
+ * Statuses that close an application: the outcome is known, so the row
+ * leaves the Active filter, the follow-up flag, and the waiting list.
+ * An Offer is NOT closed: until it is accepted or declined it is still
+ * open (the Interviews panel already tags it Active, and "Waiting on
+ * you" still lists "Accept or decline the offer"), so counting it closed
+ * made the Closed filter (4) disagree with both. Accepted is the closed
+ * one: the offer was taken.
+ */
+export const CLOSED: readonly Status[] = ["Rejected", "Accepted", "Withdrawn"];
 export const OA_STAGE: readonly Status[] = ["OA Received", "OA Completed"];
 export const INTERVIEW_STAGE: readonly Status[] = ["Recruiter Screen", "Interview Invited", "Interviewing", "Final Round"];
 export const OFFER_STAGE: readonly Status[] = ["Offer", "Accepted"];

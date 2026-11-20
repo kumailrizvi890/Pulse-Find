@@ -154,7 +154,7 @@ export function HeroCrazy() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
+    queueMicrotask(() => setReduced(mq.matches));
     const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -225,8 +225,8 @@ export function HeroCrazy() {
     let visible = true;
     let inView = true;
     let pointer = { x: 0.5, y: 0.5 };
-    let tilt = { rotateX: 0, rotateY: 0 };
-    let tiltVel = { x: 0, y: 0 };
+    const tilt = { rotateX: 0, rotateY: 0 };
+    const tiltVel = { x: 0, y: 0 };
     let scrollY = 0;
     // Greeting clock (ms): starts at -GREETING_DELAY_MS, the 800ms
     // welcome delay, and runs to GREETING_MS. Auto-plays forward

@@ -157,23 +157,25 @@ export function HowItWorks() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
+    queueMicrotask(() => setReduced(mq.matches));
     const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
     mq.addEventListener("change", onChange);
-    setTier(
-      deviceTier({
-        deviceMemory:
-          typeof navigator !== "undefined"
-            ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
-            : undefined,
-        hardwareConcurrency: typeof navigator !== "undefined" ? navigator.hardwareConcurrency : undefined,
-        saveData:
-          typeof navigator !== "undefined"
-            ? (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
-            : undefined,
-        width: window.innerWidth,
-        reducedMotion: mq.matches,
-      }),
+    queueMicrotask(() =>
+      setTier(
+        deviceTier({
+          deviceMemory:
+            typeof navigator !== "undefined"
+              ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+              : undefined,
+          hardwareConcurrency: typeof navigator !== "undefined" ? navigator.hardwareConcurrency : undefined,
+          saveData:
+            typeof navigator !== "undefined"
+              ? (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData
+              : undefined,
+          width: window.innerWidth,
+          reducedMotion: mq.matches,
+        }),
+      ),
     );
     return () => mq.removeEventListener("change", onChange);
   }, []);

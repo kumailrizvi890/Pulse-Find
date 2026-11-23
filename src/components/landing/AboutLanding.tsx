@@ -132,7 +132,6 @@ export function AboutLanding() {
 
   return (
     <main className="about about-3d" id="aboutPage">
-      <span className="about-kicker">About Pulse Find</span>
       <h2 className="big">
         The internship hunt, <em>run like a system.</em>
       </h2>
@@ -251,7 +250,6 @@ export function AboutLanding() {
             </div>
           </div>
           <div className="founder-body">
-            <span className="about-kicker">Meet the founder</span>
             <h3>
               Built by a student, <em>mid-hunt.</em>
             </h3>

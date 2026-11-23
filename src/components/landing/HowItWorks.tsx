@@ -211,7 +211,10 @@ export function HowItWorks() {
     const section = sectionRef.current;
     if (!section) return;
     const nodes = collectNodes(section);
-    if (reduced || tier !== "full") {
+    // Only reduced motion skips the loop. These demos are cheap DOM
+    // transforms, so phones (which the device check rates "lite" by
+    // width alone) still get the rail line, match ring and swipe.
+    if (reduced || tier === "still") {
       section.classList.add("hiw-static");
       applyEndStates(nodes);
       return;

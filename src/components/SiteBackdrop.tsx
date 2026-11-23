@@ -73,9 +73,38 @@ export function SiteBackdrop() {
         <div className="pf-site-glow-violet h-full w-full rounded-full" />
       </div>
       <div className="pf-site-floor absolute inset-x-0 bottom-0 h-[38vh]" />
-      <div className="pf-site-shard pf-site-float-a absolute right-[12%] top-[18%] h-[110px] w-[110px]" />
-      <div className="pf-site-ring pf-site-float-b absolute left-[8%] top-[58%] h-[90px] w-[90px] rounded-full" />
-      <div className="pf-site-shard pf-site-float-c absolute bottom-[24%] right-[22%] h-[64px] w-[64px]" />
+      {/* Floating glass job objects (Nov 23 2026), in place of the old
+          abstract shards and ring: a briefcase, a resume with a check,
+          an offer email, a calendar with a due date, and a grad cap.
+          Same slow floats, same pointer parallax depth, line-art glass
+          so they stay atmosphere and never compete with content. */}
+      <svg className="pf-site-job pf-site-float-a absolute right-[6%] top-[16%] h-[110px] w-[110px]" viewBox="0 0 64 64" style={{ rotate: "-10deg" }}>
+        <rect x="8" y="20" width="48" height="34" rx="6" />
+        <path d="M24 20v-5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v5" />
+        <path d="M8 34h48" />
+        <rect className="acc" x="28" y="30" width="8" height="8" rx="2" />
+      </svg>
+      <svg className="pf-site-job pf-site-float-b absolute left-[2%] top-[50%] h-[96px] w-[96px]" viewBox="0 0 64 64" style={{ rotate: "8deg" }}>
+        <path d="M16 6h24l10 10v40a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+        <path d="M40 6v10h10" />
+        <path d="M21 27h18M21 34h22M21 41h14" />
+        <path className="acc" d="M34 50l4 4 8-9" />
+      </svg>
+      <svg className="pf-site-job pf-site-float-c absolute bottom-[30%] right-[4%] h-[72px] w-[72px]" viewBox="0 0 64 64" style={{ rotate: "-6deg" }}>
+        <rect x="6" y="14" width="52" height="36" rx="5" />
+        <path d="M8 17l24 18 24-18" />
+        <circle className="acc-fill" cx="52" cy="16" r="6" />
+      </svg>
+      <svg className="pf-site-job pf-site-float-b absolute left-[3%] top-[22%] hidden h-[62px] w-[62px] sm:block" viewBox="0 0 64 64" style={{ rotate: "12deg" }}>
+        <rect x="8" y="12" width="48" height="44" rx="6" />
+        <path d="M8 24h48M20 8v8M44 8v8" />
+        <circle className="acc-fill" cx="40" cy="40" r="5" />
+      </svg>
+      <svg className="pf-site-job pf-site-float-a absolute bottom-[10%] left-[5%] hidden h-[70px] w-[70px] md:block" viewBox="0 0 64 64" style={{ rotate: "-14deg" }}>
+        <path d="M32 12 4 24l28 12 28-12Z" />
+        <path d="M16 30v12c0 4 7 8 16 8s16-4 16-8V30" />
+        <path className="acc" d="M56 26v14" />
+      </svg>
       <div className="pf-site-dots absolute inset-0" />
       <div className="pf-hero-grain absolute inset-0" />
       <div className="pf-hero-vignette absolute inset-0" />

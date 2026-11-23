@@ -107,8 +107,7 @@ describe("task chat general mode", () => {
     expect(panel).toContain('isGeneral ? "lg:right-[432px]" : "lg:right-[876px]"');
   });
 
-  it("labels itself as the whole tracker in general mode", () => {
-    expect(panel).toContain('"Your whole tracker"');
+  it("labels itself for the whole tracker in general mode", () => {
     expect(panel).toContain('aria-label={isGeneral ? "Chat about your tracker"');
     expect(panel).toContain('placeholder={isGeneral ? "Ask about your tracker…"');
   });

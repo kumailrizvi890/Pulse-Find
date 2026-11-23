@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { PULSE_POKE_EVENT } from "@/lib/pulse-bear-events";
+import {
+  PULSE_DOCK_EVENT,
+  PULSE_POKE_EVENT,
+  PULSE_RETURNED_EVENT,
+  PULSE_UNDOCK_EVENT,
+} from "@/lib/pulse-bear-events";
 import { morphStates, stateAt } from "@/lib/hero-morph";
 import {
   deviceTier,
@@ -137,6 +142,45 @@ const ECG_DIVIDER_PATH =
 
 export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
   const sectionRef = useRef<HTMLElement>(null);
+  const pulseStageRef = useRef<HTMLDivElement>(null);
+
+  // The hand-off (Nov 23 2026): once the hero Pulse is starting to
+  // scroll away (under 60% visible, so his pod and its lid are still in
+  // view), he leaves the hero and the floating assistant flies a small
+  // Pulse from this spot down into the corner. Scroll back and he flies
+  // home; the hero shows him again once he has landed.
+  useEffect(() => {
+    const stage = pulseStageRef.current;
+    if (!mascot || !stage) return;
+    let away = false;
+    const rectOf = () => {
+      const r = stage.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        const ratio = entries[0]?.intersectionRatio ?? 1;
+        if (!away && ratio < 0.6) {
+          away = true;
+          stage.classList.add("is-away");
+          window.dispatchEvent(new CustomEvent(PULSE_DOCK_EVENT, { detail: { ...rectOf(), live: rectOf } }));
+        } else if (away && ratio >= 0.6) {
+          away = false;
+          window.dispatchEvent(new CustomEvent(PULSE_UNDOCK_EVENT, { detail: { ...rectOf(), live: rectOf } }));
+        }
+      },
+      { threshold: [0, 0.3, 0.6, 0.9] },
+    );
+    io.observe(stage);
+    const onReturned = () => {
+      if (!away) stage.classList.remove("is-away");
+    };
+    window.addEventListener(PULSE_RETURNED_EVENT, onReturned);
+    return () => {
+      io.disconnect();
+      window.removeEventListener(PULSE_RETURNED_EVENT, onReturned);
+    };
+  }, [mascot]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const auroraRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -231,7 +275,7 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
     const count = particleCount(tier);
     const particles = particleField(20261120, count);
     // Mascot layout starfield: more, finer points than the motes.
-    const spaceStars = mascot ? particleField(20261122, Math.round(count * 1.6)) : [];
+    const spaceStars = mascot ? particleField(20261122, Math.round(count * 1.1)) : [];
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap(tier));
     let raf = 0;
     let start = 0;
@@ -460,7 +504,10 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
       const copy = copyRef.current;
       if (copy) {
         copy.style.transform = `translateY(${sf.copyY.toFixed(1)}px)`;
-        copy.style.opacity = sf.copyOpacity.toFixed(2);
+        // Mascot layout: Pulse lives in this column, so it stays fully
+        // visible while he hands off to the corner; only the classic
+        // headline column fades.
+        copy.style.opacity = mascot ? "1" : sf.copyOpacity.toFixed(2);
       }
 
       // Aurora: faint drift with scroll, on top of its CSS drift.
@@ -498,18 +545,19 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
           const x = ((((st.x - t * 0.0025 * depth) % 1) + 1) % 1) * w + (pointer.x - 0.5) * -30 * depth * dpr;
           const y = st.y * h + (pointer.y - 0.5) * -20 * depth * dpr;
           const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * (0.6 + st.speed * 60) + st.y * 50));
-          const a = tw * fade * (0.35 + 0.65 * depth);
-          const r = Math.max(0.5, st.r * 0.62) * dpr;
-          if (st.r > 2.0) {
+          // Fine and mostly white: a few warm stars, no red dust.
+          const a = tw * fade * (0.25 + 0.6 * depth);
+          const r = Math.max(0.45, st.r * 0.45) * dpr;
+          if (st.r > 2.2) {
             const g = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
-            g.addColorStop(0, st.red ? `rgba(255, 80, 96, ${(a * 0.5).toFixed(3)})` : `rgba(210, 220, 255, ${(a * 0.35).toFixed(3)})`);
+            g.addColorStop(0, st.red ? `rgba(255, 200, 190, ${(a * 0.35).toFixed(3)})` : `rgba(210, 220, 255, ${(a * 0.35).toFixed(3)})`);
             g.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.fillStyle = g;
             ctx.fillRect(x - r * 6, y - r * 6, r * 12, r * 12);
           }
           ctx.beginPath();
           ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fillStyle = st.red ? `rgba(255, 96, 108, ${a.toFixed(3)})` : `rgba(236, 240, 255, ${a.toFixed(3)})`;
+          ctx.fillStyle = st.red ? `rgba(255, 214, 205, ${a.toFixed(3)})` : `rgba(236, 240, 255, ${a.toFixed(3)})`;
           ctx.fill();
         }
         const SLOT = 7;
@@ -737,7 +785,7 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
           {mascot ? (
             <>
               <h1 className="sr-only">{HEADLINE.join(" ")}</h1>
-              <div className="hero-pulse-stage">
+              <div className="hero-pulse-stage" ref={pulseStageRef}>
                 <PulseBear3D followScroll bleedLeft />
               </div>
             </>

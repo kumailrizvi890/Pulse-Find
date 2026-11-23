@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { PULSE_POKE_EVENT } from "@/lib/pulse-bear-events";
 import { morphStates, stateAt } from "@/lib/hero-morph";
 import {
   deviceTier,
@@ -92,6 +94,17 @@ import {
 // lite field (48 motes, DPR 1) or a static gradient; reduced motion
 // gets a still frame.
 
+// Pulse in 3D (Nov 22 2026): with `mascot` on, the plush Pulse bear
+// takes the headline's place on the left, greeting on load and
+// playing with the pointer, and the sample tracker stays on the
+// right. The headline stays in the DOM as a screen-reader h1. three.js
+// lives only in the PulseBear3D chunk, loaded after first paint via
+// next/dynamic with ssr: false, and only when mascot is on.
+const PulseBear3D = dynamic(() => import("./PulseBear3D"), {
+  ssr: false,
+  loading: () => <div className="pulse-bear" aria-hidden="true" />,
+});
+
 const STATES = morphStates();
 const FONTSHARE_HREF =
   "https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap";
@@ -122,7 +135,7 @@ const ECG_PATH =
 const ECG_DIVIDER_PATH =
   "M4 14h28l6-9 10 18 7-13 4 4h30l5-7 8 14 6-10 4 3h28l6-8 9 16 7-12 4 4h36";
 
-export function HeroCrazy() {
+export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const auroraRef = useRef<HTMLDivElement>(null);
@@ -217,6 +230,8 @@ export function HeroCrazy() {
     });
     const count = particleCount(tier);
     const particles = particleField(20261120, count);
+    // Mascot layout starfield: more, finer points than the motes.
+    const spaceStars = mascot ? particleField(20261122, Math.round(count * 1.6)) : [];
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap(tier));
     let raf = 0;
     let start = 0;
@@ -310,9 +325,15 @@ export function HeroCrazy() {
         );
         const target = e.target as HTMLElement | null;
         if (downMoved < 12 && !target?.closest("a, button")) {
-          greetingT = -GREETING_DELAY_MS;
-          greetingAuto = true;
-          lastScrubAt = 0;
+          if (mascot) {
+            // Pulse answers taps himself: a tap on him is his own
+            // reaction, a tap elsewhere pokes him to react and talk.
+            if (!target?.closest(".pulse-bear-canvas")) window.dispatchEvent(new Event(PULSE_POKE_EVENT));
+          } else {
+            greetingT = -GREETING_DELAY_MS;
+            greetingAuto = true;
+            lastScrubAt = 0;
+          }
         }
       }
       downAt = null;
@@ -416,9 +437,23 @@ export function HeroCrazy() {
       // on its way down. Scrolling back reverses it for free.
       const p = Math.min(1, Math.max(0, scrollY / window.innerHeight));
       const sf = heroScrollFrame(scrollY, window.innerHeight);
-      const weight = 1 - p * 0.7;
+      const weight = mascot ? 0 : 1 - p * 0.7;
       const card = cardRef.current;
-      if (card) {
+      // Mascot layout on phones: the tracker sits below Pulse, so a
+      // fade keyed to page scroll (tuned for the side-by-side desktop
+      // layout) would empty it before anyone reaches it. Instead it
+      // stays solid until it starts leaving the top of the screen, then
+      // runs the same fade-out over its own height. Measured on the
+      // untransformed stage wrapper, never the card it transforms.
+      if (card && mascot && window.innerWidth <= 820) {
+        const stage = card.parentElement;
+        const top = stage ? stage.getBoundingClientRect().top : 0;
+        const height = card.offsetHeight || 1;
+        const leaving = Math.min(1, Math.max(0, (80 - top) / height));
+        const ease = leaving * leaving * (3 - 2 * leaving);
+        card.style.transform = `perspective(1100px) rotateX(${(ease * 10).toFixed(2)}deg) translateY(${(ease * 24).toFixed(1)}px) scale(${(1 - ease * 0.06).toFixed(3)})`;
+        card.style.opacity = (1 - ease * 0.9).toFixed(2);
+      } else if (card) {
         card.style.transform = `perspective(1100px) rotateX(${(tilt.rotateX * weight + sf.cardRotateX).toFixed(2)}deg) rotateY(${(tilt.rotateY * weight).toFixed(2)}deg) translateY(${(p * 28).toFixed(1)}px) scale(${sf.cardScale.toFixed(3)})`;
         card.style.opacity = sf.cardOpacity.toFixed(2);
       }
@@ -448,7 +483,63 @@ export function HeroCrazy() {
 
       // Particles: rise, drift, wrap, and fade as you scroll.
       // Red motes glow, white motes sit quiet.
-      if (ctx && count > 0) {
+      if (ctx && count > 0 && mascot) {
+        // Mascot layout: deep space. Stars at three depths drift
+        // slowly left and parallax with the pointer by depth, each
+        // twinkling on its own clock; the brightest get a soft glow and
+        // a fifth burn brand red. Every ~7s a shooting star streaks
+        // across, white head fading to a red tail.
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const fade = 1 - 0.45 * p;
+        for (const st of spaceStars) {
+          const depth = st.r / 2.4;
+          const x = ((((st.x - t * 0.0025 * depth) % 1) + 1) % 1) * w + (pointer.x - 0.5) * -30 * depth * dpr;
+          const y = st.y * h + (pointer.y - 0.5) * -20 * depth * dpr;
+          const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * (0.6 + st.speed * 60) + st.y * 50));
+          const a = tw * fade * (0.35 + 0.65 * depth);
+          const r = Math.max(0.5, st.r * 0.62) * dpr;
+          if (st.r > 2.0) {
+            const g = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
+            g.addColorStop(0, st.red ? `rgba(255, 80, 96, ${(a * 0.5).toFixed(3)})` : `rgba(210, 220, 255, ${(a * 0.35).toFixed(3)})`);
+            g.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(x - r * 6, y - r * 6, r * 12, r * 12);
+          }
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = st.red ? `rgba(255, 96, 108, ${a.toFixed(3)})` : `rgba(236, 240, 255, ${a.toFixed(3)})`;
+          ctx.fill();
+        }
+        const SLOT = 7;
+        const slot = Math.floor(t / SLOT);
+        const sp = (t - slot * SLOT) / 1.1;
+        if (sp < 1 && slot > 0) {
+          const hsh = (n: number) => { const v = Math.sin(slot * 91.7 + n * 37.3) * 43758.5453; return v - Math.floor(v); };
+          const sx = (0.15 + hsh(1) * 0.7) * w;
+          const sy = (0.05 + hsh(2) * 0.35) * h;
+          const len = (0.18 + hsh(3) * 0.12) * w;
+          const ang = 0.35 + hsh(4) * 0.3;
+          const hx = sx + Math.cos(ang) * len * sp;
+          const hy = sy + Math.sin(ang) * len * sp;
+          const tail = 120 * dpr;
+          const tx = hx - Math.cos(ang) * tail;
+          const ty = hy - Math.sin(ang) * tail;
+          const al = Math.sin(sp * Math.PI) * fade;
+          const grad = ctx.createLinearGradient(tx, ty, hx, hy);
+          grad.addColorStop(0, "rgba(253, 88, 93, 0)");
+          grad.addColorStop(0.7, `rgba(253, 88, 93, ${(0.5 * al).toFixed(3)})`);
+          grad.addColorStop(1, `rgba(255, 255, 255, ${(0.95 * al).toFixed(3)})`);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(hx, hy);
+          ctx.stroke();
+        }
+      } else if (ctx && count > 0) {
         const w = canvas.width;
         const h = canvas.height;
         ctx.clearRect(0, 0, w, h);
@@ -475,7 +566,7 @@ export function HeroCrazy() {
       // faces, then the front half and the near particles. The whole
       // scene fades in over the first 8 percent of the greeting, so
       // it never pops, and fades with scroll like the motes.
-      if (ctx && greetParts.length > 0) {
+      if (ctx && greetParts.length > 0 && !mascot) {
         const w = canvas.width;
         const h = canvas.height;
         if (count === 0) ctx.clearRect(0, 0, w, h);
@@ -619,12 +710,12 @@ export function HeroCrazy() {
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [reduced]);
+  }, [reduced, mascot]);
 
   const still = STATES[0];
 
   return (
-    <section className="hero-crazy" aria-label="Pulse Find at a glance" ref={sectionRef}>
+    <section className={mascot ? "hero-crazy hero-mascot" : "hero-crazy"} aria-label="Pulse Find at a glance" ref={sectionRef}>
       <div className="scroll-progress" aria-hidden="true">
         <svg viewBox="0 0 1200 12" preserveAspectRatio="none" focusable="false">
           <path
@@ -642,23 +733,55 @@ export function HeroCrazy() {
       <div className="hero-cursor-glow" ref={glowRef} aria-hidden="true" />
       <div className="hero-crazy-inner">
         <div className="hero-crazy-copy" ref={copyRef}>
-          <span className="about-kicker">Pulse Find</span>
-          <h1 ref={h1Ref}>
-            {HEADLINE.map((w, i) => (
-              <span className="hw" key={`${w}-${i}`}>
-                <span className="hw-in">{w}</span>
-              </span>
-            ))}
-          </h1>
-          <p>
-            Fresh roles matched to you every morning, every application
-            tracked by stage, and the right people lined up to talk to.
-            Free to try with sample data.
-          </p>
+          {mascot ? null : <span className="about-kicker">Pulse Find</span>}
+          {mascot ? (
+            <>
+              <h1 className="sr-only">{HEADLINE.join(" ")}</h1>
+              <div className="hero-pulse-stage">
+                <PulseBear3D followScroll bleedLeft />
+              </div>
+            </>
+          ) : (
+            <h1 ref={h1Ref}>
+              {HEADLINE.map((w, i) => (
+                <span className="hw" key={`${w}-${i}`}>
+                  <span className="hw-in">{w}</span>
+                </span>
+              ))}
+            </h1>
+          )}
+          {mascot ? null : (
+            <p>
+              Fresh roles matched to you every morning, every application
+              tracked by stage, and the right people lined up to talk to.
+              Free to try with sample data.
+            </p>
+          )}
           <div className="hero-crazy-ctas">
-            <a className="cta2" href="/signup">Start your tracker</a>
-            <a className="cta2 ghost" href="https://github.com/kumailrizvi890/Pulse-Find" target="_blank" rel="noopener">Self-host</a>
-            <a className="cta2 ghost" href="/demo/connect">Connect your agent</a>
+            <a className="cta2" href="/signup">
+              Start your tracker
+              {mascot ? (
+                <svg className="cta-icon cta-arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
+            </a>
+            <a className="cta2 ghost" href="https://github.com/kumailrizvi890/Pulse-Find" target="_blank" rel="noopener">
+              {mascot ? (
+                <svg className="cta-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+                </svg>
+              ) : null}
+              Self-host
+            </a>
+            <a className="cta2 ghost" href="/demo/connect">
+              {mascot ? (
+                <svg className="cta-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path d="M1.5 8.5h3l1.5-4 3 8 1.8-5 .9 1h2.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
+              Connect your agent
+            </a>
           </div>
           <p className="hero-crazy-note">Sample data below. Your tracker stays private.</p>
           <div className="hero-ecg-divider" aria-hidden="true">
@@ -667,10 +790,10 @@ export function HeroCrazy() {
             </svg>
           </div>
           <div className="hero-stages" aria-label="Pipeline stages">
-            <span className="st-applied">Applied</span>
-            <span className="st-oa">OA received</span>
-            <span className="st-int">Interviewing</span>
-            <span className="st-offer">Offer</span>
+            <span className="st-applied">{mascot ? <i aria-hidden="true" /> : null}Applied</span>
+            <span className="st-oa">{mascot ? <i aria-hidden="true" /> : null}OA received</span>
+            <span className="st-int">{mascot ? <i aria-hidden="true" /> : null}Interviewing</span>
+            <span className="st-offer">{mascot ? <i aria-hidden="true" /> : null}Offer</span>
           </div>
         </div>
         <div className="hero-crazy-stage">
@@ -679,7 +802,7 @@ export function HeroCrazy() {
             className="morph-card hero-card-3d"
             ref={cardRef}
             role="img"
-            aria-label={`${still.value} ${still.label} in the sample tracker`}
+            aria-label={mascot ? "The Pulse Find demo dashboard, sample data: 22 applications tracked" : `${still.value} ${still.label} in the sample tracker`}
           >
             <div className="morph-base" aria-hidden="true" />
             <div className="morph-glow" aria-hidden="true" />
@@ -691,8 +814,8 @@ export function HeroCrazy() {
                 <span className="pw-dot" />
                 <span className="pw-dot" />
                 <span className="pw-dot" />
-                <span className="pw-title">Sample tracker</span>
-                <span className="pw-live-dot" />
+                <span className="pw-title">{mascot ? "Demo dashboard" : "Sample tracker"}</span>
+                {mascot ? null : <span className="pw-live-dot" />}
               </div>
               <div className="pw-ticker">
                 <div className="morph-num" ref={numRef}>{reduced || !started ? still.value : ""}</div>
@@ -706,18 +829,46 @@ export function HeroCrazy() {
                   ))}
                 </div>
               </div>
-              <ul className="pw-rows">
-                {DEMO_ROWS.map((row) => (
-                  <li className="pw-row" key={row.company}>
-                    <span className="pw-company">{row.company}</span>
-                    <span className={row.stage === "Interviewing" ? "pw-chip pw-int" : "pw-chip pw-oa"}>
-                      {row.stage}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              {mascot ? (
+                // The real demo dashboard, recorded: a muted loop of the
+                // /demo tracker with sample data, cut to the top of the
+                // dashboard (greeting, funnel, pace, OAs, interviews,
+                // stats) and played forward then back, slowed, so it
+                // never shows the long applications list or jumps.
+                // Poster first; reduced motion keeps the poster.
+                <video
+                  className="pw-video"
+                  src="/landing/demo-pulse-loop.mp4"
+                  poster="/landing/demo-pulse-loop-poster.jpg"
+                  muted
+                  loop
+                  playsInline
+                  autoPlay={!reduced}
+                  preload="metadata"
+                  aria-hidden="true"
+                />
+              ) : (
+                <ul className="pw-rows">
+                  {DEMO_ROWS.map((row) => (
+                    <li className="pw-row" key={row.company}>
+                      <span className="pw-company">{row.company}</span>
+                      <span className={row.stage === "Interviewing" ? "pw-chip pw-int" : "pw-chip pw-oa"}>
+                        {row.stage}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
+          {mascot ? (
+            <a className="hero-demo-link" href="/demo">
+              Open the live demo
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          ) : null}
         </div>
       </div>
       <div className="hero-scroll-cue" aria-hidden="true">

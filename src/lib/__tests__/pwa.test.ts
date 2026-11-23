@@ -151,11 +151,10 @@ describe("install prompt", () => {
     expect(prompt).toContain('aria-label="Dismiss"');
   });
 
-  it("hides itself once installed, while the tour is open, and on auth pages", () => {
+  it("hides itself once installed and on auth pages", () => {
     expect(capture).toContain("display-mode: standalone");
     expect(prompt).toContain('"appinstalled"');
-    expect(prompt).toContain("TOUR_OPEN_EVENT");
-    expect(prompt).toContain("TOUR_CLOSE_EVENT");
+    expect(prompt).not.toContain("TOUR_OPEN_EVENT");
     expect(prompt).toContain('"/login"');
   });
 

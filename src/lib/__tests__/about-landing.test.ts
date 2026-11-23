@@ -1,11 +1,11 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { shouldAutoStartTour, TOUR_CONNECT_HREF } from "@/lib/tour-window";
 
 // The About landing (Nov 19 2026): the old hero landing is replaced
 // by the About page with the Get the app section above it. Signed-out
-// visitors meet the tour first, then this page; signed-in visitors
+// visitors land straight on it (the guided tour was removed Nov 22
+// 2026); signed-in visitors
 // redirect to /app server-side. The founder photo is Kumail's real
 // headshot (public/founder/kumail-rizvi.webp), not the monogram
 // placeholder and never the old 150x150 silhouette.
@@ -15,7 +15,7 @@ import { shouldAutoStartTour, TOUR_CONNECT_HREF } from "@/lib/tour-window";
 // constant in AboutLanding.tsx, which renders it in the rigor
 // paragraph, the "N tests · CI" chip, and the founder number.
 
-const EXPECTED_TEST_COUNT = 1159;
+const EXPECTED_TEST_COUNT = 1134;
 
 const root = join(__dirname, "..", "..");
 const repoRoot = join(root, "..");
@@ -24,8 +24,7 @@ const read = (rel: string): string => readFileSync(join(root, ...rel.split("/"))
 const home = read("app/page.tsx");
 const about = read("components/landing/AboutLanding.tsx");
 const install = read("components/landing/InstallSection.tsx");
-const replay = read("components/landing/ReplayTourButton.tsx");
-const tourWindow = read("components/TourWindow.tsx");
+const layout = read("app/layout.tsx");
 const css = read("app/globals.css");
 
 describe("page order: install first, then About", () => {
@@ -171,27 +170,26 @@ describe("the install section, minus the two removals", () => {
     expect(css).not.toContain(".install-badge");
   });
 
-  it("has no 'Step one: Open Pulse Find' — each guide is 3 steps", () => {
+  it("has no 'Step one: Open Pulse Find' — the steps are the two phones", () => {
     expect(install).not.toContain("Open Pulse Find in");
-    // iPhone: Share → Add to Home Screen → Done.
-    expect(install).toContain("Tap the");
-    expect(install).toContain("Share");
-    expect(install).toContain("Add to Home Screen");
-    // Android: Install app → Install → Done.
+    // iPhone: Share → Add to Home Screen, shown on phone 1.
+    expect(install).toContain("Tap the <b>Share</b> button, then <b>Add to Home Screen</b>");
+    // Android: Install app → Install, in the status line.
     expect(install).toContain("Install app");
-    expect(install).toContain("Tap");
     expect(install).toContain("Install");
     // The status line stays accurate: 3 taps in Safari.
     expect(install).toContain("On iPhone it&apos;s 3 taps in Safari:");
   });
 
-  it("keeps the dashboard-unchanged note and the perks", () => {
-    expect(install).toContain("The dashboard itself doesn&apos;t change.");
-    expect(install).toContain("that exact dashboard");
-    expect(install).toContain("Opens straight to /app");
-    expect(install).toContain("Full-screen, no browser chrome");
-    expect(install).toContain("Same login, same data");
-    expect(install).toContain("Nothing to update, always latest");
+  it("shows two phones: the real Share-sheet screenshot, then the home screen", () => {
+    expect(install).toContain('src="/landing/ios-add-to-home.jpg"');
+    expect(install).toContain("phone-pair");
+    expect(install.indexOf('src="/landing/ios-add-to-home.jpg"')).toBeLessThan(install.indexOf('src="/icons/icon-512.png"'));
+    expect(existsSync(join(repoRoot, "public", "landing", "ios-add-to-home.jpg"))).toBe(true);
+    // The written steps, the note and the perk chips are gone.
+    expect(install).not.toContain("platform-steps");
+    expect(install).not.toContain("locked-note");
+    expect(install).not.toContain('className="perks"');
   });
 
   it("wires the shared install-prompt capture, never auto-firing", () => {
@@ -205,6 +203,14 @@ describe("the install section, minus the two removals", () => {
     expect(install).not.toContain('addEventListener("beforeinstallprompt"');
     expect(install).toContain("Add Pulse Find to my phone");
     expect(install).toContain("On your home screen ✓");
+  });
+
+  it("opens the iPhone Share sheet from the install button, before any await", () => {
+    expect(install).toContain("navigator.share({");
+    expect(install).toContain('typeof navigator.share === "function"');
+    const onInstall = install.slice(install.indexOf("const onInstall"));
+    expect(onInstall.indexOf("navigator.share(")).toBeLessThan(onInstall.indexOf("await promptInstall()"));
+    expect(install).toContain("tap Add to Home Screen");
   });
 
   it("shows the iOS Add to Home Screen guidance with the exact steps", () => {
@@ -223,38 +229,28 @@ describe("the install section, minus the two removals", () => {
 });
 
 describe("the About foot", () => {
-  it("points up to Get the app and offers a replay + Connect", () => {
+  it("points up to Get the app and offers Connect", () => {
     expect(about).toContain('href="#getApp"');
     expect(about).toContain("Get the app ↑");
     expect(about).toContain("That&apos;s the whole site.");
-    expect(about).toContain("<ReplayTourButton />");
-    expect(replay).toContain("Replay the tour");
-    expect(replay).toContain("OPEN_TOUR_EVENT");
-    // Kept as-is from the preview (open question: should this go to
-    // /signup like the tour finale?).
+    expect(about).not.toContain("ReplayTourButton");
     expect(about).toContain("https://pulsefind-app.vercel.app/demo/connect");
   });
 });
 
-describe("the tour gating is unchanged", () => {
-  it("still auto-starts only for signed-out first-timers on /", () => {
-    expect(shouldAutoStartTour({ signedIn: false, completed: false, pathname: "/" })).toBe(true);
-    expect(shouldAutoStartTour({ signedIn: true, completed: false, pathname: "/" })).toBe(false);
-    expect(shouldAutoStartTour({ signedIn: false, completed: true, pathname: "/" })).toBe(false);
-    expect(shouldAutoStartTour({ signedIn: false, completed: false, pathname: "/demo" })).toBe(false);
-  });
-
-  it("still ends on Connect to /signup, with muted disabled buttons", () => {
-    expect(TOUR_CONNECT_HREF).toBe("/signup");
-    expect(tourWindow).toContain("href={TOUR_CONNECT_HREF}");
-    expect(tourWindow).toContain("disabled:opacity-40");
-    expect(tourWindow).toContain("disabled:opacity-35");
+describe("the guided tour is gone", () => {
+  it("has no tour window, tour logic, or replay button left", () => {
+    for (const rel of ["components/TourWindow.tsx", "lib/tour-window.ts", "components/landing/ReplayTourButton.tsx"]) {
+      expect(existsSync(join(root, ...rel.split("/")))).toBe(false);
+    }
+    expect(layout).not.toContain("TourWindow");
+    expect(about).not.toContain("Replay the tour");
   });
 });
 
 describe("the landing touches no dashboard code", () => {
   it("the new components import nothing from the dashboard", () => {
-    for (const src of [home, about, install, replay]) {
+    for (const src of [home, about, install]) {
       expect(src).not.toContain("components/dashboard");
       expect(src).not.toContain("TourWindow");
     }
@@ -267,7 +263,7 @@ describe("the new landing styles", () => {
     for (const name of [
       ".install-card",
       ".btn-install",
-      ".p-step",
+      ".phone-pair",
       ".phone-screen",
       ".app-ic.pulse .ic",
       ".about-kicker",

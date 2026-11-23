@@ -21,8 +21,14 @@ import {
 // auto-fires, and iOS gets the manual Share → Add to Home Screen
 // steps instead. The phone mock uses the repo's real app icon
 // (/icons/icon-512.png), not the preview's asset.
+//
+// Nov 22 2026: the section is shown, not told. The written platform
+// steps, the dashboard-unchanged note and the perk chips are gone;
+// two phones carry it instead: (1) a real iPhone screenshot of the
+// Share sheet with Add to Home Screen circled, and (2) the home screen
+// with Pulse Find on it. The install button stays, since on Android it
+// installs in one tap; on iPhone it points at phone 1.
 
-type Highlight = "ios" | "android" | null;
 
 export function InstallSection() {
   const [label, setLabel] = useState("Add Pulse Find to my phone");
@@ -30,9 +36,8 @@ export function InstallSection() {
     "Free · Takes about 10 seconds · Works on iPhone and Android",
   );
   const [installed, setInstalled] = useState(false);
-  const [highlight, setHighlight] = useState<Highlight>(null);
-  const iosRef = useRef<HTMLDivElement>(null);
-  const androidRef = useRef<HTMLDivElement>(null);
+  const [highlight, setHighlight] = useState(false);
+  const phonesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ensureInstallPromptListener();
@@ -63,14 +68,36 @@ export function InstallSection() {
     return subscribeInstallPrompt(sync);
   }, []);
 
-  const showSteps = (which: Highlight) => {
-    setHighlight(which);
-    const el = which === "ios" ? iosRef.current : androidRef.current;
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Point at the two phones: phone 1 is the Share step itself.
+  const showSteps = () => {
+    setHighlight(true);
+    phonesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const onInstall = async () => {
     if (installed) return;
+    // iPhone: no install prompt exists, so open the Share sheet for
+    // them (the Web Share API), the same sheet that holds Add to Home
+    // Screen. Called first, before any await, so it still counts as
+    // the tap's own gesture, which Safari requires. Pages can't press
+    // Safari's toolbar Share button itself; this is the closest real
+    // equivalent. Cancelling the sheet is fine: phone 1 still shows
+    // where to tap.
+    if (isIOSDevice() && !getInstallPrompt() && typeof navigator.share === "function") {
+      setStatus(
+        <>
+          <b>In the Share sheet, scroll down and tap Add to Home Screen</b>,
+          then <b>Add</b>.
+        </>,
+      );
+      showSteps();
+      try {
+        await navigator.share({ title: "Pulse Find", url: `${window.location.origin}/` });
+      } catch {
+        // Dismissed or unavailable: the status line and phone 1 guide them.
+      }
+      return;
+    }
     const outcome = await promptInstall();
     if (outcome === "accepted") {
       setInstalled(true);
@@ -85,9 +112,8 @@ export function InstallSection() {
     }
     if (outcome === "dismissed") {
       setStatus(
-        "No worries, you can install anytime from your browser menu. Steps for your phone are right below.",
+        "No worries, you can install anytime from your browser menu.",
       );
-      showSteps(isIOSDevice() ? "ios" : "android");
       return;
     }
     // No native prompt (iOS Safari, or Chrome hasn't offered one yet):
@@ -96,19 +122,17 @@ export function InstallSection() {
       setStatus(
         <>
           <b>On iPhone it&apos;s 3 taps in Safari:</b> Share → Add to Home
-          Screen → Add. Your steps are highlighted below.
+          Screen → Add. Phone 1 shows exactly where.
         </>,
       );
-      showSteps("ios");
+      showSteps();
     } else {
       setStatus(
         <>
           <b>Almost there:</b> use your browser&apos;s menu →{" "}
-          <b>Install app / Add to Home Screen</b>. Your steps are highlighted
-          below.
+          <b>Install app / Add to Home Screen</b>, then tap <b>Install</b>.
         </>,
       );
-      showSteps("android");
     }
   };
 
@@ -128,17 +152,6 @@ export function InstallSection() {
             , full-screen, no browser bars, no typing a URL, no hunting through
             tabs.
           </p>
-          <div className="locked-note">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 1 }}>
-              <path d="M20 6 9 17l-5-5" stroke="#2fbf71" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <p>
-              <b>The dashboard itself doesn&apos;t change.</b> The live UI you
-              love stays exactly as it is: same near-black home, red pulse
-              line, same cards and chips. Installing just puts{" "}
-              <b>that exact dashboard</b> one tap away.
-            </p>
-          </div>
           <div className="install-actions">
             <button
               className={`btn-install${installed ? " installed" : ""}`}
@@ -158,53 +171,26 @@ export function InstallSection() {
           <p className="install-status" role="status">
             {status}
           </p>
-          <div className="platform-steps">
-            <div
-              className={`p-step${highlight === "ios" ? " hl" : ""}`}
-              id="stepIOS"
-              ref={iosRef}
-            >
-              <h4>
-                iPhone <span className="os-tag">Safari</span>
-              </h4>
-              <ol>
-                <li>
-                  Tap the <b>Share</b> button (square with an arrow)
-                </li>
-                <li>
-                  Tap <b>Add to Home Screen</b>, then <b>Add</b>
-                </li>
-                <li>Done. The Pulse Find icon is on your home screen</li>
-              </ol>
-            </div>
-            <div
-              className={`p-step${highlight === "android" ? " hl" : ""}`}
-              id="stepAndroid"
-              ref={androidRef}
-            >
-              <h4>
-                Android <span className="os-tag">Chrome</span>
-              </h4>
-              <ol>
-                <li>
-                  Tap <b>Install app</b> when it pops up, or the <b>⋮ menu → Install app</b>
-                </li>
-                <li>
-                  Tap <b>Install</b>
-                </li>
-                <li>Done. It opens full-screen, straight to your dashboard</li>
-              </ol>
-            </div>
-          </div>
-          <div className="perks">
-            <span>Opens straight to /app</span>
-            <span>Full-screen, no browser chrome</span>
-            <span>Same login, same data</span>
-            <span>Nothing to update, always latest</span>
-          </div>
         </div>
-        <div className="phone-zone">
-          <div>
+        <div className={`phone-pair${highlight ? " hl" : ""}`} ref={phonesRef}>
+          <figure className="phone-step">
+            <div className="phone">
+              <div className="phone-screen shot">
+                <Image
+                  src="/landing/ios-add-to-home.jpg"
+                  alt="The iPhone Share sheet for pulsefind-app.vercel.app, with Add to Home Screen circled"
+                  width={540}
+                  height={1096}
+                  sizes="200px"
+                />
+              </div>
+            </div>
+            <figcaption>
+              <span className="step-n">1</span>
+              <span>Tap the <b>Share</b> button, then <b>Add to Home Screen</b></span>
+            </figcaption>
+          </figure>
+          <figure className="phone-step">
             <div className="phone" aria-hidden="true">
               <div className="phone-screen">
                 <div className="phone-notch"></div>
@@ -251,11 +237,11 @@ export function InstallSection() {
                 </div>
               </div>
             </div>
-            <p className="phone-cap">
-              <b>After install:</b> home screen icon → dashboard. No URL, no login
-              hunt, no extra steps.
-            </p>
-          </div>
+            <figcaption>
+              <span className="step-n">2</span>
+              <span><b>Pulse Find</b> is on your home screen. One tap, you&apos;re in.</span>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>

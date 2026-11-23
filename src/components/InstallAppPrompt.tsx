@@ -12,7 +12,6 @@ import {
   promptInstall,
   subscribeInstallPrompt,
 } from "@/lib/install-prompt";
-import { TOUR_CLOSE_EVENT, TOUR_OPEN_EVENT } from "@/lib/tour-window";
 
 /**
  * One-click access: when the browser says the app is installable, offer
@@ -21,13 +20,12 @@ import { TOUR_CLOSE_EVENT, TOUR_OPEN_EVENT } from "@/lib/tour-window";
  * bottom-left, never a blocking modal. Dismissing hides it for the
  * session only, so a missed pill comes back on the next visit instead
  * of being lost forever; once installed it never shows again. It never
- * shows while the tour is open (the tour carries its own Get the app
- * row) or on the sign-in pages, and it hides itself once the app is
+ * shows on the sign-in pages, and it hides itself once the app is
  * installed.
  *
  * The install prompt itself is captured once in @/lib/install-prompt,
- * shared with the tour window, so prompt() is called at most once and
- * the two surfaces never race each other for the same event.
+ * shared with the landing's Get the app section, so prompt() is called
+ * at most once and the two surfaces never race for the same event.
  */
 
 const DISMISSED_KEY = "pulse-find-install-dismissed";
@@ -70,7 +68,6 @@ function storeSession(key: string): void {
 export function InstallAppPrompt() {
   const pathname = usePathname();
   const [mode, setMode] = useState<"hidden" | "install" | "ios">("hidden");
-  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     if (isStandaloneMode() || readStored(INSTALLED_KEY) || readSession(DISMISSED_KEY)) return;
@@ -101,19 +98,6 @@ export function InstallAppPrompt() {
     };
   }, []);
 
-  // The tour owns the screen while it runs (and carries its own Get
-  // the app row), so the pill steps aside until it closes.
-  useEffect(() => {
-    const onOpen = () => setTourOpen(true);
-    const onClose = () => setTourOpen(false);
-    window.addEventListener(TOUR_OPEN_EVENT, onOpen);
-    window.addEventListener(TOUR_CLOSE_EVENT, onClose);
-    return () => {
-      window.removeEventListener(TOUR_OPEN_EVENT, onOpen);
-      window.removeEventListener(TOUR_CLOSE_EVENT, onClose);
-    };
-  }, []);
-
   const dismiss = useCallback(() => {
     storeSession(DISMISSED_KEY);
     setMode("hidden");
@@ -126,9 +110,9 @@ export function InstallAppPrompt() {
     setMode("hidden");
   }, []);
 
-  // The tour owns the screen while it runs, and auth pages have no
-  // tracker to install yet, so the pill stays out of the way there.
-  if (mode === "hidden" || tourOpen) return null;
+  // Auth pages have no tracker to install yet, so the pill stays out
+  // of the way there.
+  if (mode === "hidden") return null;
   if (AUTH_ROUTES.includes(pathname)) return null;
 
   return (

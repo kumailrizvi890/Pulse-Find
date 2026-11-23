@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { TopBar, navLink } from "@/components/TopBar";
 import { PulseDot } from "@/components/PulseBrand";
-import { TakeTourButton } from "@/components/TourWindow";
 
 // Shared header for the public demo. The tabs link the dashboard demo
 // to the Sheet, Leads and Networking demo views. All demo views render
@@ -11,10 +10,6 @@ import { TakeTourButton } from "@/components/TourWindow";
 // general chat (see DemoDashboard / Dashboard): the chat answers from the
 // whole sample tracker, so a demo visitor can try it from any demo page
 // without opening a task first.
-//
-// "Take the tour" opens the tour window at step 1 (see TourWindow): the
-// tour is an overlay now, not a route, so there is no tour param to
-// carry along anymore.
 //
 // badge labels what the page shows: the demo pages show fictional sample
 // data, but the shared /jobs board shows live openings from company
@@ -47,7 +42,6 @@ export function DemoNav({ badge = "Fictional sample data" }: { badge?: string })
       />
       <nav aria-label="Demo sections" className="border-b border-line bg-surface">
         <div className="gutter mx-auto flex w-full max-w-[1180px] items-center gap-1 overflow-x-auto py-2 text-sm">
-          <TakeTourButton className={navLink} />
           <Link href="/demo" className={navLink}>
             Dashboard
           </Link>

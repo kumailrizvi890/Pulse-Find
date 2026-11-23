@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { IconExternalLink } from "@/components/icons";
-import { ReplayTourButton } from "@/components/landing/ReplayTourButton";
 import { parallaxOffset, sectionProgress } from "@/lib/scroll-anim";
 
 // About redesign (landing only, Nov 20 2026): same approved copy,
@@ -18,9 +17,8 @@ import { parallaxOffset, sectionProgress } from "@/lib/scroll-anim";
 
 // The About page: the new landing for signed-out visitors (Nov 19
 // 2026). Ported from the first-visit preview: install section sits
-// above it (see InstallSection), then this main. The tour window
-// overlays it on a first visit; the page underneath is the About
-// page, no lock veil, no navigation needed when the tour closes.
+// above it (see InstallSection), then this main. (The first-visit
+// guided tour was removed Nov 22 2026.)
 //
 // TEST_COUNT is the true automated-test count from the final `npm
 // test` run: it shows in the rigor paragraph, the "N tests · CI"
@@ -36,7 +34,7 @@ import { parallaxOffset, sectionProgress } from "@/lib/scroll-anim";
 // sync lives in the external cron script (not this repo), and Vercel
 // has gone Ready on a red CI run before, so "a red test stops the
 // deploy" is not a true claim. See OPEN_QUESTIONS.md.
-const TEST_COUNT = 1159;
+const TEST_COUNT = 1134;
 
 export function AboutLanding() {
   const photoRef = useRef<HTMLDivElement>(null);
@@ -330,11 +328,9 @@ export function AboutLanding() {
 
       <div className="about-foot">
         <p>
-          <b>That&apos;s the whole site.</b> New here? The Replay the tour
-          button below runs the guided walkthrough. Already have an
-          account? You skip it and land on your dashboard.
+          <b>That&apos;s the whole site.</b> New here? Try the demo with
+          sample data, or connect your agent and start your own tracker.
         </p>
-        <ReplayTourButton />
         <a
           className="cta2"
           href="https://pulsefind-app.vercel.app/demo/connect"

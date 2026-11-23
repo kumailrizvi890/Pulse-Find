@@ -14,9 +14,9 @@ import {
   tiltFromPointer,
   wordDelay,
 } from "@/lib/hero-crazy";
-import { extractSkills, matchDemoRoles, parseResume, resumeTips } from "@/lib/resume-parse";
 
-// Hero crazy-3D + Resume check (landing only, Nov 20 2026): the glass
+// Hero crazy-3D (landing only, Nov 20 2026; the Resume check was
+// removed Nov 22 2026): the glass
 // morph lives on inside a full-viewport hero with a canvas particle
 // field, a Clash Display word-by-word reveal, pointer tilt, and a
 // scroll morph into About. The dashboard is untouched: no dashboard
@@ -28,20 +28,9 @@ const read = (rel: string): string => readFileSync(join(root, ...rel.split("/"))
 const home = read("app/page.tsx");
 const hero = read("components/landing/HeroCrazy.tsx");
 const about = read("components/landing/AboutLanding.tsx");
-const resume = read("components/landing/ResumeSection.tsx");
-const parser = read("lib/resume-parse.ts");
 const morph = read("lib/hero-morph.ts");
 const crazy = read("lib/hero-crazy.ts");
 const css = read("app/globals.css");
-
-const SAMPLE = `Kumail Rizvi
-kumail@example.com | (425) 555-0142
-linkedin.com/in/example | github.com/example
-B.S. Computer Science, University of Washington Bothell, Dec 2027
-Skills: TypeScript, React, Node.js, Python, SQL, Git
-Software Engineering Intern, Northwind Labs, Jun 2026 - Sep 2026
-- Built a dashboard in React used by 40 teammates
-- Cut page load time by 35%`;
 
 describe("hero morph timing is a pure function of loop time", () => {
   it("loops every 8 seconds across three states", () => {
@@ -184,92 +173,25 @@ describe("crazy hero math is pure functions", () => {
   });
 });
 
-describe("resume parser", () => {
-  it("extracts skills without false positives", () => {
-    expect(extractSkills("I use Go and Google Cloud daily.")).toEqual(["Go", "Google Cloud"]);
-    expect(extractSkills("TypeScript, React, SQL, Git")).toEqual(["TypeScript", "React", "SQL", "Git"]);
-    expect(extractSkills("I love cooking and hiking.")).toEqual([]);
-  });
-
-  it("parses contact, education, years, and bullets", () => {
-    const p = parseResume(SAMPLE);
-    expect(p.hasEmail).toBe(true);
-    expect(p.hasPhone).toBe(true);
-    expect(p.hasLinks).toBe(true);
-    expect(p.yearsExperience).toBeNull();
-    expect(p.education.length).toBeGreaterThan(0);
-    expect(p.bulletCount).toBe(2);
-    expect(p.quantifiedBullets).toBe(1);
-    expect(p.skills).toContain("TypeScript");
-  });
-
-  it("reads years of experience from the text", () => {
-    expect(parseResume("3 years of Python work.").yearsExperience).toBe(3);
-    expect(parseResume("No experience yet.").yearsExperience).toBeNull();
-  });
-
-  it("matches demo roles best first with a score", () => {
-    const matches = matchDemoRoles(parseResume(SAMPLE));
-    expect(matches.length).toBeGreaterThan(0);
-    expect(matches[0].score).toBeGreaterThanOrEqual(matches[1].score);
-    expect(matches[0].score).toBeGreaterThan(0);
-    expect(matches[0]).toHaveProperty("company");
-    expect(matches[0]).toHaveProperty("missing");
-  });
-
-  it("gives concrete tips, never inventing skills the resume lacks", () => {
-    const p = parseResume("Jane Doe\nI like design.");
-    const tips = resumeTips(p, matchDemoRoles(p));
-    expect(tips.tips.some((t) => t.includes("email"))).toBe(true);
-    expect(tips.tips.some((t) => t.includes("skills section"))).toBe(true);
-    expect(tips.missingSkills.length).toBeGreaterThan(0);
-  });
-
-  it("says plainly that matching is client-side demo data only", () => {
-    expect(parser).toContain("client-side only");
-    expect(parser).toContain("demo-data");
-    expect(parser).not.toContain("fetch(");
-    expect(parser).not.toContain("supabase/client");
-    expect(parser).not.toContain("createClient");
-  });
-});
-
-describe("resume section component", () => {
-  it("takes paste, .txt, and PDF via pdf.js from a CDN, nothing uploaded", () => {
-    expect(resume).toContain("pdf.js");
-    expect(resume).toContain("cdnjs.cloudflare.com");
-    expect(resume).toContain('accept=".txt,.pdf');
-    expect(resume).toContain("Try a sample resume");
-    expect(resume).toContain("never leaves this page");
-    expect(resume).not.toContain("fetch(");
-  });
-
-  it("shows skills, matches, and fixes, and has no em dashes", () => {
-    expect(resume).toContain("Matching sample roles");
-    expect(resume).toContain("Fixes to make");
-    expect(resume).not.toContain("—");
-  });
-});
-
 describe("landing wiring", () => {
-  it("renders the crazy hero first, then install, resume, and About", () => {
-    expect(home).toContain("<HeroCrazy />");
+  it("renders the crazy hero first, then install and About, with no resume check", () => {
+    expect(home).toContain("<HeroCrazy");
     expect(home).not.toContain("<HeroMorph />");
-    expect(home).toContain("<ResumeSection />");
-    expect(home).toContain('href="#resume"');
-    expect(home.indexOf("<HeroCrazy />")).toBeLessThan(home.indexOf("<InstallSection />"));
-    expect(home.indexOf("<InstallSection />")).toBeLessThan(home.indexOf("<ResumeSection />"));
-    expect(home.indexOf("<ResumeSection />")).toBeLessThan(home.indexOf("<AboutLanding />"));
+    expect(home).not.toContain("ResumeSection");
+    expect(home).not.toContain("#resume");
+    expect(home.indexOf("<HeroCrazy")).toBeLessThan(home.indexOf("<InstallSection />"));
+    expect(home.indexOf("<InstallSection />")).toBeLessThan(home.indexOf("<AboutLanding />"));
   });
 
-  it("keeps the hero, morph, resume, and About 3D styles in globals.css", () => {
-    for (const name of [".hero-crazy", ".hero-field", ".hero-aurora", ".morph-card", ".morph-num", ".resume-check", ".resume-input", ".resume-matches", ".about-3d", ".reveal-3d"]) {
+  it("keeps the hero, morph, and About 3D styles in globals.css, and drops the resume styles", () => {
+    expect(css).not.toContain(".resume-check");
+    for (const name of [".hero-crazy", ".hero-field", ".hero-aurora", ".morph-card", ".morph-num", ".about-3d", ".reveal-3d"]) {
       expect(css).toContain(name);
     }
   });
 
   it("touches no dashboard code and adds no new dependencies", () => {
-    for (const src of [home, hero, resume, crazy, morph]) {
+    for (const src of [home, hero, crazy, morph]) {
       expect(src).not.toContain("components/dashboard");
     }
     expect(home).not.toContain("Dashboard");

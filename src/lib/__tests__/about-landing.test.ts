@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 // constant in AboutLanding.tsx, which renders it in the rigor
 // paragraph, the "N tests · CI" chip, and the founder number.
 
-const EXPECTED_TEST_COUNT = 1134;
+const EXPECTED_TEST_COUNT = 1135;
 
 const root = join(__dirname, "..", "..");
 const repoRoot = join(root, "..");

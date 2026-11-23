@@ -206,7 +206,7 @@ describe("wiring", () => {
     expect(bear).toContain("visibilitychange");
     expect(bear).toContain("prefers-reduced-motion");
     expect(bear).toContain("webglcontextlost");
-    expect(bear).toContain("PulseCrystal");
+    expect(bear).toContain("<PulseSprite");
     expect(bear).toContain("renderer.dispose()");
     expect(bear).toMatch(/tier === "full" \? 1\.5 : 1\.25/);
   });

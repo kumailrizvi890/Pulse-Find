@@ -49,6 +49,7 @@ export interface PulseRig {
   space: { uTime: { value: number }; uBeat: { value: number } };
   craft: THREE.Group;
   updateCraft: (t: number, beat: number) => void;
+  setHatch: (open: number) => void;
   chest: THREE.PointLight;
   knobMat: THREE.MeshStandardMaterial;
   burst: THREE.Points;
@@ -126,7 +127,8 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     g.fillRect(cx - 60 + ox, 180 + oy, 120, 120);
   }
 
-  // Eyes: tall glowing LED ovals with a dot grid and two sparkles,
+  // Eyes (Nov 23 2026: white with a pink-red glow, not amber): tall
+  // glowing LED ovals with a dot grid and two sparkles,
   // or happy ^ ^ arcs when he is delighted.
   const eyeW = 62;
   const eyeH = 92;
@@ -135,10 +137,10 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     const y = 150 + oy;
     if (s.happy > 0.55) {
       g.save();
-      g.strokeStyle = "#ffc58f";
+      g.strokeStyle = "#ffe8ee";
       g.lineWidth = 16;
       g.lineCap = "round";
-      g.shadowColor = "#ff7a2e";
+      g.shadowColor = "#ff3d63";
       g.shadowBlur = 26;
       g.beginPath();
       g.arc(x, y + 14, 30, Math.PI * 1.12, Math.PI * 1.88);
@@ -148,12 +150,12 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     }
     const h = Math.max(8, eyeH * (1 - s.blink) * (1 - s.happy * 0.3));
     g.save();
-    g.shadowColor = "#ff7a2e";
+    g.shadowColor = "#ff3d63";
     g.shadowBlur = 34;
     const grad = g.createLinearGradient(0, y - h / 2, 0, y + h / 2);
-    grad.addColorStop(0, "#fff0dc");
-    grad.addColorStop(0.55, "#ffc58f");
-    grad.addColorStop(1, "#ff9a55");
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.55, "#fff1f4");
+    grad.addColorStop(1, "#ffc2cf");
     g.fillStyle = grad;
     roundRect(g, x - eyeW / 2, y - h / 2, eyeW, h, 28);
     g.fill();
@@ -162,7 +164,7 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     g.save();
     roundRect(g, x - eyeW / 2, y - h / 2, eyeW, h, 28);
     g.clip();
-    g.fillStyle = "rgba(120, 40, 0, 0.22)";
+    g.fillStyle = "rgba(150, 30, 60, 0.18)";
     for (let gx = x - eyeW / 2; gx < x + eyeW / 2; gx += 7) g.fillRect(gx, y - h / 2, 1.5, h);
     for (let gy = y - h / 2; gy < y + h / 2; gy += 7) g.fillRect(x - eyeW / 2, gy, eyeW, 1.5);
     g.restore();
@@ -181,10 +183,10 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
   const mx = 240 + ox;
   const my = 250 + oy;
   g.save();
-  g.shadowColor = "#ff7a2e";
+  g.shadowColor = "#ff3d63";
   g.shadowBlur = 18;
   if (s.mouth < 0.3) {
-    g.strokeStyle = "#ffc58f";
+    g.strokeStyle = "#ffe8ee";
     g.lineWidth = 10;
     g.lineCap = "round";
     g.beginPath();
@@ -194,7 +196,7 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     const open = Math.min(1, s.mouth);
     const w = 34 + open * 6;
     const d = 18 + open * 18;
-    g.fillStyle = "#ffb27a";
+    g.fillStyle = "#ffd3dd";
     g.beginPath();
     g.moveTo(mx - w, my - 6);
     g.lineTo(mx + w, my - 6);
@@ -202,7 +204,7 @@ function drawFace(g: CanvasRenderingContext2D, s: FaceState) {
     g.closePath();
     g.fill();
     g.shadowBlur = 0;
-    g.fillStyle = "#ff6f62";
+    g.fillStyle = "#ff5a76";
     g.beginPath();
     g.ellipse(mx, my - 6 + d * 0.62, w * 0.55, d * 0.32, 0, 0, Math.PI * 2);
     g.fill();
@@ -652,44 +654,29 @@ export function buildPulse(tier: "full" | "lite" | "still"): PulseRig {
   // It lives on the root, so it stays put while he jumps and spins.
   const craft = new THREE.Group();
   root.add(craft);
-  const SAUCER: [number, number][] = [
-    [0.001, 0], [0.9, -0.005], [1.35, -0.04], [1.6, -0.12], [1.7, -0.22], [1.64, -0.32],
-    [1.4, -0.43], [1.0, -0.52], [0.62, -0.6], [0.5, -0.68], [0.46, -0.8], [0.32, -0.84], [0.001, -0.84],
-  ];
+  // Materials (Nov 23 2026, fighter pass): a silver gunmetal body with
+  // a lacquered clearcoat, polished chrome trim, dark carbon panels, and
+  // the brand red as neon.
   const hullMat = track(
-    new THREE.MeshPhysicalMaterial({ color: "#16141b", roughness: 0.34, metalness: 0.65, clearcoat: 0.8, clearcoatRoughness: 0.25 }),
+    new THREE.MeshPhysicalMaterial({ color: "#a3a7b3", roughness: 0.22, metalness: 1, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 3.6 }),
   );
-  const hull = new THREE.Mesh(
-    track(new THREE.LatheGeometry(SAUCER.map(([x, y]) => new THREE.Vector2(x, y)), 96)),
-    hullMat,
+  const chromeMat = track(
+    new THREE.MeshPhysicalMaterial({ color: "#d4d7e0", roughness: 0.14, metalness: 1, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 2.8 }),
   );
-  hull.raycast = () => {};
-  craft.add(hull);
+  const darkMetalMat = track(
+    new THREE.MeshPhysicalMaterial({ color: "#16161d", roughness: 0.38, metalness: 0.8, clearcoat: 0.8, clearcoatRoughness: 0.2, envMapIntensity: 1.6 }),
+  );
   const rimMat = track(new THREE.MeshBasicMaterial({ color: "#ff2a40", toneMapped: false }));
-  const rimTop = new THREE.Mesh(track(new THREE.TorusGeometry(1.69, 0.016, 10, 128)), rimMat);
-  rimTop.rotation.x = Math.PI / 2;
-  rimTop.position.y = -0.22;
-  craft.add(rimTop);
   const rimGlowMat = track(
     new THREE.MeshBasicMaterial({ color: "#ff2a40", transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
   );
-  const rimGlow = new THREE.Mesh(track(new THREE.TorusGeometry(1.69, 0.07, 10, 128)), rimGlowMat);
-  rimGlow.rotation.x = Math.PI / 2;
-  rimGlow.position.y = -0.22;
-  craft.add(rimGlow);
-
-  // Running lights round the underside, chasing.
-  const LIGHTS = 16;
-  const lightGeo = track(new THREE.SphereGeometry(0.035, 10, 8));
-  const runLights: THREE.MeshBasicMaterial[] = [];
-  for (let i = 0; i < LIGHTS; i++) {
-    const m = track(new THREE.MeshBasicMaterial({ color: "#ff4a5e", transparent: true, opacity: 0.3, toneMapped: false }));
-    const l = new THREE.Mesh(lightGeo, m);
-    const a = (i / LIGHTS) * Math.PI * 2;
-    l.position.set(Math.cos(a) * 1.42, -0.43, Math.sin(a) * 1.42);
-    craft.add(l);
-    runLights.push(m);
-  }
+  const neonMat = track(new THREE.MeshBasicMaterial({ color: "#ff4a5e", toneMapped: false }));
+  /** Decorative mesh: never intercepts taps meant for Pulse. */
+  const deco = <T extends THREE.Object3D>(o: T, parent: THREE.Object3D = craft) => {
+    o.traverse((c) => ((c as THREE.Mesh).raycast = () => {}));
+    parent.add(o);
+    return o;
+  };
 
   // Deck: the heartbeat ripple rolls out across the top on each beat.
   const stageUniforms = { uPhase: { value: 0 }, uBeat: { value: 0 } };
@@ -719,12 +706,7 @@ void main(){
   ripple.position.y = 0.004;
   craft.add(ripple);
 
-  // Thruster: a hot nozzle, a flickering glow cone, exhaust puffs.
-  const nozzleMat = track(new THREE.MeshBasicMaterial({ color: "#ff3a4c", toneMapped: false }));
-  const nozzle = new THREE.Mesh(track(new THREE.CircleGeometry(0.3, 40)), nozzleMat);
-  nozzle.rotation.x = Math.PI / 2;
-  nozzle.position.y = -0.845;
-  craft.add(nozzle);
+  // Thruster flame (as on the original pod): a flickering glow cone.
   const thrustUniforms = { uFlicker: { value: 1 } };
   const thrustMat = track(
     new THREE.ShaderMaterial({
@@ -745,25 +727,24 @@ void main(){
 }`,
     }),
   );
-  const thrust = new THREE.Mesh(track(new THREE.CylinderGeometry(0.28, 0.06, 1.3, 32, 1, true)), thrustMat);
-  thrust.position.y = -0.85 - 0.65;
-  thrust.raycast = () => {};
-  craft.add(thrust);
-  const EXHAUST = tier === "full" ? 40 : 20;
-  const exPos = new Float32Array(EXHAUST * 3);
-  const exSeed = new Float32Array(EXHAUST);
   let er = 72;
   const erand = () => ((er = (er * 1664525 + 1013904223) >>> 0) / 4294967296);
-  for (let i = 0; i < EXHAUST; i++) {
-    exPos[i * 3] = (erand() - 0.5) * 0.3;
-    exPos[i * 3 + 1] = 0;
-    exPos[i * 3 + 2] = (erand() - 0.5) * 0.3;
-    exSeed[i] = erand();
-  }
-  const exGeo = track(new THREE.BufferGeometry());
-  exGeo.setAttribute("position", new THREE.BufferAttribute(exPos, 3));
-  exGeo.setAttribute("seed", new THREE.BufferAttribute(exSeed, 1));
   const spaceUniforms = { uTime: { value: 0 }, uBeat: { value: 0 } };
+  // Exhaust sparks: points that stream out of a nozzle (local -y).
+  const EXHAUST = tier === "full" ? 40 : 20;
+  const exhaustGeo = () => {
+    const pos = new Float32Array(EXHAUST * 3);
+    const seed = new Float32Array(EXHAUST);
+    for (let i = 0; i < EXHAUST; i++) {
+      pos[i * 3] = (erand() - 0.5) * 0.3;
+      pos[i * 3 + 2] = (erand() - 0.5) * 0.3;
+      seed[i] = erand();
+    }
+    const g = track(new THREE.BufferGeometry());
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("seed", new THREE.BufferAttribute(seed, 1));
+    return g;
+  };
   const exMat = track(
     new THREE.ShaderMaterial({
       uniforms: { ...spaceUniforms, uMap: { value: glow } },
@@ -784,10 +765,6 @@ void main(){
 void main(){ float a = texture2D(uMap, gl_PointCoord).a * vA * 0.5; gl_FragColor = vec4(vec3(1.0, 0.3, 0.36) * a, a); }`,
     }),
   );
-  const exhaust = new THREE.Points(exGeo, exMat);
-  exhaust.frustumCulled = false;
-  exhaust.raycast = () => {};
-  craft.add(exhaust);
 
   // Cockpit bubble: a glass sphere seated in the deck. A fresnel shader,
   // not real transmission (that costs a whole extra render): bright at
@@ -800,7 +777,15 @@ void main(){ float a = texture2D(uMap, gl_PointCoord).a * vA * 0.5; gl_FragColor
       uniforms: spaceUniforms,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      // Purely additive in colour AND alpha: the glass only adds light,
+      // so on the transparent canvas the space behind shows through
+      // (plain additive blending wrote alpha 1 and blacked it out).
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneFactor,
+      blendSrcAlpha: THREE.OneFactor,
+      blendDstAlpha: THREE.OneFactor,
       side: THREE.DoubleSide,
       vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vL;
 void main(){ vL = normalize(position); vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
@@ -814,15 +799,135 @@ void main(){
   vec3 col = vec3(0.62, 0.76, 1.0) * fres * 0.5 + vec3(1.0) * (spec * 0.4 + arc * 0.22)
            + vec3(1.0, 0.16, 0.26) * redPick * (0.15 + fres * 0.5);
   col *= gl_FrontFacing ? 1.0 : 0.4;
-  gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(col, clamp(max(max(col.r, col.g), col.b), 0.0, 1.0));
 }`,
     }),
   );
-  const bubble = new THREE.Mesh(track(new THREE.SphereGeometry(BUBBLE_R, 72, 48)), glassMat);
+  // The glass has a door (Nov 23 2026): a curved panel cut from the
+  // front of the bubble, hinged on its right edge, that swings open like
+  // a door for Pulse to hop out and back in. The rest of the bubble is
+  // fixed: the sphere minus the door's slice, plus the slice's bottom
+  // (which sits down in the cradle).
+  const DOOR_W = 1.5; // door width, as an angle around the bubble
+  const DOOR_TOP = 0.62; // polar angle where the door starts (below the crown)
+  const DOOR_BOTTOM = 2.45; // polar angle where the door ends
+  const doorStart = Math.PI / 2 - DOOR_W / 2;
+  const glassMesh = (geo: THREE.BufferGeometry) => {
+    const m = new THREE.Mesh(track(geo), glassMat);
+    m.raycast = () => {};
+    m.renderOrder = 10;
+    return m;
+  };
+  // Fixed glass: the bubble minus the door's slice, plus the crown above
+  // the door and the strip below it (which sits down in the cradle).
+  const bubble = glassMesh(new THREE.SphereGeometry(BUBBLE_R, 72, 48, doorStart + DOOR_W, Math.PI * 2 - DOOR_W, 0, Math.PI));
   bubble.position.y = BUBBLE_Y;
-  bubble.raycast = () => {};
-  bubble.renderOrder = 10;
   craft.add(bubble);
+  const doorCrown = glassMesh(new THREE.SphereGeometry(BUBBLE_R, 24, 10, doorStart, DOOR_W, 0, DOOR_TOP));
+  doorCrown.position.y = BUBBLE_Y;
+  craft.add(doorCrown);
+  const doorSill = glassMesh(new THREE.SphereGeometry(BUBBLE_R, 24, 8, doorStart, DOOR_W, DOOR_BOTTOM, Math.PI - DOOR_BOTTOM));
+  doorSill.position.y = BUBBLE_Y;
+  craft.add(doorSill);
+  // Hinge: a vertical axis through the door's right edge at the equator.
+  const hingePhi = doorStart + DOOR_W;
+  const hingeX = -Math.cos(hingePhi) * BUBBLE_R;
+  const hingeZ = Math.sin(hingePhi) * BUBBLE_R;
+  const hatch = new THREE.Group();
+  hatch.position.set(hingeX, BUBBLE_Y, hingeZ);
+  craft.add(hatch);
+  const door = glassMesh(new THREE.SphereGeometry(BUBBLE_R, 36, 36, doorStart, DOOR_W, DOOR_TOP, DOOR_BOTTOM - DOOR_TOP));
+  door.position.set(-hingeX, 0, -hingeZ);
+  hatch.add(door);
+
+  // The door frame (Nov 23 2026): a machined portal set into the glass.
+  // One closed loop round the opening with rounded corners, built as a
+  // polished chrome rail, a dark rubber gasket just inside it, and a
+  // fine neon line inside that, so it reads as a real hatch frame.
+  const spherePt = (phi: number, theta: number, r = BUBBLE_R * 1.004) =>
+    new THREE.Vector3(-Math.cos(phi) * Math.sin(theta) * r, Math.cos(theta) * r, Math.sin(phi) * Math.sin(theta) * r);
+  // A rounded-rectangle loop on the sphere, inset by `inset` radians.
+  const portal = (inset: number, r: number) => {
+    const p0 = doorStart + inset, p1 = doorStart + DOOR_W - inset;
+    const t0 = DOOR_TOP + inset, t1 = DOOR_BOTTOM - inset;
+    const c = 0.16; // corner radius, in radians
+    const pts: THREE.Vector3[] = [];
+    const arc = (cp: number, ct: number, a0: number) => {
+      for (let i = 0; i <= 6; i++) {
+        const a = a0 + (Math.PI / 2) * (i / 6);
+        pts.push(spherePt(cp + Math.cos(a) * c, ct + Math.sin(a) * c, r));
+      }
+    };
+    const line = (pa: number, ta: number, pb: number, tb: number, n: number) => {
+      for (let i = 1; i < n; i++) pts.push(spherePt(pa + ((pb - pa) * i) / n, ta + ((tb - ta) * i) / n, r));
+    };
+    arc(p0 + c, t0 + c, Math.PI); // top-left
+    line(p0 + c, t0, p1 - c, t0, 10);
+    arc(p1 - c, t0 + c, -Math.PI / 2); // top-right
+    line(p1, t0 + c, p1, t1 - c, 16);
+    arc(p1 - c, t1 - c, 0); // bottom-right
+    line(p1 - c, t1, p0 + c, t1, 10);
+    arc(p0 + c, t1 - c, Math.PI / 2); // bottom-left
+    line(p0, t1 - c, p0, t0 + c, 16);
+    return new THREE.CatmullRomCurve3(pts, true);
+  };
+  const loopTube = (inset: number, r: number, radius: number, mat: THREE.Material, parent: THREE.Object3D, offset?: THREE.Vector3) => {
+    const m = new THREE.Mesh(track(new THREE.TubeGeometry(portal(inset, r), 220, radius, 10, true)), mat);
+    if (offset) m.position.copy(offset);
+    else m.position.y = BUBBLE_Y;
+    m.raycast = () => {};
+    parent.add(m);
+    return m;
+  };
+  const seamMat = track(new THREE.MeshBasicMaterial({ color: "#ff5a70", transparent: true, opacity: 0.9, toneMapped: false }));
+  const seamGlowMat = track(
+    new THREE.MeshBasicMaterial({ color: "#ff2a45", transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
+  );
+  // Frame (fixed): chrome rail just outside the opening, gasket on it.
+  loopTube(-0.035, BUBBLE_R * 1.01, 0.04, chromeMat, craft);
+  loopTube(0.0, BUBBLE_R * 1.006, 0.022, darkMetalMat, craft);
+  // Door (moves with it): a thin chrome bezel and the neon line inset.
+  const doorOffset = new THREE.Vector3(-hingeX, 0, -hingeZ);
+  loopTube(0.03, BUBBLE_R * 1.008, 0.016, chromeMat, hatch, doorOffset);
+  loopTube(0.075, BUBBLE_R * 1.006, 0.008, seamMat, hatch, doorOffset);
+  loopTube(0.075, BUBBLE_R * 1.006, 0.026, seamGlowMat, hatch, doorOffset);
+  // Hinges: two chrome barrels on the hinge edge, lined up with it.
+  const knuckleGeo = track(new THREE.CylinderGeometry(0.055, 0.055, 0.24, 24));
+  for (const theta of [1.05, 2.0]) {
+    const a = spherePt(hingePhi + 0.04, theta - 0.06, BUBBLE_R * 1.03);
+    const b = spherePt(hingePhi + 0.04, theta + 0.06, BUBBLE_R * 1.03);
+    const k = new THREE.Mesh(knuckleGeo, chromeMat);
+    k.position.set((a.x + b.x) / 2, (a.y + b.y) / 2 + BUBBLE_Y, (a.z + b.z) / 2);
+    k.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    k.raycast = () => {};
+    craft.add(k);
+  }
+  // Handle: a slim recessed chrome grip near the free edge, with a red
+  // status light above it.
+  const handlePhi = doorStart + 0.2;
+  const handleCurve = new THREE.CatmullRomCurve3([1.3, 1.45, 1.6, 1.75].map((th) => spherePt(handlePhi, th, BUBBLE_R * 1.045)));
+  const handle = new THREE.Mesh(track(new THREE.TubeGeometry(handleCurve, 24, 0.026, 10, false)), chromeMat);
+  handle.position.copy(doorOffset);
+  handle.raycast = () => {};
+  hatch.add(handle);
+  for (const th of [1.3, 1.75]) {
+    const post = new THREE.Mesh(
+      track(new THREE.TubeGeometry(new THREE.LineCurve3(spherePt(handlePhi, th, BUBBLE_R * 1.004), spherePt(handlePhi, th, BUBBLE_R * 1.045)), 1, 0.016, 8, false)),
+      chromeMat,
+    );
+    post.position.copy(doorOffset);
+    post.raycast = () => {};
+    hatch.add(post);
+  }
+  const statusLed = new THREE.Mesh(track(new THREE.SphereGeometry(0.032, 12, 10)), rimMat);
+  const ledPt = spherePt(handlePhi, 1.16, BUBBLE_R * 1.012);
+  statusLed.position.set(ledPt.x - hingeX, ledPt.y, ledPt.z - hingeZ);
+  hatch.add(statusLed);
+  /** Open the door: 0 shut, 1 swung open (about 85 degrees, so it stays in frame). */
+  const setHatch = (open: number) => {
+    hatch.rotation.y = open * 1.5;
+  };
+
   // The cradle: a metal cup rising out of the deck that the ball sits
   // in, hugging the glass, with a neon lip where glass meets metal, so
   // ball and base read as one craft. The ball's lower half is hidden
@@ -838,9 +943,9 @@ void main(){
   cradleProfile.push(new THREE.Vector2(lipR + 0.1, LIP_Y + 0.01));
   cradleProfile.push(new THREE.Vector2(lipR + 0.16, LIP_Y - 0.06));
   cradleProfile.push(new THREE.Vector2(lipR + 0.26, 0.1));
-  cradleProfile.push(new THREE.Vector2(1.62, -0.02));
+  cradleProfile.push(new THREE.Vector2(1.75, -0.3));
   const cradleMat = track(
-    new THREE.MeshPhysicalMaterial({ color: "#1d1a23", roughness: 0.3, metalness: 0.7, clearcoat: 0.6, side: THREE.DoubleSide }),
+    new THREE.MeshPhysicalMaterial({ color: "#24222b", roughness: 0.22, metalness: 0.9, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 1.8, side: THREE.DoubleSide }),
   );
   const cradle = new THREE.Mesh(track(new THREE.LatheGeometry(cradleProfile, 96)), cradleMat);
   cradle.raycast = () => {};
@@ -853,6 +958,176 @@ void main(){
   lipGlow.rotation.x = Math.PI / 2;
   lipGlow.position.y = LIP_Y + 0.012;
   craft.add(lipGlow);
+  // A chrome collar where the glass seats into the cradle, and a ring of
+  // small red indicator lights set into the cradle's slope.
+  const seat = new THREE.Mesh(track(new THREE.TorusGeometry(lipR + 0.12, 0.028, 14, 128)), chromeMat);
+  seat.rotation.x = Math.PI / 2;
+  seat.position.y = LIP_Y - 0.03;
+  seat.raycast = () => {};
+  craft.add(seat);
+  const slopeR0 = lipR + 0.26;
+  const INDICATORS = 12;
+  const indGeo = track(new THREE.BoxGeometry(0.11, 0.022, 0.03));
+  for (let i = 0; i < INDICATORS; i++) {
+    const a = (i / INDICATORS) * Math.PI * 2 + 0.13;
+    const r = slopeR0 + (1.62 - slopeR0) * 0.45;
+    const y = 0.1 + (-0.02 - 0.1) * 0.45 + 0.012;
+    const ind = new THREE.Mesh(indGeo, rimMat);
+    ind.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+    ind.rotation.y = -a + Math.PI / 2;
+    ind.raycast = () => {};
+    craft.add(ind);
+  }
+
+  // ---------- the fighter (Nov 23 2026) ----------
+  // The pod becomes a little starfighter: the glass canopy sits in a
+  // chrome frame on a silver body, with a rounded nose below it, swept
+  // wings out to the sides with red vents in their tips, a spine over
+  // the canopy carrying two engines that burn red, neon trim lines and
+  // holographic screens in the cockpit.
+  const C = new THREE.Vector3(0, BUBBLE_Y, 0);
+
+  // Canopy frame: a thick silver ring round the glass, a chrome lip and
+  // a neon line just outside it, with a chase of lights round the ring.
+  const frame = deco(new THREE.Mesh(track(new THREE.TorusGeometry(BUBBLE_R + 0.1, 0.17, 24, 160)), hullMat));
+  frame.position.copy(C);
+  frame.position.z = -0.15;
+  const frameLip = deco(new THREE.Mesh(track(new THREE.TorusGeometry(BUBBLE_R + 0.0, 0.035, 14, 160)), chromeMat));
+  frameLip.position.copy(C);
+  frameLip.position.z = 0.02;
+  const frameNeon = deco(new THREE.Mesh(track(new THREE.TorusGeometry(BUBBLE_R + 0.28, 0.014, 10, 180)), neonMat));
+  frameNeon.position.copy(C);
+  frameNeon.position.z = -0.08;
+  const frameNeonGlow = deco(new THREE.Mesh(track(new THREE.TorusGeometry(BUBBLE_R + 0.28, 0.06, 10, 180)), rimGlowMat));
+  frameNeonGlow.position.copy(frameNeon.position);
+  const LIGHTS = 18;
+  const lightGeo = track(new THREE.SphereGeometry(0.03, 10, 8));
+  const runLights: THREE.MeshBasicMaterial[] = [];
+  for (let i = 0; i < LIGHTS; i++) {
+    const m = track(new THREE.MeshBasicMaterial({ color: "#ff4a5e", transparent: true, opacity: 0.3, toneMapped: false }));
+    const a = (i / LIGHTS) * Math.PI * 2;
+    const l = deco(new THREE.Mesh(lightGeo, m));
+    l.position.set(Math.cos(a) * (BUBBLE_R + 0.18), BUBBLE_Y + Math.sin(a) * (BUBBLE_R + 0.18), 0.03);
+    runLights.push(m);
+  }
+
+  // Nose: a rounded silver chin under the canopy, with a neon line across
+  // it, two red light bars and a dark grille.
+  const NOSE_C = new THREE.Vector3(0, -0.55, 0.55);
+  const NOSE_S = new THREE.Vector3(2.25, 0.72, 1.75);
+  const nose = deco(new THREE.Mesh(track(new THREE.SphereGeometry(1, 64, 32)), hullMat));
+  nose.position.copy(NOSE_C);
+  nose.scale.copy(NOSE_S);
+  const noseZ = (x: number, y: number, out = 0.01) => {
+    const q = 1 - (x / NOSE_S.x) ** 2 - ((y - NOSE_C.y) / NOSE_S.y) ** 2;
+    return NOSE_C.z + NOSE_S.z * Math.sqrt(Math.max(0, q)) + out;
+  };
+  const noseLine = (y: number, span: number, radius: number, mat: THREE.Material) => {
+    const pts = Array.from({ length: 41 }, (_, i) => {
+      const x = -span + (2 * span * i) / 40;
+      return new THREE.Vector3(x, y, noseZ(x, y, 0.012));
+    });
+    return deco(new THREE.Mesh(track(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 80, radius, 8, false)), mat));
+  };
+  noseLine(-0.22, 1.85, 0.016, neonMat);
+  noseLine(-0.22, 1.85, 0.05, rimGlowMat);
+  noseLine(-0.62, 1.6, 0.022, chromeMat);
+  const barGeo = track(new THREE.BoxGeometry(0.5, 0.1, 0.06));
+  for (const side of [-1, 1]) {
+    const x = side * 1.2;
+    const y = -0.42;
+    const bar = deco(new THREE.Mesh(barGeo, neonMat));
+    bar.position.set(x, y, noseZ(x, y, 0.0));
+    bar.rotation.y = side * 0.55;
+    const glowBar = deco(new THREE.Mesh(track(new THREE.BoxGeometry(0.62, 0.2, 0.02)), rimGlowMat));
+    glowBar.position.copy(bar.position);
+    glowBar.rotation.y = bar.rotation.y;
+  }
+  const grille = deco(new THREE.Group());
+  grille.position.set(0, -0.86, noseZ(0, -0.86, -0.02));
+  grille.rotation.x = 0.35;
+  const grilleBack = deco(new THREE.Mesh(track(new THREE.BoxGeometry(1.0, 0.26, 0.06)), darkMetalMat), grille);
+  grilleBack.position.z = 0;
+  for (let i = 0; i < 4; i++) {
+    const slat = deco(new THREE.Mesh(track(new THREE.BoxGeometry(0.94, 0.022, 0.04)), chromeMat), grille);
+    slat.position.set(0, -0.09 + i * 0.06, 0.04);
+  }
+
+  // Spine over the canopy, carrying the engines.
+  const spine = deco(new THREE.Mesh(track(new THREE.CapsuleGeometry(0.42, 1.6, 10, 24)), hullMat));
+  spine.rotation.x = Math.PI / 2;
+  spine.scale.set(1.25, 1, 0.75);
+  spine.position.set(0, BUBBLE_Y + BUBBLE_R + 0.05, -1.05);
+  const spinePanel = deco(new THREE.Mesh(track(new THREE.BoxGeometry(0.42, 0.06, 1.3)), darkMetalMat));
+  spinePanel.position.set(0, BUBBLE_Y + BUBBLE_R + 0.36, -0.95);
+  const spineNeon = deco(new THREE.Mesh(track(new THREE.BoxGeometry(0.34, 0.03, 0.05)), neonMat));
+  spineNeon.position.set(0, BUBBLE_Y + BUBBLE_R + 0.24, -0.2);
+
+  // Thruster, as on the original pod: a hot nozzle disc in a chrome
+  // collar, a flickering glow cone and exhaust puffs, all moved down to
+  // sit under the bottom of the new body.
+  const thruster = deco(new THREE.Group());
+  thruster.position.set(0, NOSE_C.y - NOSE_S.y + 0.74, NOSE_C.z - 0.1);
+  const nozzle = deco(new THREE.Mesh(track(new THREE.CircleGeometry(0.3, 40)), rimMat), thruster);
+  nozzle.rotation.x = Math.PI / 2;
+  nozzle.position.y = -0.845;
+  const collar = deco(new THREE.Mesh(track(new THREE.TorusGeometry(0.34, 0.035, 14, 96)), chromeMat), thruster);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = -0.84;
+  const thrust = deco(new THREE.Mesh(track(new THREE.CylinderGeometry(0.28, 0.06, 1.3, 32, 1, true)), thrustMat), thruster);
+  thrust.position.y = -0.85 - 0.65;
+  const exhaust = deco(new THREE.Points(exhaustGeo(), exMat), thruster);
+  exhaust.frustumCulled = false;
+
+  // Cockpit screens: small holographic panels floating in front of Pulse,
+  // red line-art UI drawn on a canvas, additive so they glow.
+  const holoCanvas = document.createElement("canvas");
+  holoCanvas.width = 256;
+  holoCanvas.height = 160;
+  {
+    const g = holoCanvas.getContext("2d")!;
+    g.strokeStyle = "rgba(255, 90, 110, 0.95)";
+    g.fillStyle = "rgba(255, 60, 80, 0.16)";
+    g.lineWidth = 3;
+    g.fillRect(4, 4, 248, 152);
+    g.strokeRect(4, 4, 248, 152);
+    g.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      g.beginPath();
+      g.moveTo(18, 26 + i * 16);
+      g.lineTo(18 + 60 + ((i * 37) % 70), 26 + i * 16);
+      g.stroke();
+    }
+    g.beginPath();
+    g.arc(196, 52, 30, 0, Math.PI * 2);
+    g.stroke();
+    g.beginPath();
+    g.arc(196, 52, 30, -Math.PI / 2, Math.PI * 0.8);
+    g.lineWidth = 6;
+    g.stroke();
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(14, 124);
+    [[60, 124], [74, 104], [88, 146], [102, 112], [116, 124], [242, 124]].forEach(([x, y]) => g.lineTo(x, y));
+    g.stroke();
+  }
+  const holoTex = track(new THREE.CanvasTexture(holoCanvas));
+  holoTex.colorSpace = THREE.SRGBColorSpace;
+  const holoMat = track(
+    new THREE.MeshBasicMaterial({ map: holoTex, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }),
+  );
+  const holoGeo = track(new THREE.PlaneGeometry(0.62, 0.39));
+  for (const [x, y, z, ry, rx] of [
+    [-1.15, 0.95, 0.7, 0.55, -0.2],
+    [1.15, 0.95, 0.7, -0.55, -0.2],
+    [-0.7, 0.62, 1.15, 0.3, -0.45],
+    [0.7, 0.62, 1.15, -0.3, -0.45],
+  ] as [number, number, number, number, number][]) {
+    const h = deco(new THREE.Mesh(holoGeo, holoMat));
+    h.position.set(x, y, z);
+    h.rotation.set(rx, ry, 0);
+    h.renderOrder = 11;
+  }
 
   const STARS = tier === "full" ? 90 : 45;
   const starPos = new Float32Array(STARS * 3);
@@ -949,6 +1224,7 @@ void main(){
     space: spaceUniforms,
     craft,
     updateCraft,
+    setHatch,
     chest,
     knobMat,
     burst,

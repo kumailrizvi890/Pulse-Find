@@ -48,7 +48,7 @@ describe("task chat panel sizing", () => {
 
   it("is capped in height on phones and on desktop", () => {
     const root = rootClasses();
-    expect(root).toContain("max-h-[92dvh]");
+    expect(root).toContain("max-h-[60dvh]");
     expect(root).toContain("lg:max-h-[calc(100dvh-32px)]");
   });
 
@@ -131,7 +131,7 @@ describe("task chat general mode docking", () => {
     const root = rootClasses();
     expect(root).toContain("bottom-0");
     expect(root).toContain("lg:bottom-4");
-    expect(root).toContain("max-h-[92dvh]");
+    expect(root).toContain("max-h-[60dvh]");
     expect(root).toContain("lg:max-h-[calc(100dvh-32px)]");
   });
 });

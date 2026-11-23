@@ -127,9 +127,10 @@ describe("pulse brand placements", () => {
     expect(overview).toContain("<PulseHeartbeat");
   });
 
-  it("uses the status dot for AI thinking in the task chat, not the old three dots", () => {
+  it("shows Pulse thinking in the task chat: his think pose and a thought bubble", () => {
     const chat = read("components/dashboard/TaskChatPanel.tsx");
-    expect(chat).toContain("<PulseDot />");
+    expect(chat).toContain('thinking ? "think"');
+    expect(chat).toContain("pf-think-dot");
     expect(chat).not.toContain("pf-thinking-dot");
   });
 

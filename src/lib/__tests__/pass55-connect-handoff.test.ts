@@ -55,7 +55,7 @@ describe("pass-55 finding #10a: drawer + chat geometry", () => {
     // Modal by design (chat-gap fix): full-width bottom sheet, max 92dvh,
     // with its own Close button and an outside-click backdrop that closes
     // only the chat and leaves the drawer open.
-    expect(chat).toContain("max-h-[92dvh]");
+    expect(chat).toContain("max-h-[60dvh]");
     expect(chat).toContain("inset-x-0 bottom-0");
     expect(chat).toContain('aria-label="Close chat"');
   });

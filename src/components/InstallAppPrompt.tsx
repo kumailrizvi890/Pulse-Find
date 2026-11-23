@@ -118,7 +118,7 @@ export function InstallAppPrompt() {
   return (
     <div
       role="status"
-      className="fixed bottom-5 left-5 z-[55] flex max-w-[calc(100vw-2.5rem)] items-center gap-3 rounded-2xl border border-line bg-surface-2 px-3.5 py-3 shadow-panel"
+      className="fixed bottom-5 left-5 z-[55] flex max-w-[calc(100vw-7.5rem)] sm:max-w-[calc(100vw-2.5rem)] items-center gap-3 rounded-2xl border border-line bg-surface-2 px-3.5 py-3 shadow-panel"
     >
       <PulseMark className="h-6 w-6 shrink-0" />
       <p className="min-w-0 text-sm leading-snug text-ink">

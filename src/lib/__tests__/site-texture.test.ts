@@ -52,10 +52,11 @@ describe("site backdrop layer", () => {
     expect(backdrop).toContain("pf-site-glow-violet");
   });
 
-  it("has the perspective grid floor, floating shards and rings, dots and grain", () => {
+  it("has the perspective grid floor, floating glass job objects, dots and grain", () => {
     expect(backdrop).toContain("pf-site-floor");
-    expect(backdrop).toContain("pf-site-shard");
-    expect(backdrop).toContain("pf-site-ring");
+    // Nov 23 2026: the shards and ring became glass job objects.
+    expect(backdrop).toContain("pf-site-job");
+    expect(backdrop).not.toContain("pf-site-shard pf-site-float");
     expect(backdrop).toContain("pf-site-float-a");
     expect(backdrop).toContain("pf-site-float-b");
     expect(backdrop).toContain("pf-site-float-c");

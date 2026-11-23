@@ -23,8 +23,8 @@ import {
   reactionPose,
   spinStep,
 } from "@/lib/pulse-bear";
-import { PULSE_GREET_EVENT, PULSE_POKE_EVENT } from "@/lib/pulse-bear-events";
-import { PulseCrystal } from "@/components/PulseBrand";
+import { PULSE_DOCK_EVENT, PULSE_GREET_EVENT, PULSE_POKE_EVENT, PULSE_RETURNED_EVENT, PULSE_UNDOCK_EVENT } from "@/lib/pulse-bear-events";
+import { PulseSprite } from "@/components/PulseSprite";
 import { buildPulse } from "./pulse-bear-scene";
 
 // Pulse in 3D (landing only, Nov 22 2026). The plush Pulse bear from
@@ -42,7 +42,7 @@ import { buildPulse } from "./pulse-bear-scene";
 // imported, and they are only loaded through next/dynamic with
 // ssr: false, so three never ships in the first paint. Paused
 // off-screen and on tab-hide, DPR capped, a still frame under reduced
-// motion, the PulseCrystal mark if WebGL is unavailable.
+// motion, a pre-rendered Pulse (PulseSprite) if WebGL is unavailable.
 
 /** The fly-in: starts after a beat, lasts FLY_S seconds. */
 const FLY_DELAY = 0.15;
@@ -118,11 +118,14 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
       canvas.style.width = `${w}px`;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      let viewH = 5.9;
-      if (viewH * camera.aspect < 4.2) viewH = 4.2 / camera.aspect;
+      // The craft (Nov 23 2026): the canopy on its silver body, with
+      // two jets under it burning downward. Frame it all, from the spine
+      // over the canopy down to where the flames fade out.
+      let viewH = 7.5;
+      if (viewH * camera.aspect < 6.2) viewH = 6.2 / camera.aspect;
       const dist = viewH / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-      camera.position.set(0, 2.0, dist);
-      camera.lookAt(0, 1.45, 0);
+      camera.position.set(0, 2.2, dist);
+      camera.lookAt(0, 0.8, 0);
       camera.updateProjectionMatrix();
       viewW = viewH * camera.aspect;
       // Keep Pulse centred on the wrapper, not the (wider) canvas.
@@ -145,6 +148,11 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
     let lastLift = 0;
     let lastYaw = 0;
     let hover = false;
+    let hatch = 0;
+    let hatchVel = 0;
+    let hatchTarget = 0;
+    let hideBearAt = 0;
+    let closeHatchAt = 0;
     let lineTimer: ReturnType<typeof setTimeout> | undefined;
     const say = (text: string) => {
       lineN++;
@@ -334,6 +342,35 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
       reaction = { kind, at: performance.now() };
       say(lineFor(kind, taps));
     };
+    // The hand-off: while Pulse is down in the corner as the assistant,
+    // his pod stays parked here, empty. When he flies home he hops back
+    // in: a little jump and squash, and he says he is back.
+    // The glass lid opens for him both ways: out, he hops and is gone
+    // as the lid swings up; back, it opens as he flies in, he drops in
+    // with a hop, and it shuts behind him.
+    const onDocked = () => {
+      setLine(null);
+      hatchTarget = 1;
+      const now = performance.now();
+      reaction = { kind: "jump", at: now };
+      hideBearAt = now + 300;
+      closeHatchAt = now + 1100;
+    };
+    const onUndocking = () => {
+      hatchTarget = 1;
+      closeHatchAt = 0;
+    };
+    const onReturned = () => {
+      bear.visible = true;
+      hideBearAt = 0;
+      const now = performance.now();
+      reaction = { kind: "jump", at: now };
+      closeHatchAt = now + 700;
+      say("I'm back!");
+    };
+    window.addEventListener(PULSE_DOCK_EVENT, onDocked);
+    window.addEventListener(PULSE_UNDOCK_EVENT, onUndocking);
+    window.addEventListener(PULSE_RETURNED_EVENT, onReturned);
     const onGreet = () => {
       greetAt = performance.now() + 100;
       greetLineShown = false;
@@ -442,6 +479,21 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
         rig.burstMat.opacity = Math.max(0, 1 - bt / 1.4);
       } else rig.burstMat.opacity = 0;
 
+      // Glass door: springs open or shut; timed hide and close.
+      if (hideBearAt && now >= hideBearAt) {
+        bear.visible = false;
+        hideBearAt = 0;
+      }
+      if (closeHatchAt && now >= closeHatchAt) {
+        hatchTarget = 0;
+        closeHatchAt = 0;
+      }
+      // A snappy spring, underdamped: the door flips open fast,
+      // overshoots a touch and settles, and flips shut the same way.
+      const hs = springStep(hatch, hatchVel, hatchTarget, 160, 11, dt);
+      hatch = Math.max(-0.08, hs.value);
+      hatchVel = hs.velocity;
+      rig.setHatch(hatch);
       render(pose, t, flare);
       // Adaptive resolution: after warm-up, if the average frame runs
       // past ~19ms (under ~52fps), step DPR down, never below 1.
@@ -473,6 +525,9 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener(PULSE_GREET_EVENT, onGreet);
       window.removeEventListener(PULSE_POKE_EVENT, onPoke);
+      window.removeEventListener(PULSE_DOCK_EVENT, onDocked);
+      window.removeEventListener(PULSE_UNDOCK_EVENT, onUndocking);
+      window.removeEventListener(PULSE_RETURNED_EVENT, onReturned);
       window.removeEventListener("pointerdown", onMove);
       document.removeEventListener("visibilitychange", onVis);
       canvas.removeEventListener("pointerdown", onDown);
@@ -491,7 +546,7 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
     <div ref={wrapRef} className={`pulse-bear ${ready ? "is-ready" : ""} ${className ?? ""}`}>
       {failed ? (
         <div className="pulse-bear-fallback" aria-hidden="true">
-          <PulseCrystal className="h-32 w-32" />
+          <PulseSprite pose="wave" className="h-56 w-56 object-contain" />
         </div>
       ) : (
         <canvas

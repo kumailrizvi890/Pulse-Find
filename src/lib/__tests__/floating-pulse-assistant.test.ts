@@ -16,25 +16,25 @@ const button = readFileSync(join(root, "components", "FloatingPulseButton.tsx"),
 const layout = readFileSync(join(root, "app", "layout.tsx"), "utf8");
 const dashboard = readFileSync(join(root, "components", "dashboard", "Dashboard.tsx"), "utf8");
 const panel = readFileSync(join(root, "components", "dashboard", "TaskChatPanel.tsx"), "utf8");
-const brand = readFileSync(join(root, "components", "PulseBrand.tsx"), "utf8");
 const accountDashboard = readFileSync(join(root, "app", "app", "AccountDashboard.tsx"), "utf8");
 const appPage = readFileSync(join(root, "app", "app", "page.tsx"), "utf8");
 
 describe("floating Pulse button", () => {
   it("is a real button with a chat label, fixed bottom-right above the page", () => {
     expect(button).toContain('type="button"');
-    expect(button).toContain('aria-label={open ? "Close chat" : "Chat with Pulse"}');
-    expect(button).toContain("fixed bottom-5");
-    expect(button).toContain("right-5");
+    expect(button).toContain('aria-label="Chat with Pulse"');
+    expect(button).toContain('aria-label="Close chat"');
+    expect(button).toContain("fixed bottom-2 right-2");
     expect(button).toContain("z-[60]");
     expect(button).toContain("focus-visible:outline-accent");
   });
 
-  it("shows the shared 3D crystal, not a flat dot", () => {
-    expect(button).toContain('from "@/components/PulseBrand"');
-    expect(button).toContain("<PulseCrystal");
+  it("shows the mascot Pulse (pre-rendered sprites), not the old crystal", () => {
+    expect(button).toContain('from "@/components/PulseSprite"');
+    expect(button).toContain("<PulseSprite");
+    expect(button).not.toContain("<PulseCrystal");
     expect(button).toContain("pf-assistant-float");
-    expect(button).toContain("pf-assistant-glow");
+    expect(button).toContain("pf-mini-shadow");
     expect(button).toContain("perspective(600px)");
     expect(button).toContain("rotateX(");
     expect(button).toContain("rotateY(");
@@ -159,22 +159,35 @@ describe("floating button hides under foreign modal dialogs", () => {
 
   it("hides while a foreign dialog is open but stays as the chat close control", () => {
     expect(button).toContain("if ((overlayOpen || dialogOpen) && !open) return null;");
-    expect(button).toContain('aria-label={open ? "Close chat" : "Chat with Pulse"}');
+    expect(button).toContain('aria-label="Close chat"');
+  });
+
+  it("flies down from the landing hero into the corner, and back", () => {
+    expect(button).toContain("PULSE_DOCK_EVENT");
+    expect(button).toContain("PULSE_UNDOCK_EVENT");
+    expect(button).toContain("PULSE_RETURNED_EVENT");
+    expect(button).toContain('const onLanding = pathname === "/";');
+    expect(button).toContain("requestAnimationFrame(step)");
+    expect(button).toContain("hero.live");
+    expect(button).toContain("prefers-reduced-motion: reduce");
   });
 });
 
 describe("3D chat panel restyle", () => {
-  it("shares one crystal mark from PulseBrand", () => {
-    expect(brand).toContain("export function PulseCrystal");
-    expect(panel).toContain('import { PulseCrystal, PulseDot } from "@/components/PulseBrand"');
-    expect(panel).not.toContain("export function PulseCrystal");
+  it("puts Pulse himself in the chat: standing, with thought-bubble replies", () => {
+    expect(panel).toContain('from "@/components/PulseSprite"');
+    expect(panel).not.toContain("<PulseCrystal");
+    expect(panel).toContain("pf-thought");
+    expect(panel).toContain("pf-stage-pulse");
+    expect(panel).toContain('onlyGreeting ? "wave"');
   });
 
-  it("gives the panel layered depth without touching its layout", () => {
+  it("floats the conversation over the page with no window behind it", () => {
     expect(panel).toContain("pf-chat-panel-3d");
-    expect(panel).toContain("inset 0 1px 0 rgba(255, 255, 255, 0.09)");
-    expect(panel).toContain("0 24px 64px -16px rgba(0, 0, 0, 0.85)");
-    expect(panel).toContain("0 0 48px -12px rgba(248, 52, 62, 0.45)");
+    expect(panel).toContain(".pf-chat-panel-3d { background: transparent; box-shadow: none; }");
+    expect(panel).toContain("pf-chat-float-list");
+    expect(panel).toContain("pf-float-pill");
+    expect(panel).not.toContain("bg-surface/95 shadow-panel backdrop-blur-md");
   });
 
   it("gives the crystal avatar a halo and the bubbles depth", () => {
@@ -192,7 +205,7 @@ describe("3D chat panel restyle", () => {
   });
 
   it("keeps the chat-gap sizing: content-sized, capped, internally scrolling", () => {
-    expect(panel).toContain("max-h-[92dvh]");
+    expect(panel).toContain("max-h-[60dvh]");
     expect(panel).toContain("lg:max-h-[calc(100dvh-32px)]");
     expect(panel).toContain("min-h-0 flex-auto");
     expect(panel).toContain("overflow-y-auto");

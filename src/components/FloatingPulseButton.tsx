@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { PulseCrystal } from "@/components/PulseBrand";
 import { IconX } from "@/components/icons";
-import { TOUR_CLOSE_EVENT, TOUR_OPEN_EVENT } from "@/lib/tour-window";
 
 /**
  * Pulse as a floating assistant: one red 3D crystal, bottom-right, on
@@ -25,10 +24,8 @@ import { TOUR_CLOSE_EVENT, TOUR_OPEN_EVENT } from "@/lib/tour-window";
  * While the chat is open the button turns into a close control and
  * docks just left of the panel on desktop (right-[432px], clear of the
  * 400px panel and its composer); on phones it hides while the chat is
- * open, since the bottom sheet already has its own Close. While the
- * tour window is open (pulsefind:tour-open / pulsefind:tour-close) or
- * a drawer is open, the button hides so it never stacks on the tour
- * window or covers a form. It also
+ * open, since the bottom sheet already has its own Close. While a
+ * drawer is open, the button hides so it never covers a form. It also
  * hides while any modal dialog the Dashboard does not own is in the
  * DOM (lead form, contact form, Settings, Import): those never reach
  * the Dashboard's overlay state, so the button watches the DOM for
@@ -89,23 +86,9 @@ export function FloatingPulseButton() {
   const [open, setOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [tourOpen, setTourOpen] = useState(false);
   const [waiting, setWaiting] = useState(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const fallbackTimer = useRef<number | null>(null);
-
-  // The tour window owns the screen while it is open, so the button
-  // steps aside until it closes.
-  useEffect(() => {
-    const onOpen = () => setTourOpen(true);
-    const onClose = () => setTourOpen(false);
-    window.addEventListener(TOUR_OPEN_EVENT, onOpen);
-    window.addEventListener(TOUR_CLOSE_EVENT, onClose);
-    return () => {
-      window.removeEventListener(TOUR_OPEN_EVENT, onOpen);
-      window.removeEventListener(TOUR_CLOSE_EVENT, onClose);
-    };
-  }, []);
 
   useEffect(() => {
     const onState = (e: Event) => {
@@ -174,9 +157,9 @@ export function FloatingPulseButton() {
 
   const onPointerLeave = useCallback(() => setTilt({ x: 0, y: 0 }), []);
 
-  // The tour owns the screen while it runs, and auth pages have no
-  // tracker to ask about, so the button stays out of the way there.
-  if (tourOpen || AUTH_ROUTES.includes(pathname)) return null;
+  // Auth pages have no tracker to ask about, so the button stays out
+  // of the way there.
+  if (AUTH_ROUTES.includes(pathname)) return null;
   // A drawer or task chat owns the corner while open, and so does any
   // modal dialog the Dashboard does not own; the button returns once
   // it closes. The open chat keeps its close control instead.

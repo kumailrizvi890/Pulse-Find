@@ -38,13 +38,11 @@ describe("/jobs keeps demo context for signed-out visitors", () => {
     expect(jobsPage).not.toContain("<TopBar");
   });
 
-  it("opens the tour from /jobs through the nav button, with no tour param to pass", () => {
-    // The tour is an overlay now, not a route: /jobs reads no
-    // searchParams at all, and the demo nav's Take the tour button
-    // opens the window at step 1 from here too.
+  it("reads no tour param and shows no tour button (the tour was removed)", () => {
     expect(jobsPage).not.toContain("searchParams");
     expect(jobsPage).not.toContain("tour");
-    expect(demoNav).toContain("TakeTourButton");
+    expect(demoNav).not.toContain("TakeTourButton");
+    expect(demoNav).not.toContain("TourWindow");
   });
 
   it("labels the board Live openings, never fictional sample data", () => {
@@ -53,15 +51,6 @@ describe("/jobs keeps demo context for signed-out visitors", () => {
     expect(demoNav).toContain('badge = "Fictional sample data"');
     expect(demoNav).toContain("{badge}");
     expect(jobsPage).toContain('badge="Live openings"');
-  });
-
-  it("keeps Take the tour on one line at phone width", () => {
-    // The sections row scrolls sideways on phones; without nowrap the
-    // multi-word tour link wrapped to three lines and made the row
-    // taller on every demo page (surfaced on /jobs by this pass). The
-    // button lives in TourWindow now, not DemoNav, so pin it there.
-    const tourWindow = read("components/TourWindow.tsx");
-    expect(tourWindow).toContain('className="flex items-center gap-1.5 whitespace-nowrap"');
   });
 
   it("still gives signed-in users the tracker shell, untouched", () => {

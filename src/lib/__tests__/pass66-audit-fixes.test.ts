@@ -228,11 +228,11 @@ describe("empty jobs search does not claim the deck is cleared", () => {
   });
 });
 
-describe("landing footer tour copy points at the replay button", () => {
-  it("says the Replay the tour button below runs the walkthrough", () => {
-    expect(about).toContain("Replay the tour");
-    expect(about).toContain("button below runs the guided walkthrough");
-    expect(about).not.toContain("tour up top");
+describe("landing footer copy, now that the tour is gone", () => {
+  it("points at the demo and Connect, never at a tour", () => {
+    expect(about).not.toContain("Replay the tour");
+    expect(about).not.toContain("guided walkthrough");
+    expect(about).toContain("Try the demo with");
   });
 });
 

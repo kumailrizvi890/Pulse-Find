@@ -5,7 +5,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { InstallSection } from "@/components/landing/InstallSection";
 import { HeroCrazy } from "@/components/landing/HeroCrazy";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { ResumeSection } from "@/components/landing/ResumeSection";
 import { AboutLanding } from "@/components/landing/AboutLanding";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -41,7 +40,6 @@ export default async function Home() {
           <>
             <Link href="/jobs" className={navLink}>Jobs</Link>
             <Link href="/demo" className={navLink}>Demo</Link>
-            <Link href="#resume" className={navLink}>Resume</Link>
             <span className="hidden sm:inline">
               <GitHubLink />
             </span>
@@ -51,10 +49,9 @@ export default async function Home() {
         }
       />
       <main>
-        <HeroCrazy />
+        <HeroCrazy mascot />
         <HowItWorks />
         <InstallSection />
-        <ResumeSection />
         <AboutLanding />
       </main>
       <SiteFooter />

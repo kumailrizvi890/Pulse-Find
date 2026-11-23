@@ -89,10 +89,8 @@ describe("About page copy has no em dashes", () => {
     expect(install).toContain("No worries, you can install anytime from your browser menu.");
     expect(install).toContain("straight into your dashboard");
     expect(install).toContain(", full-screen, no browser bars, no typing a URL");
-    expect(install).toContain("stays exactly as it is: same near-black home");
-    expect(install).toContain("Done. The Pulse Find icon is on your home screen");
-    expect(install).toContain("Tap <b>Install app</b> when it pops up, or the <b>⋮ menu → Install app</b>");
-    expect(install).toContain("Done. It opens full-screen, straight to your dashboard");
-    expect(install).toContain("Nothing to update, always latest");
+    // Nov 22 2026: the written steps, note and perks became two phones.
+    expect(install).toContain("Tap the <b>Share</b> button, then <b>Add to Home Screen</b>");
+    expect(install).toContain("is on your home screen. One tap, you&apos;re in.");
   });
 });

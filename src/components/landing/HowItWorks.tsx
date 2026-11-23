@@ -256,7 +256,6 @@ export function HowItWorks() {
 
   return (
     <section className="how-it-works" id="how-it-works" aria-label="How it works" ref={sectionRef}>
-      <span className="about-kicker">How it works</span>
       <h2 className="hiw-title">How it works</h2>
       <p className="hiw-lede">
         Fresh roles matched to you every morning, every application tracked by stage, and the right

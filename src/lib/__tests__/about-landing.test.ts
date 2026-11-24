@@ -80,7 +80,7 @@ describe("the founder section", () => {
     expect(about).toContain("Claude Code");
     expect(about).toContain("Agensi");
     expect(about).toContain("#1 for");
-    expect(about).toContain("out of 18 listings");
+    expect(about).toContain("out of 21 listings");
   });
 
   it("links the founder's real profiles", () => {
@@ -102,7 +102,7 @@ describe("the founder section", () => {
     expect(about).toContain("Applications tracked in Pulse Find");
     expect(about).toContain("<b>6</b>");
     expect(about).toContain("Live projects shipped");
-    expect(about).toContain("<b>#1 of 18</b>");
+    expect(about).toContain("<b>#1 of 21</b>");
   });
 
   it("states the rigor only as verified against the repo", () => {

@@ -108,12 +108,13 @@ function ctx(over: Partial<GeneralChatContext> = {}): GeneralChatContext {
 }
 
 describe("general chat suggestions", () => {
-  it("offers the four whole-tracker starters", () => {
+  it("offers the five whole-tracker starters, including interview prep", () => {
     expect(GENERAL_CHAT_SUGGESTIONS).toEqual([
       "What is waiting on me?",
       "What is due next?",
       "Who went quiet?",
       "How is my week going?",
+      "How do I prep for an interview?",
     ]);
     for (const s of GENERAL_CHAT_SUGGESTIONS) expect(s).not.toContain("—");
   });
@@ -358,9 +359,10 @@ describe("answerGeneralQuestion", () => {
     expect(a.text).not.toContain("follow-up");
   });
 
-  it("falls back honestly instead of inventing an answer", () => {
+  it("answers a salary question from the knowledge base instead of refusing", () => {
     const a = answerGeneralQuestion("What is the salary?", ctx());
-    expect(a.text).toContain("I do not know that one from your tracker data");
+    expect(a.text).toContain("Never give a number first");
+    expect(a.text).not.toContain("I do not know");
   });
 
   it("answers help and greetings warmly", () => {

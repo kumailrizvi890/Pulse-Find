@@ -125,9 +125,10 @@ describe("answerTaskQuestion", () => {
     expect(a.text).toContain("Next step: Finish the HackerRank");
   });
 
-  it("falls back honestly instead of inventing an answer", () => {
+  it("answers a salary question from the knowledge base instead of refusing", () => {
     const a = answerTaskQuestion("What is the salary?", ctx());
-    expect(a.text).toContain("I do not know that one from your tracker data");
+    expect(a.text).toContain("Never give a number first");
+    expect(a.text).not.toContain("I do not know");
   });
 
   it("answers help and greetings warmly", () => {

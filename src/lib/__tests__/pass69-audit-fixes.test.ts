@@ -133,7 +133,9 @@ describe("Ask Pulse says ghosted is something it can answer", () => {
   });
 
   it("the fallback names ghosted among the things it can answer", () => {
-    expect(answerGeneralQuestion("What is the salary?", demoCtx()).text).toContain("ghosted");
+    // Salary used to reach the fallback; it now has a knowledge answer,
+    // so the fallback is reached with a question nothing can answer.
+    expect(answerGeneralQuestion("What is the meaning of life?", demoCtx()).text).toContain("ghosted");
   });
 
   it("the greeting names ghosted", () => {

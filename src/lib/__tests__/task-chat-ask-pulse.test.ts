@@ -442,11 +442,10 @@ describe("Ask Pulse help and fallback", () => {
     expect(g.text).toContain("ask about any company");
   });
 
-  it("falls back honestly for questions the tracker cannot answer, naming what it can", () => {
+  it("answers a salary question from the knowledge base instead of refusing", () => {
     const a = answerGeneralQuestion("What is the salary?", ctx());
-    expect(a.text).toContain("I do not know that one from your tracker data");
-    expect(a.text).toContain("any company");
-    expect(a.text).toContain("response rate");
+    expect(a.text).toContain("Never give a number first");
+    expect(a.text).not.toContain("I do not know");
   });
 
   it("never uses an em dash in any new answer", () => {

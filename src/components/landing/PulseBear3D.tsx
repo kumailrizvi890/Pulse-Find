@@ -206,9 +206,13 @@ export default function PulseBear3D({ offsetX = 0, followScroll = false, bleedLe
       neck.rotation.z = pose.headTilt;
 
       // His right arm (viewer left) waves; the other sways a little.
+      // The raise and swing are deliberately large: the arm is short
+      // and the hero renders small, so a modest wave reads as a bob.
+      // At full raise the hand sweeps from out to the side to nearly
+      // straight up, and leans toward the viewer.
       const idle = reduced ? 0 : Math.sin(t * 1.7) * 0.04;
-      arms[0].rotation.z = -0.4 - pose.armRaise * 2.15 + pose.armWave * 0.38 - idle;
-      arms[0].rotation.x = -pose.armRaise * 0.25;
+      arms[0].rotation.z = -0.4 - pose.armRaise * 2.35 + pose.armWave * 0.6 - idle;
+      arms[0].rotation.x = -pose.armRaise * 0.45;
       arms[1].rotation.z = 0.4 + idle + pose.armRaise * 0.12;
 
       rig.setFace({

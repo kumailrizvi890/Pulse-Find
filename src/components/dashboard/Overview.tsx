@@ -491,11 +491,10 @@ export function Overview({
                           ? `Today · ${date}`
                           : date;
                   const urgent = bucket === "overdue" || bucket === "today";
-                  // The full texts, for the hover title: the three lines
-                  // below clamp to two lines, so hover still shows all of
-                  // a long next step, name, or note. No `block` class on
-                  // those spans: it overrides the display line-clamp sets
-                  // and the clamp silently stops working.
+                  // The next step always shows in full: it is the card's
+                  // title, and a two-line clamp still cut it mid-word
+                  // at desktop width. The person line and the note keep
+                  // their two-line clamp with the full text on hover.
                   const nextStep = c.next_step.trim() || `Follow up with ${c.person_name}`;
                   const personLine = c.company ? `${c.person_name} · ${c.company}` : c.person_name;
                   return (
@@ -515,7 +514,7 @@ export function Overview({
                           {initials(c.person_name)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="line-clamp-2 text-sm font-semibold" title={nextStep}>
+                          <span className="text-sm font-semibold break-words" title={nextStep}>
                             {nextStep}
                           </span>
                           <span className="line-clamp-2 text-xs text-muted" title={personLine}>

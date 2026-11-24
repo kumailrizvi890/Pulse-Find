@@ -52,8 +52,8 @@ export function ChatBeat() {
       <div>
         <h3 className="font-display text-2xl font-extrabold tracking-tight">Ask Pulse, get an answer</h3>
         <p className="mt-3 max-w-[56ch] text-muted">
-          Pulse answers straight from your tracker. It never guesses, and anything it cannot answer goes to your
-          connected agent.
+          Pulse answers straight from your tracker, and it knows the job hunt too: interview prep, resumes,
+          assessments, and staying on track. Anything that needs live data goes to your connected agent.
         </p>
         <p className="mt-4">
           <Link href="/demo?chat=1" className="text-sm font-semibold text-accent">

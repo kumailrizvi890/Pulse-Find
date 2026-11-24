@@ -2,11 +2,16 @@
 // "Talk to Agent" handoff summary.
 //
 // There is no LLM or chat endpoint in this repo, so the chatbot answers
-// only from the tracker data Pulse Find already has: the application row,
-// its history events, and networking contacts at the same company. Anything
-// it cannot answer from that data is routed to the Talk to Agent handoff
-// instead of guessed. All functions here are pure and take `today` so tests
-// can pin the date. No em dashes in any user-facing string.
+// from two places: the tracker data Pulse Find already has (the
+// application row, its history events, and networking contacts at the
+// same company) and a built-in job-hunt knowledge base (interview prep,
+// resumes, assessments, salary talk, strategy, and the rest of the hunt).
+// Tracker questions always win: the knowledge layer only answers when no
+// tracker intent matches, so it can never invent an application, a
+// status, or a deadline. Anything that needs live data, sending email,
+// or changing the tracker is routed to the Talk to Agent handoff instead
+// of guessed. All functions here are pure and take `today` so tests can
+// pin the date. No em dashes in any user-facing string.
 
 import {
   addDays,
@@ -22,6 +27,7 @@ import {
 } from "./metrics";
 import { buildAgentHandoffPrompt, getMcpEndpoint } from "./agent-prompt";
 import { dueBucket } from "./pipeline";
+import { findKnowledgeAnswer } from "./job-knowledge";
 import type { Application, Contact, ISODate, Lead, TrackerEvent } from "./types";
 
 export type ChatRole = "user" | "assistant";
@@ -60,6 +66,7 @@ export const TASK_CHAT_SUGGESTIONS = [
   "What happened so far?",
   "Who do I know here?",
   "What should I do next?",
+  "How do I prep for the interview?",
 ] as const;
 
 function fmtDay(s: ISODate | null): string {
@@ -99,7 +106,7 @@ export function taskChatGreeting(ctx: TaskChatContext): ChatMessage {
   } else {
     lines.push(`Nothing is waiting on you for this one right now. Status is ${app.status}.`);
   }
-  lines.push("Ask me anything about it, like what is due or where the link is.");
+  lines.push("Ask me anything about it, like what is due or where the link is, or ask me anything about the job hunt, like interview prep, your resume, or assessments.");
   // No tracker link here: every answer already carries one, so the
   // greeting plus the first answer showed the same "Open your tracker"
   // pill twice in a row. The posting link stays — it belongs to this task.
@@ -253,7 +260,7 @@ function answerHelp(ctx: TaskChatContext): ChatMessage {
   return {
     id: "help",
     role: "assistant",
-    text: `Happy to help. I can answer from what Pulse Find knows about ${ctx.app.company}: what is due and when, the posting link, the status and dates, what happened so far, and who you know there. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.`,
+    text: `Happy to help. I can answer from what Pulse Find knows about ${ctx.app.company}: what is due and when, the posting link, the status and dates, what happened so far, and who you know there. I can also help with the rest of the job hunt: interview prep, resume tips, online assessments, salary talk, application strategy, and networking. For anything that needs live data, sending email, or changing your tracker, Talk to Agent hands the whole thing to your connected agent.`,
   };
 }
 
@@ -261,7 +268,7 @@ function answerFallback(ctx: TaskChatContext): ChatMessage {
   return {
     id: "fallback",
     role: "assistant",
-    text: `Hmm, I do not know that one from your tracker data for ${ctx.app.company}. Try asking what is due, for the link, what happened so far, or who you know there. Or tap Talk to Agent and your connected agent can dig into it with you.`,
+    text: `Good thought. Here is one small nudge: pick the thing that would move your hunt forward most today and do just that one. If you want to talk it through, tell me a bit more, an application, an interview, or just how the hunt feels right now. Or ask me what is due, for the link, what happened so far, or who you know at ${ctx.app.company}, or ask about interview prep, your resume, or assessments. Or tap Talk to Agent and your connected agent can dig into it with you.`,
   };
 }
 
@@ -281,6 +288,10 @@ export function answerTaskQuestion(question: string, ctx: TaskChatContext): Chat
   if (/\b(who|contact|know|referr|network|recruiter|people)\b/.test(q)) return answerContacts(ctx);
   if (/\b(happen|history|update|news|heard|latest|so far|progress)\b/.test(q)) return answerHistory(ctx);
   if (/\b(status|where is|where are|how far|stage|applied)\b/.test(q)) return answerStatus(ctx);
+  // General job-hunt knowledge: only reached when no tracker intent
+  // matched, so a tracker question never lands here.
+  const kb = findKnowledgeAnswer(question);
+  if (kb) return { id: kb.id, role: "assistant", text: kb.text };
   return answerFallback(ctx);
 }
 
@@ -320,6 +331,7 @@ export const GENERAL_CHAT_SUGGESTIONS = [
   "What is due next?",
   "Who went quiet?",
   "How is my week going?",
+  "How do I prep for an interview?",
 ] as const;
 
 function generalTrackerLink(ctx: GeneralChatContext): ChatLink {
@@ -364,7 +376,7 @@ export function generalChatGreeting(ctx: GeneralChatContext): ChatMessage {
     );
   }
   lines.push(
-    "Ask me what is waiting, what is due next, who went quiet or ghosted you, or how your week is going. You can also ask about any company, like whether you have an assessment from them.",
+    "Ask me what is waiting, what is due next, who went quiet or ghosted you, or how your week is going. You can also ask about any company, like whether you have an assessment from them. And I can help with the job hunt itself: interview prep, resumes, assessments, salary talk, and staying on track. If you just want to talk the hunt through, I am here for that too.",
   );
   // No tracker link here, for the same reason as the task greeting: the
   // first answer already carries one, and the greeting plus that answer
@@ -929,7 +941,7 @@ function answerGeneralHelp(): ChatMessage {
   return {
     id: "help",
     role: "assistant",
-    text: "Happy to help. I can answer from your whole tracker: any company, like whether you have an assessment from them or when you applied; how many OAs, interviews, rejections or offers you have; what is waiting on you and what is due this week; who went quiet or ghosted you; what happened this week; your leads; who you know at a company; and your response rate. I cannot look things up outside your tracker, but for anything bigger, Talk to Agent hands the whole thing to your connected agent.",
+    text: "Happy to help. I can answer from your whole tracker: any company, like whether you have an assessment from them or when you applied; how many OAs, interviews, rejections or offers you have; what is waiting on you and what is due this week; who went quiet or ghosted you; what happened this week; your leads; who you know at a company; and your response rate. I can also help with the job hunt itself: interview prep, resume tips, online assessments, salary and offers, application strategy, and networking. For anything that needs live lookups, sending email, or changing your tracker, Talk to Agent hands it to your connected agent.",
   };
 }
 
@@ -937,7 +949,7 @@ function answerGeneralFallback(): ChatMessage {
   return {
     id: "fallback",
     role: "assistant",
-    text: "Hmm, I do not know that one from your tracker data. I can answer about any company, like whether you have an assessment from them, how many OAs, interviews, rejections or offers you have, who went quiet or ghosted you, what is due this week, what happened this week, your leads, and your response rate. Or tap Talk to Agent and your connected agent can dig into it with you.",
+    text: "Good thought. Here is one small nudge: pick the thing that would move your hunt forward most today and do just that one. If you want to talk it through, tell me a bit more, an application, an interview, or just how the hunt feels right now. Or ask me what is waiting on you, what is due this week, how your week is going, who went quiet or ghosted you, or about any company, and we can start there. For anything that needs live data or your connected agent, Talk to Agent is right there.",
   };
 }
 
@@ -961,6 +973,14 @@ export function answerGeneralQuestion(question: string, ctx: GeneralChatContext)
   if (person) return answerGeneralPerson(person, ctx);
   const company = findKnownCompany(q, ctx);
   if (company) return answerGeneralCompany(company, q, ctx, true);
+  // General job-hunt knowledge: checked before the unknown-company
+  // extractor, because the extractor is greedy ("prepare for a
+  // technical interview" used to yield a phantom company called
+  // "Technical"). A named company the tracker knows still wins above;
+  // a question about a company it does not know falls through to the
+  // extractor below when no knowledge intent matches.
+  const kb = findKnowledgeAnswer(question);
+  if (kb) return { id: kb.id, role: "assistant", text: kb.text };
   const unknown = extractUnknownCompany(q);
   if (unknown) return answerGeneralCompany(unknown, q, ctx, false);
   // "What happened this week?" is history, not the week-count summary.

@@ -9,14 +9,11 @@ import {
   GRAPH_NODE_COUNT,
   HOW_IT_WORKS_STEP_COUNT,
   HOW_IT_WORKS_STEPS,
-  MATCH_RING_LOOP_MS,
-  MATCH_SCORE,
   STAGE_FILL_LOOP_MS,
   STAGE_COLORS,
   SWIPE_LOOP_MS,
   TYPING_LOOP_MS,
   graphDrawProgress,
-  matchRingFrame,
   pulseDotPosition,
   sectionProgress,
   stageFillProgress,
@@ -91,7 +88,15 @@ describe("how it works steps", () => {
     expect(STAGE_COLORS.Applied).toBe("#fd585d");
     expect(STAGE_COLORS.OA).toBe("#e8a83c");
     expect(STAGE_COLORS.Interview).toBe("#5eac6d");
-    expect(component).toContain("Northwind");
+    // Northwind is still a fictional demo company in the lib, but the
+    // matched role card is gone (Nov 24 2026): the component must not
+    // render the sample role, its rate, or its match score anywhere.
+    expect(component).not.toContain("Northwind");
+    expect(component).not.toContain("Software Engineer Intern, Summer 2027");
+    expect(component).not.toContain("$32/hr");
+    expect(component).not.toContain("92 match");
+    expect(component).not.toContain("data-ring-fg");
+    expect(component).not.toContain("data-ring-score");
     expect(component).toContain("Copperline");
     expect(component).toContain("Fernhill");
     expect(component).not.toContain("284");
@@ -103,21 +108,6 @@ describe("how it works steps", () => {
     expect(wrapTime(1500, 1000)).toBe(500);
     expect(wrapTime(-100, 1000)).toBe(900);
     expect(wrapTime(100, 0)).toBe(0);
-  });
-});
-
-describe("match ring", () => {
-  it("starts at 0, draws to 92, and wraps cleanly", () => {
-    expect(matchRingFrame(0)).toEqual({ progress: 0, score: 0 });
-    expect(matchRingFrame(MATCH_RING_LOOP_MS)).toEqual({ progress: 0, score: 0 });
-    expect(matchRingFrame(MATCH_RING_LOOP_MS + 900)).toEqual(matchRingFrame(900));
-    const mid = matchRingFrame(MATCH_RING_LOOP_MS / 2);
-    expect(mid.progress).toBeGreaterThan(0.8);
-    expect(mid.progress).toBeLessThan(1);
-    expect(mid.score).toBe(Math.round(MATCH_SCORE * mid.progress));
-    const end = matchRingFrame(MATCH_RING_LOOP_MS - 1);
-    expect(end.progress).toBeGreaterThan(0.99);
-    expect(end.score).toBe(MATCH_SCORE);
   });
 });
 
@@ -288,7 +278,6 @@ describe("how it works component", () => {
 
   it("renders real product UI for every demo, with sample labels", () => {
     for (const name of [
-      "hiw-match-card",
       "hiw-swipe-deck",
       "hiw-tracker-row",
       "hiw-network",

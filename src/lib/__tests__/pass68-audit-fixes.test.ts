@@ -168,15 +168,16 @@ describe("12-month pace chart scales to the data", () => {
 });
 
 describe("networking follow-up cards show two lines, not one truncated line", () => {
-  it("clamps the next step to two lines with the full text on hover", () => {
-    expect(overview).toContain("line-clamp-2 text-sm font-semibold");
+  it("shows the full next step, never clipped mid-word", () => {
+    // The next step is the card's title: it wraps in full now (Nov 24
+    // 2026), after the two-line clamp cut it mid-word at desktop width
+    // ("Week 2 value touch: one strength + one fi…"). The hover title
+    // stays, for the full text in one line.
+    expect(overview).toContain("text-sm font-semibold break-words");
     expect(overview).toContain("title={nextStep}");
     expect(overview).toContain("const nextStep = c.next_step.trim()");
+    expect(overview).not.toContain("line-clamp-2 text-sm font-semibold");
     expect(overview).not.toContain("block truncate text-sm font-semibold");
-    // No `block` next to line-clamp-2: block wins the display cascade
-    // and the clamp stops working (caught in the render check, where
-    // Priya's next step showed three lines until block was dropped).
-    expect(overview).not.toContain("block line-clamp-2");
   });
 
   it("clamps the person and company line to two lines with the full text on hover", () => {

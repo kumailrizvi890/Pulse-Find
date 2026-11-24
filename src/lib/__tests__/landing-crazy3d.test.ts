@@ -10,17 +10,15 @@ import {
   particleAt,
   particleCount,
   particleField,
-  revealTotalMs,
   tiltFromPointer,
-  wordDelay,
 } from "@/lib/hero-crazy";
 
 // Hero crazy-3D (landing only, Nov 20 2026; the Resume check was
-// removed Nov 22 2026): the glass
+// removed Nov 22 2026, the hero headline Nov 24 2026): the glass
 // morph lives on inside a full-viewport hero with a canvas particle
-// field, a Clash Display word-by-word reveal, pointer tilt, and a
-// scroll morph into About. The dashboard is untouched: no dashboard
-// imports, no glow on signed-in pages, no new npm dependencies.
+// field, pointer tilt, and a scroll morph into About. The dashboard
+// is untouched: no dashboard imports, no glow on signed-in pages,
+// no new npm dependencies.
 
 const root = join(__dirname, "..", "..");
 const read = (rel: string): string => readFileSync(join(root, ...rel.split("/")), "utf8");
@@ -163,13 +161,15 @@ describe("crazy hero math is pure functions", () => {
     expect(later.y).toBeLessThan(1);
   });
 
-  it("reveals the headline word by word, under the 3 second cap", () => {
-    expect(wordDelay(0)).toBeCloseTo(0.15, 5);
-    expect(wordDelay(1)).toBeCloseTo(0.24, 5);
-    expect(wordDelay(5)).toBeCloseTo(0.6, 5);
-    expect(revealTotalMs(6)).toBeLessThan(3000);
-    expect(revealTotalMs(6)).toBe(1400);
-    expect(revealTotalMs(0)).toBe(0);
+  // The headline is gone (Nov 24 2026): the hero carries no h1 and no
+  // headline copy at all, in either branch. The bear and the tracker
+  // do the talking; the word-by-word reveal helpers went with it.
+  it("carries no headline anywhere in the hero", () => {
+    expect(hero).not.toContain("Every application");
+    expect(hero).not.toContain("One pulse");
+    expect(hero).not.toContain("<h1");
+    expect(crazy).not.toContain("wordDelay");
+    expect(crazy).not.toContain("revealTotalMs");
   });
 });
 
@@ -200,6 +200,32 @@ describe("landing wiring", () => {
   });
 });
 
+describe("hero tracker video reveals on scroll, and hides again", () => {
+  // Fix 10 (Nov 24 2026): the demo-dashboard video used to be visible
+  // on load. It now stays hidden until the hero card scrolls into
+  // view, and pauses + hides again when it scrolls away, on desktop
+  // and phone. No-JS keeps the old always-visible video: the armed
+  // class is only added once JS runs.
+  it("watches the hero card with an IntersectionObserver and plays/pauses on entry/exit", () => {
+    expect(hero).toContain("IntersectionObserver");
+    expect(hero).toContain("pw-video-armed");
+    expect(hero).toContain("is-inview");
+    expect(hero).toContain("video.play()");
+    expect(hero).toContain("video.pause()");
+  });
+
+  it("hides the video until in view, in CSS", () => {
+    expect(css).toContain(".hero-card-3d.pw-video-armed .pw-video");
+    expect(css).toContain("opacity: 0");
+    expect(css).toContain(".hero-card-3d.pw-video-armed.is-inview .pw-video");
+  });
+
+  it("holds a bear on first paint while the 3D chunk loads", () => {
+    expect(hero).toContain("PulseSprite");
+    expect(hero).toContain('pose="wave"');
+  });
+});
+
 describe("About 3D layer", () => {
   it("adds the open-source card with verified claims, no em dashes in the new copy", () => {
     expect(about).toContain("Open source, self-host it");
@@ -214,7 +240,7 @@ describe("About 3D layer", () => {
     expect(about).toContain("prefers-reduced-motion");
     expect(about).toContain("founder-nums b");
     expect(about).toContain("requestAnimationFrame");
-    expect(about).toContain("<b>243</b>");
+    expect(about).toContain("<b>284</b>");
     expect(about).toContain("<b>{TEST_COUNT}</b>");
     expect(about).toContain("<b>6</b>");
   });

@@ -188,7 +188,7 @@ describe("taps and reactions", () => {
 describe("wiring", () => {
   it("puts Pulse in the landing hero, in place of the headline", () => {
     expect(home).toContain("<HeroCrazy mascot />");
-    expect(hero).toContain('<h1 className="sr-only">');
+    expect(hero).not.toContain("<h1");
     expect(hero).toContain("<PulseBear3D followScroll bleedLeft />");
   });
 

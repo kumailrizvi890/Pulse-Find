@@ -5,7 +5,6 @@ import {
   GREETING_DELAY_MS,
   GREETING_MS,
   GREETING_RESUME_IDLE_MS,
-  SCRAMBLE_CHARSET,
   SCRAMBLE_SENSITIVITY,
   clampGreetingTime,
   crystalFaces,
@@ -24,21 +23,18 @@ import {
   project,
   rotateX,
   rotateY,
-  scrambleChar,
-  scrambleTotalMs,
-  scrambleWord,
   scrubTimeDelta,
   smoothstep,
-  wordScrambleProgress,
 } from "@/lib/hero-greeting";
 
 // Hero greeting v3 (landing only, Nov 20 2026): Pulse greets on
-// welcome as a crystal assembling from orbiting particles, the
-// headline scrambles in word by word, and after the greeting the
-// scene stays live: horizontal pointer movement scrubs the greeting
-// timeline, the pointer rotates the scene, touch drag scrubs and tap
-// replays. All of it is pure functions of the greeting clock, so
-// seeks chain and no frame can drop.
+// welcome as a crystal assembling from orbiting particles, and after
+// the greeting the scene stays live: horizontal pointer movement
+// scrubs the greeting timeline, the pointer rotates the scene, touch
+// drag scrubs and tap replays. All of it is pure functions of the
+// greeting clock, so seeks chain and no frame can drop. (The headline
+// that used to scramble in word by word was removed Nov 24 2026,
+// with its scramble helpers.)
 
 const root = join(__dirname, "..", "..");
 const read = (rel: string): string => readFileSync(join(root, ...rel.split("/")), "utf8");
@@ -99,47 +95,17 @@ describe("greeting clock", () => {
   });
 });
 
-describe("headline scramble-in", () => {
-  it("starts each word 90ms after the last, over 800ms", () => {
-    expect(wordScrambleProgress(0, 0)).toBe(0);
-    expect(wordScrambleProgress(400, 0)).toBeCloseTo(0.5, 5);
-    expect(wordScrambleProgress(800, 0)).toBe(1);
-    expect(wordScrambleProgress(0, 1)).toBe(0);
-    expect(wordScrambleProgress(90, 1)).toBe(0);
-    expect(wordScrambleProgress(890, 1)).toBe(1);
-    expect(wordScrambleProgress(450, 5)).toBe(0);
-    expect(wordScrambleProgress(1250, 5)).toBe(1);
-    expect(scrambleTotalMs(6)).toBe(1250);
-    expect(scrambleTotalMs(6)).toBeLessThan(3000 - GREETING_DELAY_MS);
-    expect(scrambleTotalMs(0)).toBe(0);
-  });
-
-  it("keeps the word length and resolves left to right", () => {
-    const word = "application.";
-    expect(scrambleWord(word, 0)).toHaveLength(word.length);
-    expect(scrambleWord(word, 1)).toBe(word);
-    expect(scrambleWord("", 0.5)).toBe("");
-    const half = scrambleWord(word, 0.5);
-    expect(half.slice(0, 6)).toBe(word.slice(0, 6));
-    expect(half.slice(6)).not.toBe(word.slice(6));
-    const quarter = scrambleWord(word, 0.25);
-    expect(quarter.slice(0, 3)).toBe(word.slice(0, 3));
-    expect(quarter[3]).not.toBe(word[3]);
-  });
-
-  it("never shows a real char before it resolves, and never flickers per render", () => {
-    const word = "pulse.";
-    const scrambled = scrambleWord(word, 0);
-    for (let i = 0; i < word.length; i++) {
-      expect(scrambled[i]).not.toBe(word[i]);
-      expect(SCRAMBLE_CHARSET).toContain(scrambled[i]);
+describe("the headline is gone", () => {
+  // Nov 24 2026: the hero headline was removed from the DOM, and the
+  // scramble helpers went with it. Nothing in the lib or the hero
+  // may still scramble words, and no headline CSS may remain.
+  it("has no scramble helpers left in the lib", () => {
+    const lib = read("lib/hero-greeting.ts");
+    for (const name of ["scrambleWord", "scrambleChar", "scrambleTotalMs", "wordScrambleProgress", "SCRAMBLE_CHARSET"]) {
+      expect(lib).not.toContain(name);
     }
-    expect(scrambleWord(word, 0)).toBe(scrambleWord(word, 0));
-    expect(scrambleWord(word, 0.3)).toBe(scrambleWord(word, 0.3));
-    expect(scrambleChar(word, 0, 0)).toBe(scrambleChar(word, 0, 0));
-    expect(SCRAMBLE_CHARSET).not.toContain("—");
-    expect(SCRAMBLE_CHARSET).not.toContain("e");
-    expect(SCRAMBLE_CHARSET).not.toContain("E");
+    expect(lib).not.toContain("SCRAMBLE_WORD_MS");
+    expect(lib).not.toContain("SCRAMBLE_WORD_STAGGER_MS");
   });
 });
 
@@ -286,9 +252,8 @@ describe("scene orientation and layout", () => {
 });
 
 describe("greeting component wiring", () => {
-  it("draws the crystal on the hero canvas, scrambles the headline, scrubs on pointer", () => {
+  it("draws the crystal on the hero canvas, scrubs on pointer", () => {
     expect(hero).toContain("hero-greeting");
-    expect(hero).toContain("scrambleWord");
     expect(hero).toContain("greetingProgress");
     expect(hero).toContain("scrubTimeDelta");
     expect(hero).toContain("crystalLayout");
@@ -303,9 +268,11 @@ describe("greeting component wiring", () => {
     expect(hero).not.toContain("—");
   });
 
-  it("keeps the headline reveal as JS scramble, not a CSS mask rise", () => {
-    expect(css).toContain(".hero-crazy-copy h1 .hw-in");
+  it("carries no headline reveal CSS: the headline is gone", () => {
+    expect(css).not.toContain(".hero-crazy-copy h1");
+    expect(css).not.toContain(".hw-in");
     expect(css).not.toContain("h1.in .hw-in");
     expect(css).not.toContain("translateY(112%)");
+    expect(css).toContain(".hero-crazy-copy > p");
   });
 });

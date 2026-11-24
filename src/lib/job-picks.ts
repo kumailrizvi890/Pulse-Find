@@ -60,3 +60,24 @@ export function removeJobPick(jobId: string): void {
     writeJobPicks(marks, saved);
   } catch {}
 }
+
+/** A role that requires an advanced degree, from the title alone. */
+export function isAdvancedDegreeOnly(title: string): boolean {
+  return /\b(ph\.?d|m\.?sc|master'?s|doctoral)\b/i.test(title);
+}
+
+/**
+ * Order the swipe queue so undergrad-eligible roles come first.
+ * Advanced-degree-only roles move to the back, in their posted order;
+ * nothing is dropped. Stable: roles within each group keep their
+ * posted order. (The first card used to be a PhD-only Waymo role,
+ * an odd first impression for an undergrad audience.)
+ */
+export function orderSwipeQueue<T extends { title: string }>(picks: T[]): T[] {
+  const undergrad: T[] = [];
+  const advanced: T[] = [];
+  for (const pick of picks) {
+    (isAdvancedDegreeOnly(pick.title) ? advanced : undergrad).push(pick);
+  }
+  return [...undergrad, ...advanced];
+}

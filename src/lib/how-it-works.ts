@@ -105,27 +105,6 @@ export function easeOutCubic(p: number): number {
   return 1 - Math.pow(1 - c, 3);
 }
 
-export const MATCH_RING_LOOP_MS = 3600;
-export const MATCH_SCORE = 92;
-
-export interface MatchRingFrame {
-  /** 0 at loop start, 1 when the ring is fully drawn. */
-  progress: number;
-  /** Score counting up with the ring, 0 to 92. */
-  score: number;
-}
-
-/**
- * Step 1: the match ring draws itself around the score, then the
- * loop restarts. The ring eases out, so it lands softly instead of
- * snapping shut.
- */
-export function matchRingFrame(tMs: number, loopMs = MATCH_RING_LOOP_MS): MatchRingFrame {
-  const p = wrapTime(tMs, loopMs) / loopMs;
-  const progress = easeOutCubic(p);
-  return { progress, score: Math.round(MATCH_SCORE * progress) };
-}
-
 export const SWIPE_LOOP_MS = 4800;
 
 export type SwipePhase = "hold" | "swiping" | "entering";

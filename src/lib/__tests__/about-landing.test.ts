@@ -15,13 +15,14 @@ import { describe, expect, it } from "vitest";
 // constant in AboutLanding.tsx, which renders it in the rigor
 // paragraph, the "N tests · CI" chip, and the founder number.
 
-const EXPECTED_TEST_COUNT = 1135;
+const EXPECTED_TEST_COUNT = 1142;
 
 const root = join(__dirname, "..", "..");
 const repoRoot = join(root, "..");
 const read = (rel: string): string => readFileSync(join(root, ...rel.split("/")), "utf8");
 
 const home = read("app/page.tsx");
+const aboutPage = read("app/about/page.tsx");
 const about = read("components/landing/AboutLanding.tsx");
 const install = read("components/landing/InstallSection.tsx");
 const layout = read("app/layout.tsx");
@@ -97,7 +98,7 @@ describe("the founder section", () => {
   });
 
   it("keeps the approved founder-number snapshots", () => {
-    expect(about).toContain("<b>243</b>");
+    expect(about).toContain("<b>284</b>");
     expect(about).toContain("Applications tracked in Pulse Find");
     expect(about).toContain("<b>6</b>");
     expect(about).toContain("Live projects shipped");
@@ -162,23 +163,53 @@ describe("the founder photo is the real headshot", () => {
   });
 });
 
-describe("the install section, minus the two removals", () => {
-  it("has no 'Real app · No app store needed' badge", () => {
-    expect(install).not.toContain("Real app");
-    expect(install).not.toContain("No app store needed");
-    expect(install).not.toContain("install-badge");
-    expect(css).not.toContain(".install-badge");
+describe("the standalone /about route", () => {
+  // /about used to 404 (Nov 24 2026). It is a real route now: the
+  // same TopBar, InstallSection and AboutLanding as the landing's
+  // lower half, with the site footer. No session redirect: the About
+  // content is public.
+  it("renders the install section and the About content with the site chrome", () => {
+    expect(aboutPage).toContain("<TopBar");
+    expect(aboutPage).toContain("<InstallSection />");
+    expect(aboutPage).toContain("<AboutLanding />");
+    expect(aboutPage).toContain("<SiteFooter />");
+    expect(aboutPage).toContain('href="/jobs"');
+    expect(aboutPage).toContain('href="/demo"');
+    expect(aboutPage).toContain('href="/demo/connect"');
   });
 
-  it("has no 'Step one: Open Pulse Find' — the steps are the two phones", () => {
-    expect(install).not.toContain("Open Pulse Find in");
-    // iPhone: Share → Add to Home Screen, shown on phone 1.
-    expect(install).toContain("Tap the <b>Share</b> button, then <b>Add to Home Screen</b>");
-    // Android: Install app → Install, in the status line.
-    expect(install).toContain("Install app");
-    expect(install).toContain("Install");
-    // The status line stays accurate: 3 taps in Safari.
-    expect(install).toContain("On iPhone it&apos;s 3 taps in Safari:");
+  it("does not redirect signed-in visitors away from /about", () => {
+    expect(aboutPage).not.toContain("redirect(");
+    expect(aboutPage).not.toContain("getSession");
+    expect(aboutPage).not.toContain("createClient");
+  });
+});
+
+describe("the install section, phones only", () => {
+  // Nov 24 2026, at the owner's direction: the install section lost
+  // ALL text and buttons. No heading, no lede, no install button, no
+  // status line, no captions, no callout. Just the two phones.
+  it("has no heading, lede, button, status line, or captions", () => {
+    expect(install).not.toContain("<h2");
+    expect(install).not.toContain("lede");
+    expect(install).not.toContain("btn-install");
+    expect(install).not.toContain("install-status");
+    expect(install).not.toContain("figcaption");
+    expect(install).not.toContain("pulse-callout");
+    expect(install).not.toContain("Add Pulse Find to my phone");
+    expect(install).not.toContain("On your home screen");
+    expect(install).not.toContain("That&apos;s the one step");
+    expect(install).not.toContain("dashboard one step away");
+  });
+
+  it("has no install-prompt wiring left: no state, no handlers, no share call", () => {
+    expect(install).not.toContain("@/lib/install-prompt");
+    expect(install).not.toContain("useState");
+    expect(install).not.toContain("useEffect");
+    expect(install).not.toContain("navigator.share");
+    expect(install).not.toContain("promptInstall");
+    expect(install).not.toContain("onInstall");
+    expect(install).not.toContain("beforeinstallprompt");
   });
 
   it("shows two phones: the real Share-sheet screenshot, then the home screen", () => {
@@ -192,39 +223,15 @@ describe("the install section, minus the two removals", () => {
     expect(install).not.toContain('className="perks"');
   });
 
-  it("wires the shared install-prompt capture, never auto-firing", () => {
-    expect(install).toContain('from "@/lib/install-prompt"');
-    expect(install).toContain("ensureInstallPromptListener()");
-    expect(install).toContain("promptInstall()");
-    expect(install).toContain("isIOSDevice()");
-    expect(install).toContain("isStandaloneMode()");
-    expect(install).toContain("getInstallPrompt()");
-    expect(install).toContain("subscribeInstallPrompt(sync)");
-    expect(install).not.toContain('addEventListener("beforeinstallprompt"');
-    expect(install).toContain("Add Pulse Find to my phone");
-    expect(install).toContain("On your home screen ✓");
-  });
-
-  it("opens the iPhone Share sheet from the install button, before any await", () => {
-    expect(install).toContain("navigator.share({");
-    expect(install).toContain('typeof navigator.share === "function"');
-    const onInstall = install.slice(install.indexOf("const onInstall"));
-    expect(onInstall.indexOf("navigator.share(")).toBeLessThan(onInstall.indexOf("await promptInstall()"));
-    expect(install).toContain("tap Add to Home Screen");
-  });
-
-  it("shows the iOS Add to Home Screen guidance with the exact steps", () => {
-    expect(install).toContain("Add to Home Screen: show me how");
-    expect(install).toContain("Share → Add to Home");
-    expect(install).toContain("Screen → Add");
+  it("keeps the getApp anchor and the section label", () => {
+    expect(install).toContain('id="getApp"');
+    expect(install).toContain('aria-label="Get Pulse Find on your phone"');
   });
 
   it("uses the repo's real app icon in the phone mock", () => {
     expect(install).toContain('src="/icons/icon-512.png"');
     expect(install).not.toContain("pulse-icon-512");
-    expect(install).toContain("Tap");
     expect(install).toContain("Pulse Find");
-    expect(install).toContain("That&apos;s the one step.");
   });
 });
 

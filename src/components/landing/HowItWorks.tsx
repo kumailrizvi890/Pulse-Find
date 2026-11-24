@@ -6,13 +6,10 @@ import {
   AGENT_PROMPT,
   AGENT_REPLY_WORDS,
   HOW_IT_WORKS_STEPS,
-  MATCH_RING_LOOP_MS,
-  MATCH_SCORE,
   STAGE_FILL_LOOP_MS,
   SWIPE_LOOP_MS,
   TYPING_LOOP_MS,
   graphDrawProgress,
-  matchRingFrame,
   pulseDotPosition,
   sectionProgress,
   stageFillProgress,
@@ -27,8 +24,10 @@ import {
 // one column with the rail on the left on phones.
 //
 // Each demo is a slice of the real product UI with sample data:
-// a role card with a match ring, the swipe deck, a tracker row
-// filling stage by stage, a network panel, and the agent chat.
+// the swipe deck, a tracker row filling stage by stage, a network
+// panel, and the agent chat. (Step 1 used to carry a matched role
+// card with a match ring; it was removed Nov 24 2026, so that step
+// is copy only now.)
 // The pulse dot rides an ECG line down the rail as you scroll:
 // the line draws itself and the dot sits on its tip.
 //
@@ -40,11 +39,7 @@ import {
 // the reveal only hides steps once JS arms it. The section
 // heading takes Clash Display to match the hero.
 
-const RING_C = 2 * Math.PI * 34;
-
 type DemoNodes = {
-  ringFg: SVGCircleElement | null;
-  ringScore: HTMLElement | null;
   swipeCard: HTMLElement | null;
   saved: HTMLElement | null;
   bars: Record<string, HTMLElement | null>;
@@ -64,8 +59,6 @@ function collectNodes(section: HTMLElement): DemoNodes {
   const stage = (kind: string, stage: string) =>
     q<HTMLElement>(`[data-${kind}="${stage}"]`);
   return {
-    ringFg: q<SVGCircleElement>("[data-ring-fg]"),
-    ringScore: q<HTMLElement>("[data-ring-score]"),
     swipeCard: q<HTMLElement>("[data-swipe-card]"),
     saved: q<HTMLElement>("[data-saved]"),
     bars: {
@@ -93,8 +86,6 @@ function collectNodes(section: HTMLElement): DemoNodes {
 }
 
 function applyEndStates(n: DemoNodes) {
-  if (n.ringFg) n.ringFg.style.strokeDashoffset = "0";
-  if (n.ringScore) n.ringScore.textContent = String(MATCH_SCORE);
   if (n.swipeCard) {
     n.swipeCard.style.transform = "none";
     n.swipeCard.style.opacity = "1";
@@ -112,10 +103,6 @@ function applyEndStates(n: DemoNodes) {
 }
 
 function applyFrame(n: DemoNodes, t: number) {
-  const ring = matchRingFrame(t, MATCH_RING_LOOP_MS);
-  if (n.ringFg) n.ringFg.style.strokeDashoffset = String(RING_C * (1 - ring.progress));
-  if (n.ringScore) n.ringScore.textContent = String(ring.score);
-
   const swipe = swipeCardFrame(t, SWIPE_LOOP_MS);
   if (n.swipeCard) {
     n.swipeCard.style.transform = `translateX(${swipe.translateX.toFixed(1)}px) rotate(${swipe.rotateDeg.toFixed(1)}deg) scale(${swipe.scale.toFixed(3)})`;
@@ -279,34 +266,6 @@ export function HowItWorks() {
             </div>
             <h3>{step.title}</h3>
             <p>{step.body}</p>
-            {step.id === "find" && (
-              <div className="hiw-demo hiw-match-card">
-                <span className="hiw-sample">Sample data</span>
-                <div className="hiw-role">
-                  <div>
-                    <b>Northwind</b>
-                    <span>Software Engineer Intern, Summer 2027</span>
-                    <span>$32/hr · Seattle, WA</span>
-                  </div>
-                  <div className="hiw-ring" role="img" aria-label="Match score 92 out of 100">
-                    <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true">
-                      <circle cx="42" cy="42" r="34" className="hiw-ring-bg" />
-                      <circle
-                        cx="42"
-                        cy="42"
-                        r="34"
-                        className="hiw-ring-fg"
-                        data-ring-fg
-                        strokeDasharray={RING_C}
-                        strokeDashoffset={0}
-                      />
-                    </svg>
-                    <b data-ring-score>92</b>
-                  </div>
-                </div>
-                <div className="hiw-match-note">92 match · Newest first</div>
-              </div>
-            )}
             {step.id === "swipe" && (
               <div className="hiw-demo hiw-swipe-deck">
                 <span className="hiw-sample">Sample data</span>

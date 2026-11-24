@@ -935,6 +935,12 @@ body {
 .hero-mascot .hero-crazy-inner { padding-top: 20px; padding-bottom: 72px; }
 .hero-mascot .hero-pulse-stage { height: clamp(340px, 56vh, 560px); }
 .pw-video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top center; background: #0d0c10; }
+/* Tracker reveal (Nov 24 2026): armed by JS only, so no-JS keeps the
+   old always-visible video. Armed, the loop is hidden and paused
+   until its card is scrolled into view, and hides again as it
+   scrolls away. */
+.hero-card-3d.pw-video-armed .pw-video { opacity: 0; transition: opacity 0.5s ease; }
+.hero-card-3d.pw-video-armed.is-inview .pw-video { opacity: 1; }
 .hero-demo-link { display: inline-flex; align-items: center; gap: 6px; margin: 16px auto 0; padding: 6px 4px; color: #bcbccb; font-size: 14px; font-weight: 700; text-decoration: none; position: relative; z-index: 2; transition: color 0.2s; }
 .hero-mascot .hero-crazy-stage { display: flex; flex-direction: column; }
 .hero-demo-link svg { width: 14px; height: 14px; transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -953,13 +959,12 @@ body {
    the bottom, so the hero melts into How it works with no seam. */
 .hero-mascot::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 180px; pointer-events: none; background: linear-gradient(180deg, rgba(13, 12, 16, 0) 0%, #0d0c10 100%); z-index: 1; }
 
-/* Get the app, shown not told (Nov 22 2026): two phones. Phone 1 is
-   a real iPhone screenshot of the Share sheet with Add to Home Screen
-   circled; phone 2 is the home screen with Pulse Find on it, set a
-   little lower for depth. Numbered captions under each. When the
-   install button can't prompt (iPhone), it scrolls here and phone 1
-   lights up. */
+/* Get the app, shown not told (Nov 22 2026, phones-only Nov 24 2026):
+   two phones, no text at all. Phone 1 is a real iPhone screenshot of
+   the Share sheet with Add to Home Screen circled; phone 2 is the
+   home screen with Pulse Find on it, set a little lower for depth. */
 .install-card { grid-template-columns: 1fr 1.05fr; align-items: center; }
+.install-card-phones { grid-template-columns: 1fr; justify-items: center; }
 .phone-pair { display: flex; justify-content: center; align-items: flex-start; gap: 22px; scroll-margin-top: 120px; }
 .phone-step { margin: 0; display: flex; flex-direction: column; align-items: center; width: 206px; }
 .phone-step:nth-child(2) { margin-top: 36px; }
@@ -1144,10 +1149,6 @@ body {
 .hero-crazy-stage { margin-top: 72px; margin-left: -32px; z-index: 3; }
 .hero-crazy-inner > *, .founder-grid > * { min-width: 0; }
 .hero-crazy-copy .about-kicker { display: inline-block; }
-.hero-crazy-copy h1 { font-family: "Clash Display", var(--font-display); font-weight: 600; font-size: clamp(40px, 11vw, 100px); line-height: 0.94; letter-spacing: -0.03em; margin: 18px 0 20px; color: #fff; }
-.hero-crazy-copy h1 .hw { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
-.hero-crazy-copy h1 .hw-in { display: inline-block; }
-.hero-crazy-copy h1 .hw:nth-child(2) .hw-in, .hero-crazy-copy h1 .hw:nth-child(4) .hw-in { color: #fd585d; }
 .hero-crazy-copy > p { color: #bcbccb; font-size: 17px; line-height: 1.55; max-width: 480px; margin: 0; }
 .hero-crazy-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
 .hero-crazy-ctas .cta2 { box-shadow: none; }

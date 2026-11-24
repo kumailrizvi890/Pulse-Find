@@ -158,14 +158,3 @@ export function particleAt(p: Particle, t: number): { x: number; y: number } {
   const x = (((p.x + p.drift * t + Math.sin(t * 0.4 + p.y * 12) * 0.006) % 1) + 1) % 1;
   return { x, y };
 }
-
-/** Headline reveal: word i starts at 0.15s + i * 0.09s, runs 0.8s. */
-export function wordDelay(index: number): number {
-  return 0.15 + index * 0.09;
-}
-
-/** Total hero reveal time for a headline of n words, under the 3s cap. */
-export function revealTotalMs(wordCount: number): number {
-  if (wordCount <= 0) return 0;
-  return Math.round((wordDelay(wordCount - 1) + 0.8) * 1000);
-}

@@ -4,8 +4,6 @@
 //
 //   * A glowing red pulse crystal assembles from orbiting particles,
 //     with the ECG pulse line drawing itself in 3D around it.
-//   * The headline reveals with a scramble-in: random chars resolving
-//     left to right per word, starting after the same 800ms delay.
 //   * After the greeting, horizontal pointer movement scrubs the
 //     timeline forward and back (delta-based, sensitivity 0.8, in the
 //     SynapseX manner), so a visitor can replay the greeting by moving
@@ -27,24 +25,14 @@ import type { DeviceTier } from "@/lib/hero-crazy";
 
 /** The welcome delay before the greeting starts, in ms. */
 export const GREETING_DELAY_MS = 800;
-/** The greeting timeline length, in ms. The headline finishes at
- *  1400ms inside it; the crystal settles by the end. */
+/** The greeting timeline length, in ms. The crystal settles by the end. */
 export const GREETING_MS = 2200;
-/** How long one word takes to unscramble, in ms. Matches the v2
- *  word reveal run of 0.8s, so the total reveal stays under the 3s cap. */
-export const SCRAMBLE_WORD_MS = 800;
-/** Stagger between words, in ms. Same 0.09s stagger as the v2 reveal. */
-export const SCRAMBLE_WORD_STAGGER_MS = 90;
 /** Scrub sensitivity: a full-width horizontal sweep moves the
  *  greeting by this fraction of its length (SynapseX-style 0.8). */
 export const SCRAMBLE_SENSITIVITY = 0.8;
 /** Idle time after the last scrub before the greeting resumes
  *  assembling itself toward the end. */
 export const GREETING_RESUME_IDLE_MS = 2500;
-/** Scramble alphabet: digits and symbols only, never a letter, so a
- *  scrambled char can never coincidentally equal the real char in a
- *  headline word. No em dash anywhere in it. */
-export const SCRAMBLE_CHARSET = "0123456789#$%&*?<>@+/=";
 
 export const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
 
@@ -102,57 +90,6 @@ export function scrubTimeDelta(
 ): number {
   if (widthPx <= 0) return 0;
   return (dxPx * sensitivity * GREETING_MS) / widthPx;
-}
-
-/**
- * One headline word's scramble progress at a moment in the greeting
- * clock. Word i starts SCRAMBLE_WORD_STAGGER_MS after word i-1 and
- * takes SCRAMBLE_WORD_MS to resolve.
- */
-export function wordScrambleProgress(timeMs: number, wordIndex: number): number {
-  return clamp01((timeMs - wordIndex * SCRAMBLE_WORD_STAGGER_MS) / SCRAMBLE_WORD_MS);
-}
-
-/** Total headline reveal time for n words, from the greeting start. */
-export function scrambleTotalMs(wordCount: number): number {
-  if (wordCount <= 0) return 0;
-  return (wordCount - 1) * SCRAMBLE_WORD_STAGGER_MS + SCRAMBLE_WORD_MS;
-}
-
-function hashString(s: string): number {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
-
-/**
- * The scramble char for one character slot at one flicker step.
- * Deterministic in (word, charIndex, step), so a frame renders the
- * same chars every time and the scramble never flickers on re-render.
- */
-export function scrambleChar(word: string, charIndex: number, step: number): string {
-  const h = hashString(`${word}:${charIndex}:${step}`);
-  return SCRAMBLE_CHARSET[h % SCRAMBLE_CHARSET.length];
-}
-
-/**
- * One word mid-scramble: chars resolve left to right, each char
- * resolving once progress passes (i + 1) / length. Progress 0 is all
- * scramble chars, progress 1 is the word itself.
- */
-export function scrambleWord(word: string, progress: number): string {
-  const len = word.length;
-  if (len === 0) return "";
-  const p = clamp01(progress);
-  if (p >= 1) return word;
-  const step = Math.floor(p * 12);
-  let out = "";
-  for (let i = 0; i < len; i++) {
-    out += p >= (i + 1) / len ? word[i] : scrambleChar(word, i, step);
-  }
-  return out;
 }
 
 // ---------------------------------------------------------------------------

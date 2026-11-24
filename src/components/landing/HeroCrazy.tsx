@@ -2,12 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  PULSE_DOCK_EVENT,
-  PULSE_POKE_EVENT,
-  PULSE_RETURNED_EVENT,
-  PULSE_UNDOCK_EVENT,
-} from "@/lib/pulse-bear-events";
+import { PULSE_DOCK_EVENT, PULSE_POKE_EVENT, PULSE_RETURNED_EVENT, PULSE_UNDOCK_EVENT } from "@/lib/pulse-bear-events";
+import { PulseSprite } from "@/components/PulseSprite";
 import { morphStates, stateAt } from "@/lib/hero-morph";
 import {
   deviceTier,
@@ -38,10 +34,8 @@ import {
   project,
   rotateX,
   rotateY,
-  scrambleWord,
   scrubTimeDelta,
   smoothstep,
-  wordScrambleProgress,
 } from "@/lib/hero-greeting";
 import {
   auroraShift,
@@ -63,15 +57,16 @@ import {
 //   3. The greeting (Nov 20 2026, v3): Pulse greets on welcome, then
 //      stays as a live interactive 3D scene. A glowing red pulse
 //      crystal assembles from orbiting particles on the hero canvas,
-//      with the ECG pulse line drawing itself in 3D around it, and
-//      the headline reveals with a scramble-in (random chars resolving
-//      left to right per word), all after the same 800ms welcome
-//      delay. After the greeting, horizontal pointer movement scrubs
-//      the greeting timeline forward and back (delta-based,
-//      sensitivity 0.8), so visitors can replay the greeting by moving
-//      the mouse; touch drag scrubs, tap replays. The pointer also
-//      keeps rotating the crystal, so the scene stays live either way.
-//      The scene is hand-rolled canvas 2.5D, not Three.js: one convex
+//      with the ECG pulse line drawing itself in 3D around it, all
+//      after the same 800ms welcome delay. After the greeting,
+//      horizontal pointer movement scrubs the greeting timeline
+//      forward and back (delta-based, sensitivity 0.8), so visitors
+//      can replay the greeting by moving the mouse; touch drag scrubs,
+//      tap replays. The pointer also keeps rotating the crystal, so
+//      the scene stays live either way. The headline that used to
+//      scramble in with the greeting was removed Nov 24 2026: the
+//      hero carries no headline now, the bear and the tracker do the
+//      talking. The scene is hand-rolled canvas 2.5D, not Three.js: one convex
 //      crystal, a particle cloud, and a ring polyline, all real 3D
 //      math in src/lib/hero-greeting.ts. No new dependencies, no
 //      WebGL failure mode, DPR capped at 2, paused off-screen and on
@@ -100,21 +95,31 @@ import {
 // gets a still frame.
 
 // Pulse in 3D (Nov 22 2026): with `mascot` on, the plush Pulse bear
-// takes the headline's place on the left, greeting on load and
-// playing with the pointer, and the sample tracker stays on the
-// right. The headline stays in the DOM as a screen-reader h1. three.js
-// lives only in the PulseBear3D chunk, loaded after first paint via
-// next/dynamic with ssr: false, and only when mascot is on.
+// takes the left column, greeting on load and playing with the
+// pointer, and the sample tracker stays on the right. There is no
+// headline: the bear and the tracker do the talking (the headline
+// was removed Nov 24 2026). three.js lives only in the PulseBear3D
+// chunk, loaded after first paint via next/dynamic with ssr: false,
+// and only when mascot is on. While the chunk loads, a pre-rendered
+// Pulse stands in the same spot, so the hero is never empty
+// starfield waiting on three.js.
 const PulseBear3D = dynamic(() => import("./PulseBear3D"), {
   ssr: false,
-  loading: () => <div className="pulse-bear" aria-hidden="true" />,
+  // The same pre-rendered bear the WebGL fallback shows, so the stage
+  // holds a bear from the first paint instead of empty starfield
+  // while the three.js chunk loads.
+  loading: () => (
+    <div className="pulse-bear" aria-hidden="true">
+      <div className="pulse-bear-fallback">
+        <PulseSprite pose="wave" className="h-80 w-80 object-contain" />
+      </div>
+    </div>
+  ),
 });
 
 const STATES = morphStates();
 const FONTSHARE_HREF =
   "https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap";
-
-const HEADLINE: string[] = ["Every", "application.", "Every", "interview.", "One", "pulse."];
 
 // Demo tracker rows (landing only): the demo companies from
 // demo-data.ts, staged as the demo data stages them. Interviews
@@ -181,12 +186,14 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
       window.removeEventListener(PULSE_RETURNED_EVENT, onReturned);
     };
   }, [mascot]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const auroraRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const progressPathRef = useRef<SVGPathElement>(null);
   const progressDotRef = useRef<HTMLSpanElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const numRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
@@ -194,7 +201,33 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
   const dotsRef = useRef<HTMLDivElement>(null);
   const [reduced, setReduced] = useState(false);
   const [started, setStarted] = useState(false);
-  const h1Ref = useRef<HTMLHeadingElement>(null);
+
+  // Tracker video reveal (Nov 24 2026): the demo loop stays hidden
+  // and paused until its card is scrolled into view, and hides and
+  // pauses again as it scrolls away, on desktop and phones. The card
+  // is only armed once JS runs, so without JS the video plays as
+  // before instead of sitting hidden.
+  useEffect(() => {
+    if (!mascot) return;
+    const card = cardRef.current;
+    const video = videoRef.current;
+    if (!card || !video) return;
+    card.classList.add("pw-video-armed");
+    const io = new IntersectionObserver(
+      (entries) => {
+        const inView = entries[0]?.isIntersecting ?? false;
+        card.classList.toggle("is-inview", inView);
+        if (inView) {
+          if (!reduced) video.play().catch(() => undefined);
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(card);
+    return () => io.disconnect();
+  }, [mascot, reduced]);
 
   // Clash Display, landing only: injected here, never in the layout,
   // so the dashboard never fetches it. Falls back to Bricolage if
@@ -217,12 +250,12 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Headline scramble: the words are rendered whole in JSX, so no-JS
-  // and reduced motion both show the final headline. The loop below
-  // overwrites each word's text with its scrambled form while the
-  // greeting runs, and writes the final word back once it resolves.
-  // No `revealed` state: the reveal is driven by the greeting clock,
-  // not by a CSS transition.
+  // The greeting clock (ms): starts at -GREETING_DELAY_MS, the 800ms
+  // welcome delay, and runs to GREETING_MS. Auto-plays forward
+  // until the visitor scrubs it; after 2.5s without scrub input it
+  // resumes assembling itself toward the end.
+  // (The headline scramble that used to read this clock was removed
+  // Nov 24 2026 with the headline; the crystal and ring still do.)
 
   // Scroll progress ECG line: a thin fixed line at the very top of
   // the landing that draws itself as the page scrolls, with a dot
@@ -297,11 +330,6 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
     const greetParts = greetParticles(20261120, greetParticleCount(tier));
     const crystalVerts = crystalVertices();
     const crystalFaceList = crystalFaces();
-    // Word spans for the scramble: cached once, written only when
-    // the scrambled text actually changes.
-    const wordSpans = h1Ref.current
-      ? Array.from(h1Ref.current.querySelectorAll<HTMLSpanElement>(".hw-in"))
-      : [];
 
     const resize = () => {
       const rect = section.getBoundingClientRect();
@@ -415,8 +443,8 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
       // Greeting clock: auto-plays forward from the welcome delay,
       // pauses while the visitor scrubs, and resumes assembling
       // itself after 2.5s without scrub input. Everything in the
-      // greeting (crystal, ring, headline) reads this one clock, so
-      // scrubbing the crystal scrubs the headline with it.
+      // greeting (crystal, ring) reads this one clock, so scrubbing
+      // the crystal scrubs the ring with it.
       if (greetingAuto && greetingT < GREETING_MS) {
         greetingT = Math.min(GREETING_MS, greetingT + dt * 1000);
       } else if (
@@ -428,14 +456,6 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
       }
       const g = greetingProgress(greetingT);
       const phases = greetingPhases(g);
-
-      // Headline scramble-in: each word resolves left to right on
-      // the greeting clock, starting after the 800ms welcome delay.
-      for (let i = 0; i < wordSpans.length && i < HEADLINE.length; i++) {
-        const span = wordSpans[i];
-        const next = scrambleWord(HEADLINE[i], wordScrambleProgress(greetingT, i));
-        if (span && span.textContent !== next) span.textContent = next;
-      }
 
       // Morph ticker: same 8s loop, numbers travel and cross-dissolve.
       const frame = stateAt(now - start);
@@ -783,21 +803,10 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
         <div className="hero-crazy-copy" ref={copyRef}>
           {mascot ? null : <span className="about-kicker">Pulse Find</span>}
           {mascot ? (
-            <>
-              <h1 className="sr-only">{HEADLINE.join(" ")}</h1>
-              <div className="hero-pulse-stage" ref={pulseStageRef}>
-                <PulseBear3D followScroll bleedLeft />
-              </div>
-            </>
-          ) : (
-            <h1 ref={h1Ref}>
-              {HEADLINE.map((w, i) => (
-                <span className="hw" key={`${w}-${i}`}>
-                  <span className="hw-in">{w}</span>
-                </span>
-              ))}
-            </h1>
-          )}
+            <div className="hero-pulse-stage" ref={pulseStageRef}>
+              <PulseBear3D followScroll bleedLeft />
+            </div>
+          ) : null}
           {mascot ? null : (
             <p>
               Fresh roles matched to you every morning, every application
@@ -886,6 +895,7 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
                 // Poster first; reduced motion keeps the poster.
                 <video
                   className="pw-video"
+                  ref={videoRef}
                   src="/landing/demo-pulse-loop.mp4"
                   poster="/landing/demo-pulse-loop-poster.jpg"
                   muted

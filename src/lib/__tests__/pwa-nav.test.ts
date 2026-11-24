@@ -82,15 +82,24 @@ describe("About page copy has no em dashes", () => {
     expect(about).toContain("Nothing ships on a hope. Every");
   });
 
-  it("keeps the reworded install lines", () => {
-    expect(install).toContain("Add to Home Screen: show me how");
-    expect(install).toContain("Tap the Pulse Find icon on your home screen. It");
-    expect(install).toContain("Tap Install. About 10");
-    expect(install).toContain("No worries, you can install anytime from your browser menu.");
-    expect(install).toContain("straight into your dashboard");
-    expect(install).toContain(", full-screen, no browser bars, no typing a URL");
-    // Nov 22 2026: the written steps, note and perks became two phones.
-    expect(install).toContain("Tap the <b>Share</b> button, then <b>Add to Home Screen</b>");
-    expect(install).toContain("is on your home screen. One tap, you&apos;re in.");
+  // Nov 24 2026: the install section went phones-only, so there are no
+  // install copy lines left at all. The two phones carry it: the Share
+  // sheet screenshot (alt text names Add to Home Screen) and the home
+  // screen mock with the Pulse Find icon.
+  it("has no install copy lines left: the section is two phones", () => {
+    for (const line of [
+      "Add to Home Screen: show me how",
+      "Tap the Pulse Find icon on your home screen. It",
+      "Tap Install. About 10",
+      "No worries, you can install anytime from your browser menu.",
+      "straight into your dashboard",
+      ", full-screen, no browser bars, no typing a URL",
+      "Tap the <b>Share</b> button, then <b>Add to Home Screen</b>",
+      "is on your home screen. One tap, you&apos;re in.",
+    ]) {
+      expect(install).not.toContain(line);
+    }
+    expect(install).toContain('src="/landing/ios-add-to-home.jpg"');
+    expect(install).toContain('src="/icons/icon-512.png"');
   });
 });

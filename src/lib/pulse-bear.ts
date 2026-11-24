@@ -31,10 +31,10 @@ function bump(t: number, a: number, b: number): number {
 export const GREET = {
   popEnd: 0.7,
   waveStart: 0.55,
-  waveEnd: 3.1,
-  turnStart: 3.2,
-  turnEnd: 5.2,
-  total: 5.4,
+  waveEnd: 3.6,
+  turnStart: 3.7,
+  turnEnd: 5.7,
+  total: 5.9,
 } as const;
 
 export interface Pose {
@@ -84,12 +84,15 @@ export function greetingPose(t: number): Pose {
   const lift = (1 - easeOutBack(pop, 1.2)) * 0.3;
   const squash = bump(t, 0.45, 0.85) * 0.18 - bump(t, 0.05, 0.4) * 0.1;
 
-  // Wave: raise, swing three times, lower.
+  // Wave: raise, swing three times, lower. The swing is wide on
+  // purpose: at the hero's render size a small wrist flick does not
+  // read as a wave, so the hand sweeps from out to the side to
+  // nearly straight up, several times, before the turn.
   const raiseIn = easeInOutCubic((t - GREET.waveStart) / 0.35);
   const raiseOut = easeInOutCubic((GREET.waveEnd - t) / 0.4);
   const armRaise = Math.min(raiseIn, raiseOut);
   const waveT = t - GREET.waveStart - 0.3;
-  const armWave = waveT > 0 ? Math.sin(waveT * Math.PI * 2 * 1.35) * armRaise : 0;
+  const armWave = waveT > 0 ? Math.sin(waveT * Math.PI * 2 * 1.5) * armRaise : 0;
   const mouthOpen = armRaise;
   const headTilt = armRaise * 0.14;
 

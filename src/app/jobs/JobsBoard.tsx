@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ago, calendarDaysBetween } from "@/lib/dates";
 import { isConfigured } from "@/lib/env";
 import { todayISO } from "@/lib/metrics";
-import { readJobPicks, writeJobPicks, type JobPick, type JobPickMark } from "@/lib/job-picks";
+import { orderSwipeQueue, readJobPicks, writeJobPicks, type JobPick, type JobPickMark } from "@/lib/job-picks";
 import { LOAD_TIMEOUT_MS, withLoadTimeout } from "@/lib/load-timeout";
 import { accountPipelineStore, isAlreadyTracked, leadKey } from "@/lib/pipeline";
 import { accountStore } from "@/lib/store";
@@ -157,7 +157,10 @@ export function JobsBoard({ userId }: { userId: string | null }) {
       });
     }
     Promise.resolve().then(() => {
-      try { if (alive && localStorage.getItem("pf_jobs_view") === "list") setView("list"); } catch {}
+      // The default view is swipe. A stored preference is honored
+      // only for saved: a stored "list" used to flip returning
+      // visitors back to the list and bury the deck (Nov 24 2026).
+      try { if (alive && localStorage.getItem("pf_jobs_view") === "saved") setView("saved"); } catch {}
     });
     return () => { alive = false; };
   }, [supabase, userId]);
@@ -370,7 +373,11 @@ export function JobsBoard({ userId }: { userId: string | null }) {
     try { localStorage.setItem("pf_jobs_view", v); } catch {}
   }
 
-  const baseQueue = jobs.filter((j) => !marks[j.id]);
+  // The swipe queue puts undergrad-eligible roles first, so the first
+  // card is never a PhD-only role. Advanced-degree roles stay in the
+  // deck, at the back. The list view keeps its newest-first order.
+  // A pinned job still leads the queue: the user pinned it.
+  const baseQueue = orderSwipeQueue(jobs.filter((j) => !marks[j.id]));
   const queue = pinnedId
     ? [...baseQueue.filter((j) => j.id === pinnedId), ...baseQueue.filter((j) => j.id !== pinnedId)]
     : baseQueue;

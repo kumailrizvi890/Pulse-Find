@@ -270,7 +270,7 @@ export function AboutLanding() {
               Cursor, and Copilot, so an AI agent can read a tracker, add
               leads, and update stages like a teammate. On Agensi&apos;s MCP
               marketplace it ranks <b>#1 for &quot;internship&quot;</b>, first
-              out of 18 listings.
+              out of 21 listings.
             </p>
             <p>
               <b>And it&apos;s tested like it matters.</b> Pulse Find runs{" "}
@@ -316,7 +316,7 @@ export function AboutLanding() {
                 <span>Live projects shipped</span>
               </div>
               <div>
-                <b>#1 of 18</b>
+                <b>#1 of 21</b>
                 <span>For &quot;internship&quot; on Agensi&apos;s MCP listings</span>
               </div>
             </div>

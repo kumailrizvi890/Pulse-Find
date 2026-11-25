@@ -155,7 +155,7 @@ Surfacing new roles is a core job; converting them is the user's.
 
 ## Tools
 
-`get_summary` · `list_applications` · `add_application` · `update_application` ·
+`get_summary` · `list_applications` · `list_events` · `add_application` · `update_application` ·
 `process_job_email` · `check_job_scam` · `search_jobs` ·
 `list_leads` · `add_lead` · `update_lead` ·
 `list_contacts` · `add_contact` · `update_contact`
@@ -186,7 +186,7 @@ Connect to the MCP server
 - Authenticate with this header on every MCP request: Authorization: Bearer pf_YOUR_API_TOKEN
 - Keep this token secret. Never paste it anywhere else, never print it in chat, never commit it to a repo.
 - Or connect with Claude Code: claude mcp add --transport http pulse-find https://pulsefind-app.vercel.app/api/mcp --header "Authorization: Bearer pf_YOUR_API_TOKEN"
-- Tools you can call: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact. Prompts you can run: scan_inbox, daily_digest, find_leads.
+- Tools you can call: get_summary, list_applications, list_events, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact. Prompts you can run: scan_inbox, daily_digest, find_leads.
 - Start with get_summary to see the current state of my tracker.
 
 Your jobs, in order

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/react";
 import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <FloatingPulseButton />
         </Suspense>
+        <Analytics />
       </body>
     </html>
   );

@@ -27,6 +27,35 @@ async function sha256Hex(s: string) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Rate limiting (per token + per IP, fixed 60s windows). The Deno edge
+// function cannot import src/lib/rate-limit.ts, so the limits are
+// duplicated here and the counter itself lives in Postgres — see
+// check_rate_limit() in supabase/migrations/
+// 20261125000000_weeks1_3_backend.sql.
+const MCP_TOKEN_LIMIT = 60;
+const MCP_IP_LIMIT = 300;
+const RATE_WINDOW_SECONDS = 60;
+
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim();
+  return ip || req.headers.get("cf-connecting-ip")?.trim() || "unknown";
+}
+
+// Seconds until the window rolls over when the key is over its limit,
+// 0 when allowed. Fails open on a counter error: rate limiting must
+// never take the MCP endpoint down if the counter table is unavailable.
+async function rateLimitRetryAfter(db: SupabaseClient, key: string, limit: number): Promise<number> {
+  const { data, error } = await db.rpc("check_rate_limit", {
+    p_key: key,
+    p_window_seconds: RATE_WINDOW_SECONDS,
+    p_limit: limit,
+  });
+  if (error || !Array.isArray(data) || !data[0]) return 0;
+  const row = data[0] as { allowed: boolean; retry_after_seconds: number };
+  return row.allowed ? 0 : Math.max(1, row.retry_after_seconds);
+}
+
 function userStore(db: SupabaseClient, uid: string): Store {
   const fail = (e: { message: string } | null) => { if (e) throw new Error(e.message); };
   return {
@@ -135,6 +164,19 @@ Deno.serve(async (req) => {
   // record use at most once a minute
   if (!row.last_used_at || Date.now() - new Date(row.last_used_at).getTime() > 60_000) {
     await db.from("api_tokens").update({ last_used_at: new Date().toISOString() }).eq("id", row.id);
+  }
+
+  // Rate limiting runs AFTER token validation, so a bad token still
+  // gets 401 (never 429) and a revoked token cannot burn the budget.
+  const retryAfter =
+    (await rateLimitRetryAfter(db, `mcp:token:${row.id}`, MCP_TOKEN_LIMIT)) ||
+    (await rateLimitRetryAfter(db, `mcp:ip:${clientIp(req)}`, MCP_IP_LIMIT));
+  if (retryAfter > 0) {
+    return reply(
+      { jsonrpc: "2.0", id: null, error: { code: -32029, message: "Too many requests. Slow down and try again shortly." } },
+      429,
+      { "Retry-After": String(retryAfter) },
+    );
   }
 
   const text = await req.text();

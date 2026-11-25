@@ -182,7 +182,7 @@ export function DemoConnectAgent() {
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">
-          Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact.
+          Tools: get_summary, list_applications, list_events, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact.
           Agents are told to stay read-only in your inbox and never send email or apply for you.
         </p>
       </Panel>

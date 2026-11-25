@@ -8,10 +8,12 @@ import { ImportDialog } from "./dashboard/ImportDialog";
 import { btn, field, Panel } from "./dashboard/ui";
 import { buildAgentPrompt, getMcpEndpoint } from "@/lib/agent-prompt";
 import { createAgentToken } from "@/lib/agent-tokens";
+import { trackEvent } from "@/lib/analytics";
+import { todayISO } from "@/lib/metrics";
 import { dedupeImport } from "@/lib/sheet";
 import { accountStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
-import type { Application, ApplicationInput } from "@/lib/types";
+import { emptyApplication, type Application, type ApplicationInput } from "@/lib/types";
 
 const SETUP_DONE_COOKIE =
   "pulse-find-setup-done=1; path=/; max-age=31536000; SameSite=Lax";
@@ -62,8 +64,11 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 /**
- * Guided first-run setup: add the tracker, connect an agent, and hand the
- * agent its instructions. Shown to new or empty accounts right after login
+ * Guided first-run setup: get one application into the tracker (import
+ * a sheet or add one by hand) and land on the dashboard — that is the
+ * success moment, no agent or token required. The agent-connect and
+ * agent-prompt steps stay for users who want them, clearly optional
+ * and skippable. Shown to new or empty accounts right after login
  * (see src/app/app/setup/page.tsx) and linked from Connect your agent.
  */
 export default function SetupWizard({ userId }: { userId: string }) {
@@ -77,6 +82,11 @@ export default function SetupWizard({ userId }: { userId: string }) {
     imported: number;
     skipped: number;
   } | null>(null);
+  const [manualCompany, setManualCompany] = useState("");
+  const [manualRole, setManualRole] = useState("");
+  const [manualLink, setManualLink] = useState("");
+  const [manualBusy, setManualBusy] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
   const [tokenName, setTokenName] = useState("My agent");
   const [token, setToken] = useState<string | null>(null);
   const [creatingToken, setCreatingToken] = useState(false);
@@ -109,8 +119,38 @@ export default function SetupWizard({ userId }: { userId: string }) {
   async function handleImport(inputs: ApplicationInput[]) {
     const { fresh, duplicates } = dedupeImport(inputs, apps);
     const made = fresh.length ? await store.createMany(fresh) : [];
+    if (apps.length === 0 && made.length > 0) trackEvent("first_import_completed");
     setApps((prev) => [...made, ...prev]);
     setImportResult({ imported: made.length, skipped: duplicates.length });
+  }
+
+  async function handleManualAdd() {
+    const company = manualCompany.trim();
+    if (!company) {
+      setManualError("Add the company name first.");
+      return;
+    }
+    setManualError(null);
+    setManualBusy(true);
+    try {
+      const made = await store.create({
+        ...emptyApplication(todayISO()),
+        company,
+        role: manualRole.trim(),
+        link: manualLink.trim(),
+      });
+      if (apps.length === 0) trackEvent("first_application_added");
+      setApps((prev) => [made, ...prev]);
+      setManualCompany("");
+      setManualRole("");
+      setManualLink("");
+    } catch (err) {
+      setManualError(
+        err instanceof Error ? err.message : "Could not save that application. Try again.",
+      );
+    } finally {
+      setManualBusy(false);
+    }
   }
 
   async function handleCreateToken() {
@@ -146,8 +186,9 @@ export default function SetupWizard({ userId }: { userId: string }) {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Get set up</h1>
         <p className="mt-1 text-sm text-muted">
-          Three steps and your tracker takes care of itself: bring your
-          applications, connect your agent, and give it its instructions.
+          Two minutes and you&apos;re done: add an application or import your
+          sheet, and your dashboard takes it from there. The agent steps
+          after that are optional — set them up whenever you like, or never.
         </p>
       </div>
 
@@ -175,6 +216,7 @@ export default function SetupWizard({ userId }: { userId: string }) {
                 <span aria-hidden="true">{done ? "✓" : number}</span>
                 <span>
                   Step {number} — {label}
+                  {number > 1 ? " (optional)" : ""}
                 </span>
               </button>
             </li>
@@ -186,10 +228,11 @@ export default function SetupWizard({ userId }: { userId: string }) {
         <Panel>
           <h2 className="text-lg font-semibold">Step 1 — Add your tracker</h2>
           <p className="mt-1 text-sm text-muted">
-            Upload the Excel sheet you already use to track your applications.
-            Pulse Find reads the same columns as the sheet export. The dialog
-            also offers a blank template to download if you want to start from
-            one.
+            Import the sheet you already use (CSV or .xlsx — Pulse Find reads
+            the same columns as the sheet export, and the dialog offers a
+            blank template too), or add one application by hand below.
+            Landing on your dashboard with your data in it is the whole
+            point of setup.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
@@ -197,8 +240,55 @@ export default function SetupWizard({ userId }: { userId: string }) {
               className={btn.primary}
               onClick={() => setImportOpen(true)}
             >
-              Choose Excel file (.xlsx)
+              Import a sheet (.xlsx or .csv)
             </button>
+          </div>
+          <div className="mt-6 border-t border-line pt-5">
+            <p className="text-sm font-medium">Or add one application by hand</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="block text-sm font-medium">
+                Company
+                <input
+                  className={field}
+                  value={manualCompany}
+                  onChange={(event) => setManualCompany(event.target.value)}
+                  placeholder="Stripe"
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Role
+                <input
+                  className={field}
+                  value={manualRole}
+                  onChange={(event) => setManualRole(event.target.value)}
+                  placeholder="SWE Intern"
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Posting link (optional)
+                <input
+                  className={field}
+                  value={manualLink}
+                  onChange={(event) => setManualLink(event.target.value)}
+                  placeholder="https://…"
+                />
+              </label>
+            </div>
+            <div className="mt-3">
+              <button
+                type="button"
+                className={btn.secondary}
+                disabled={manualBusy}
+                onClick={handleManualAdd}
+              >
+                {manualBusy ? "Adding…" : "Add application"}
+              </button>
+            </div>
+            {manualError && (
+              <p role="alert" className="mt-3 text-sm text-danger">
+                {manualError}
+              </p>
+            )}
           </div>
           {importResult && (
             <p
@@ -213,22 +303,29 @@ export default function SetupWizard({ userId }: { userId: string }) {
               {apps.length === 1 ? "" : "s"}.
             </p>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className={btn.primary}
-              onClick={() => setStep(2)}
-            >
-              Continue to step 2
-            </button>
-            <button
-              type="button"
-              className={btn.ghost}
-              onClick={() => setStep(2)}
-            >
-              I don&apos;t have a sheet yet — skip this step
-            </button>
-          </div>
+          {apps.length > 0 ? (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className={btn.primary}
+                onClick={finishSetup}
+              >
+                See my dashboard
+              </button>
+              <button
+                type="button"
+                className={btn.ghost}
+                onClick={() => setStep(2)}
+              >
+                Set up the agent too (optional)
+              </button>
+            </div>
+          ) : (
+            <p className="mt-6 text-sm text-muted">
+              Add at least one application above and you&apos;re set — or use
+              &ldquo;Skip setup for now&rdquo; below and add them later.
+            </p>
+          )}
           <ImportDialog
             open={importOpen}
             onClose={() => setImportOpen(false)}
@@ -239,9 +336,10 @@ export default function SetupWizard({ userId }: { userId: string }) {
 
       {step === 2 && (
         <Panel>
-          <h2 className="text-lg font-semibold">Step 2 — Connect your agent</h2>
+          <h2 className="text-lg font-semibold">Step 2 — Connect your agent (optional)</h2>
           <p className="mt-1 text-sm text-muted">
-            Your agent talks to Pulse Find through the MCP server. Create one
+            Optional — your tracker works fine without an agent. If you use
+            one, it talks to Pulse Find through the MCP server. Create one
             API token for it — Pulse Find stores only a hash of the token, so
             keep the copy below safe.
           </p>
@@ -323,6 +421,13 @@ export default function SetupWizard({ userId }: { userId: string }) {
             >
               Continue to step 3
             </button>
+            <button
+              type="button"
+              className={btn.ghost}
+              onClick={finishSetup}
+            >
+              Skip for now — go to my dashboard
+            </button>
           </div>
         </Panel>
       )}
@@ -330,10 +435,10 @@ export default function SetupWizard({ userId }: { userId: string }) {
       {step === 3 && (
         <Panel>
           <h2 className="text-lg font-semibold">
-            Step 3 — Give your agent its instructions
+            Step 3 — Give your agent its instructions (optional)
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Paste this into any AI agent — ChatGPT, Claude, Gemini, or your own.
+            Optional, like step 2. Paste this into any AI agent — ChatGPT, Claude, Gemini, or your own.
             Your MCP endpoint and API token are already filled in.
           </p>
           {!token ? (
@@ -341,13 +446,22 @@ export default function SetupWizard({ userId }: { userId: string }) {
               <p className="text-sm text-muted">
                 Create your API token in step 2 first, so the prompt can include it.
               </p>
-              <button
-                type="button"
-                className={btn.primary}
-                onClick={() => setStep(2)}
-              >
-                Back to step 2
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  className={btn.primary}
+                  onClick={() => setStep(2)}
+                >
+                  Back to step 2
+                </button>
+                <button
+                  type="button"
+                  className={btn.ghost}
+                  onClick={finishSetup}
+                >
+                  Skip for now — go to my dashboard
+                </button>
+              </div>
             </div>
           ) : (
             <>

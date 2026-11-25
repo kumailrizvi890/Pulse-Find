@@ -153,16 +153,16 @@ describe("no em dashes in the new answers", () => {
   });
 });
 
-const THIRTEEN_TOOLS =
-  "Tools: get_summary, list_applications, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact.";
+const FOURTEEN_TOOLS =
+  "Tools: get_summary, list_applications, list_events, add_application, update_application, process_job_email, check_job_scam, search_jobs, list_leads, add_lead, update_lead, list_contacts, add_contact, update_contact.";
 
 describe("connect step 3 lists every tool", () => {
-  it("the demo page step 3 names all 13 tools, like the step-4 prompt", () => {
-    expect(read("app/demo/connect/DemoConnectAgent.tsx")).toContain(THIRTEEN_TOOLS);
+  it("the demo page step 3 names all 14 tools, like the step-4 prompt", () => {
+    expect(read("app/demo/connect/DemoConnectAgent.tsx")).toContain(FOURTEEN_TOOLS);
   });
 
-  it("the signed-in page step 3 names all 13 tools too", () => {
-    expect(read("app/app/connect/ConnectAgent.tsx")).toContain(THIRTEEN_TOOLS);
+  it("the signed-in page step 3 names all 14 tools too", () => {
+    expect(read("app/app/connect/ConnectAgent.tsx")).toContain(FOURTEEN_TOOLS);
   });
 });
 

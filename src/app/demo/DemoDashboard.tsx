@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import { trackEvent } from "@/lib/analytics";
 import { demoStore } from "@/lib/store";
 
 export function DemoDashboard({ openChat }: { openChat?: boolean }) {
   const store = useMemo(() => demoStore(), []);
   const router = useRouter();
   const prevOpenRef = useRef(false);
+  useEffect(() => {
+    trackEvent("demo_opened", { source: "demo_page" });
+  }, []);
   useEffect(() => {
     // The navbar "Ask Pulse" entry links here with ?chat=1. The Dashboard
     // opens the general chat from the prop below; once it has, clear the

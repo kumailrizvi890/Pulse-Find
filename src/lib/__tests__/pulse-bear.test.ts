@@ -213,13 +213,13 @@ describe("wiring", () => {
     expect(bear).toMatch(/tier === "full" \? 1\.5 : 1\.25/);
   });
 
-  it("plays the trimmed demo-dashboard loop in the tracker window", () => {
-    expect(hero).toContain('src="/landing/demo-pulse-loop.mp4"');
-    expect(hero).toContain('poster="/landing/demo-pulse-loop-poster.jpg"');
+  it("plays Kumail's demo video in the tracker window", () => {
+    expect(hero).toContain('src="/videos/pulsefind-demo.mp4"');
+    expect(hero).toContain('poster="/videos/pulsefind-demo-poster.jpg"');
     expect(hero).toContain("muted");
     expect(hero).toContain("playsInline");
-    expect(existsSync(join(repoRoot, "public", "landing", "demo-pulse-loop.mp4"))).toBe(true);
-    expect(existsSync(join(repoRoot, "public", "landing", "demo-pulse-loop-poster.jpg"))).toBe(true);
+    expect(existsSync(join(repoRoot, "public", "videos", "pulsefind-demo.mp4"))).toBe(true);
+    expect(existsSync(join(repoRoot, "public", "videos", "pulsefind-demo-poster.jpg"))).toBe(true);
   });
 
   it("styles the mascot hero only under .hero-mascot, and keeps the classic hero", () => {

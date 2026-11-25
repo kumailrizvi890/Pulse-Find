@@ -927,14 +927,18 @@ body {
 .pulse-bear-canvas { position: absolute; top: 0; left: 0; }
 
 /* Mascot hero: the tracker window plays the real demo dashboard
-   (a recorded loop of /demo), 16:9, under the live ticker. A quiet
+   (a recorded loop of /demo) under the live ticker. A quiet
    link below opens the live demo. The content sits near the top, not
    vertically centred in the viewport, so there is no dead band under
    the navbar. */
 .hero-mascot { justify-content: flex-start; }
 .hero-mascot .hero-crazy-inner { padding-top: 20px; padding-bottom: 72px; }
 .hero-mascot .hero-pulse-stage { height: clamp(340px, 56vh, 560px); }
-.pw-video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top center; background: #0d0c10; }
+/* The demo video is portrait 4:5 (1080x1350): the frame matches its
+   aspect exactly, so cover shows the whole frame with no crop and no
+   bars. Width is capped so the taller frame stays in proportion to
+   the card, and it centres in the window. */
+.pw-video { display: block; width: min(100%, 430px); aspect-ratio: 4 / 5; margin-inline: auto; object-fit: cover; background: #0d0c10; }
 /* Tracker reveal (Nov 24 2026): armed by JS only, so no-JS keeps the
    old always-visible video. Armed, the loop is hidden and paused
    until its card is scrolled into view, and hides again as it

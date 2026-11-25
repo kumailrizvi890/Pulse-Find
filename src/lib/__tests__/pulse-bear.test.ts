@@ -186,9 +186,11 @@ describe("taps and reactions", () => {
 });
 
 describe("wiring", () => {
-  it("puts Pulse in the landing hero, in place of the headline", () => {
+  it("puts Pulse in the landing hero, alongside the one outcome headline", () => {
     expect(home).toContain("<HeroCrazy mascot />");
-    expect(hero).not.toContain("<h1");
+    // The hero carried no h1 from Nov 24 2026 until the Weeks 1-3 pass
+    // added back exactly one outcome headline as plain DOM text.
+    expect(hero).toContain("Never miss an assessment deadline.");
     expect(hero).toContain("<PulseBear3D followScroll bleedLeft />");
   });
 

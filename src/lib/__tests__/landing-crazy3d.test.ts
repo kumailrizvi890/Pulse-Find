@@ -161,13 +161,15 @@ describe("crazy hero math is pure functions", () => {
     expect(later.y).toBeLessThan(1);
   });
 
-  // The headline is gone (Nov 24 2026): the hero carries no h1 and no
-  // headline copy at all, in either branch. The bear and the tracker
-  // do the talking; the word-by-word reveal helpers went with it.
-  it("carries no headline anywhere in the hero", () => {
+  // The old headline was removed Nov 24 2026 (no h1, no headline copy,
+  // and the word-by-word reveal helpers went with it). The Weeks 1-3
+  // pass adds back exactly ONE new outcome headline as plain DOM text;
+  // the old removed lines stay gone.
+  it("carries only the new outcome headline in the hero", () => {
     expect(hero).not.toContain("Every application");
     expect(hero).not.toContain("One pulse");
-    expect(hero).not.toContain("<h1");
+    expect(hero).toContain("Never miss an assessment deadline.");
+    expect(hero).toContain("<h1");
     expect(crazy).not.toContain("wordDelay");
     expect(crazy).not.toContain("revealTotalMs");
   });

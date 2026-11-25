@@ -34,7 +34,7 @@ import { parallaxOffset, sectionProgress } from "@/lib/scroll-anim";
 // sync lives in the external cron script (not this repo), and Vercel
 // has gone Ready on a red CI run before, so "a red test stops the
 // deploy" is not a true claim. See OPEN_QUESTIONS.md.
-const TEST_COUNT = 1142;
+const TEST_COUNT = 1206;
 
 export function AboutLanding() {
   const photoRef = useRef<HTMLDivElement>(null);

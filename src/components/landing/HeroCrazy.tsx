@@ -904,17 +904,15 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
                 </div>
               </div>
               {mascot ? (
-                // The real demo dashboard, recorded: a muted loop of the
-                // /demo tracker with sample data, cut to the top of the
-                // dashboard (greeting, funnel, pace, OAs, interviews,
-                // stats) and played forward then back, slowed, so it
-                // never shows the long applications list or jumps.
+                // Kumail's demo video in the tracker window: the same
+                // 30s demo from his LinkedIn post and the Agensi
+                // listing, a muted loop of the demo dashboard.
                 // Poster first; reduced motion keeps the poster.
                 <video
                   className="pw-video"
                   ref={videoRef}
-                  src="/landing/demo-pulse-loop.mp4"
-                  poster="/landing/demo-pulse-loop-poster.jpg"
+                  src="/videos/pulsefind-demo.mp4"
+                  poster="/videos/pulsefind-demo-poster.jpg"
                   muted
                   loop
                   playsInline

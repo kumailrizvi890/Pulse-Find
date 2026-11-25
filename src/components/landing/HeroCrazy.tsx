@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { PULSE_DOCK_EVENT, PULSE_POKE_EVENT, PULSE_RETURNED_EVENT, PULSE_UNDOCK_EVENT } from "@/lib/pulse-bear-events";
+import { trackEvent } from "@/lib/analytics";
 import { PulseSprite } from "@/components/PulseSprite";
 import { morphStates, stateAt } from "@/lib/hero-morph";
 import {
@@ -64,9 +65,9 @@ import {
 //      can replay the greeting by moving the mouse; touch drag scrubs,
 //      tap replays. The pointer also keeps rotating the crystal, so
 //      the scene stays live either way. The headline that used to
-//      scramble in with the greeting was removed Nov 24 2026: the
-//      hero carries no headline now, the bear and the tracker do the
-//      talking. The scene is hand-rolled canvas 2.5D, not Three.js: one convex
+//      scramble in with the greeting was removed Nov 24 2026; the
+//      Weeks 1-3 pass adds back one plain outcome headline as DOM
+//      text above the bear (no scramble, no reveal helpers). The scene is hand-rolled canvas 2.5D, not Three.js: one convex
 //      crystal, a particle cloud, and a ring polyline, all real 3D
 //      math in src/lib/hero-greeting.ts. No new dependencies, no
 //      WebGL failure mode, DPR capped at 2, paused off-screen and on
@@ -803,6 +804,15 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
         <div className="hero-crazy-copy" ref={copyRef}>
           {mascot ? null : <span className="about-kicker">Pulse Find</span>}
           {mascot ? (
+            <>
+              <h1 className="hero-crazy-headline">Never miss an assessment deadline.</h1>
+              <p className="hero-crazy-sub">
+                Applications, OAs, and interviews in one tracker that flags
+                what&apos;s waiting on you before anything slips.
+              </p>
+            </>
+          ) : null}
+          {mascot ? (
             <div className="hero-pulse-stage" ref={pulseStageRef}>
               <PulseBear3D followScroll bleedLeft />
             </div>
@@ -822,6 +832,13 @@ export function HeroCrazy({ mascot = false }: { mascot?: boolean } = {}) {
                   <path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ) : null}
+            </a>
+            <a
+              className="cta2 ghost"
+              href="/demo"
+              onClick={() => trackEvent("demo_opened", { source: "hero" })}
+            >
+              Try the live demo
             </a>
             <a className="cta2 ghost" href="https://github.com/kumailrizvi890/Pulse-Find" target="_blank" rel="noopener">
               {mascot ? (

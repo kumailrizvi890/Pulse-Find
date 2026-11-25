@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PulseTrace } from "@/components/PulseTrace";
+import { GOOGLE_SIGNIN_MARKER } from "@/app/login/LoginForm";
+import { trackEvent } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/client";
 import {
   accountPipelineStore,
@@ -107,6 +109,22 @@ export function Overview({
 }) {
   const today = todayISO();
   const monday = weekStart(today);
+
+  // The Google button in the login form leaves a marker before the OAuth
+  // redirect; landing here with a session is the sign-in completing, so
+  // fire the event once and clear the marker. Best-effort: storage can
+  // be unavailable, and the demo (no userId) never fires it.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (window.sessionStorage.getItem(GOOGLE_SIGNIN_MARKER) === "1") {
+        window.sessionStorage.removeItem(GOOGLE_SIGNIN_MARKER);
+        trackEvent("google_signin_completed");
+      }
+    } catch {
+      // Marker is optional; nothing to do when storage is blocked.
+    }
+  }, [userId]);
 
   // The pace window is trailing, not the calendar week: on a Monday the
   // old Mon–Sun window was all zeros and read as broken. The segmented
@@ -305,6 +323,22 @@ export function Overview({
 
   return (
     <div className="space-y-4" data-tour="dashboard">
+      {userId && apps.length === 0 && (
+        <div className="rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm">
+          <p>
+            <b>Your tracker is empty.</b> Add your first application or import your sheet and
+            Pulse Find starts watching deadlines for you.{" "}
+            <Link href="/app/setup" className="font-semibold text-accent underline-offset-2 hover:underline">
+              Open the quick setup
+            </Link>{" "}
+            or{" "}
+            <Link href="/bookmarklet" className="font-semibold text-accent underline-offset-2 hover:underline">
+              grab the one-click save bookmarklet
+            </Link>
+            .
+          </p>
+        </div>
+      )}
       <div style={{ "--accent": "#f8343e" } as CSSProperties} aria-hidden="true">
         <PulseTrace className="h-6 w-full" />
       </div>

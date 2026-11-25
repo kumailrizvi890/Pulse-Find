@@ -1150,6 +1150,12 @@ body {
 .hero-crazy-inner > *, .founder-grid > * { min-width: 0; }
 .hero-crazy-copy .about-kicker { display: inline-block; }
 .hero-crazy-copy > p { color: #bcbccb; font-size: 17px; line-height: 1.55; max-width: 480px; margin: 0; }
+/* Outcome headline (Weeks 1-3 pass): real DOM text above the bear, the
+   one headline the landing carries. Display face, tight leading, sized
+   to sit with the existing hero type without touching the 3D scene. */
+.hero-crazy-headline { font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.06; letter-spacing: -0.02em; color: #f5f5f8; margin: 0 0 12px; max-width: 560px; }
+.hero-crazy-sub { color: #bcbccb; font-size: 17px; line-height: 1.55; max-width: 480px; margin: 0; }
+.hero-mascot .hero-crazy-sub { text-align: center; }
 .hero-crazy-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
 .hero-crazy-ctas .cta2 { box-shadow: none; }
 .hero-crazy-note { color: #8a8aa0 !important; font-size: 13px !important; margin-top: 16px !important; }

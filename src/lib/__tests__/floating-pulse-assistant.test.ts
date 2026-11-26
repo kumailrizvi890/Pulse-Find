@@ -78,6 +78,17 @@ describe("floating Pulse button", () => {
     expect(button).toContain('new CustomEvent("pulsefind:assistant-ping")');
   });
 
+  it("waves on mouse hover only, so a touch tap is never spent on the hover pose", () => {
+    // On iOS Safari a tap fires pointerenter before click; swapping
+    // the sprite there mutates the tapped element mid-tap, so Safari
+    // treats the tap as a hover and swallows the click (the chat then
+    // needs a second press). The wave, like the tilt, is mouse-only,
+    // and one click always reaches onClick.
+    expect(button).toContain('if (e.pointerType === "mouse") setPose("wave");');
+    expect(button).not.toContain('onPointerEnter={() => setPose("wave")}');
+    expect(button).toContain("onClick={onClick}");
+  });
+
   it("respects reduced motion in both the tilt and the CSS", () => {
     expect(button).toContain('matchMedia("(prefers-reduced-motion: reduce)")');
     expect(button).toContain("@media (prefers-reduced-motion: reduce)");

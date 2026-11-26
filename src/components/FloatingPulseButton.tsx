@@ -377,7 +377,13 @@ export function FloatingPulseButton() {
         type="button"
         onClick={onClick}
         onPointerMove={onPointerMove}
-        onPointerEnter={() => setPose("wave")}
+        onPointerEnter={(e) => {
+          // Mouse only, like the tilt above: on a touch tap,
+          // pointerenter fires as part of the tap, and swapping the
+          // sprite there makes iOS Safari read the tap as a hover and
+          // swallow its click, so the chat took two presses to open.
+          if (e.pointerType === "mouse") setPose("wave");
+        }}
         onPointerLeave={() => {
           onPointerLeave();
           setPose("idle");

@@ -14,6 +14,10 @@ import {
 /**
  * Pulse as a floating assistant (Nov 23 2026: the mascot, not the orb):
  * a little Pulse standing bottom-right on every page, bobbing gently,
+ * (Nov 25 2026: the docked corner Pulse made ~1.5x bigger at Kumail's
+ * word, 132px on desktop, ~1.35x on phones so he stays in proportion;
+ * the flight reads the button's live rect, so it lands on the new
+ * size with no animation change.)
  * waving when you hover, with the waiting-count badge. On the landing
  * page he starts in the hero: when the hero Pulse scrolls away he flies
  * down into the corner and shrinks, lands with a squash and a wave, and
@@ -384,13 +388,13 @@ export function FloatingPulseButton() {
           transform: `perspective(600px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
           visibility: docked && !flying ? "visible" : "hidden",
         }}
-        className="pf-assistant-btn fixed bottom-2 right-2 z-[60] h-[96px] w-[88px] rounded-3xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-3 sm:right-3"
+        className="pf-assistant-btn fixed bottom-2 right-2 z-[60] h-[130px] w-[120px] rounded-3xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-3 sm:right-3 sm:h-[144px] sm:w-[132px]"
       >
-        <span aria-hidden="true" className="pf-mini-shadow absolute bottom-[6px] left-1/2 h-3 w-14 rounded-full" />
-        {landKey > 0 && <span key={`ring-${landKey}`} aria-hidden="true" className="pf-mini-ring absolute bottom-[2px] left-1/2 h-6 w-16 rounded-full" />}
+        <span aria-hidden="true" className="pf-mini-shadow absolute bottom-[8px] left-1/2 h-4 w-[76px] rounded-full sm:bottom-[9px] sm:h-[18px] sm:w-[84px]" />
+        {landKey > 0 && <span key={`ring-${landKey}`} aria-hidden="true" className="pf-mini-ring absolute bottom-[3px] left-1/2 h-8 w-[88px] rounded-full sm:h-9 sm:w-24" />}
         <span className="pf-assistant-float absolute inset-x-0 bottom-[8px] flex justify-center">
           <span key={`land-${landKey}`} className={landKey > 0 ? "pf-mini-land block" : "block"}>
-            <PulseSprite pose={pose} className="h-[88px] w-[88px] object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.6)]" />
+            <PulseSprite pose={pose} className="h-[120px] w-[120px] object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.6)] sm:h-[132px] sm:w-[132px]" />
           </span>
         </span>
         {waiting > 0 && (
@@ -402,7 +406,7 @@ export function FloatingPulseButton() {
       {hi && docked && (
         <span
           aria-live="polite"
-          className="pf-mini-hi pointer-events-none fixed bottom-[104px] right-4 z-[61] whitespace-nowrap rounded-2xl rounded-br-md bg-[#f4f2f7] px-3.5 py-2 text-[13px] font-bold text-[#17151c] shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+          className="pf-mini-hi pointer-events-none fixed bottom-[144px] right-4 z-[61] whitespace-nowrap rounded-2xl rounded-br-md bg-[#f4f2f7] px-3.5 py-2 text-[13px] font-bold text-[#17151c] shadow-[0_10px_30px_rgba(0,0,0,0.45)] sm:bottom-[162px]"
         >
           Hi! Ask me anything.
         </span>
